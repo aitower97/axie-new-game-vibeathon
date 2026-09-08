@@ -34,7 +34,7 @@ export const CLASSES = {
 //   guard   -> escudo, se aplica al tirar. Absorbe dano enemigo.
 //   dash    -> mueve hasta 2 casillas y puede atacar al final.
 export const FACE_INFO = {
-  summon: { glyph: '✦', name: 'Invocacion', hint: 'Fuera: entra al tablero. Dentro: mueve 2.' },
+  summon: { glyph: '✦', name: 'Invocacion', hint: 'Fuera: entra al tablero. Dentro: mueve 2 o golpea 1 si tienes un rival al lado.' },
   strike: { glyph: '⚔', name: 'Golpe', hint: 'Ataque normal, la DEF lo reduce.' },
   pierce: { glyph: '➤', name: 'Perforante', hint: 'Ignora la DEF del objetivo.' },
   drain: { glyph: '♥', name: 'Drenaje', hint: 'Ataca y te cura 1.' },
@@ -45,11 +45,15 @@ export const FACE_INFO = {
 // Biblioteca de partes. Cada slot tiene variantes con nombre real de Axie.
 // Dos Axies con el mismo esqueleto pero partes distintas juegan distinto: ahi
 // esta la variedad, no en las estadisticas.
+// Clase de cada parte verificada contra la tabla de genes real de Axie
+// (community gene-decoder, github.com/ShaneMaglangit/agp). Varias difieren de la
+// intuicion: Little Branch, Goda, Axie Kiss y Timber son Beast, Hermit es Aquatic,
+// Papi es Plant. Necesario para que @axieinfinity/mixer encuentre la parte al renderizar.
 export const PARTS = {
   eyes: [
     { id: 'chubby', name: 'Chubby', class: 'beast', face: 'summon', power: 0 },
     { id: 'clear', name: 'Clear', class: 'aquatic', face: 'summon', power: 0 },
-    { id: 'papi', name: 'Papi', class: 'bird', face: 'summon', power: 0 },
+    { id: 'papi', name: 'Papi', class: 'plant', face: 'summon', power: 0 },
   ],
   ears: [
     { id: 'puppy', name: 'Puppy', class: 'beast', face: 'summon', power: 0 },
@@ -57,19 +61,19 @@ export const PARTS = {
     { id: 'lotus', name: 'Lotus', class: 'plant', face: 'summon', power: 0 },
   ],
   horn: [
-    { id: 'little-branch', name: 'Little Branch', class: 'plant', face: 'pierce', power: 2 },
+    { id: 'little-branch', name: 'Little Branch', class: 'beast', face: 'pierce', power: 2 },
     { id: 'imp', name: 'Imp', class: 'beast', face: 'pierce', power: 3 },
     { id: 'cactus', name: 'Cactus', class: 'plant', face: 'guard', power: 2 },
   ],
   mouth: [
     { id: 'serious', name: 'Serious', class: 'plant', face: 'drain', power: 2 },
-    { id: 'goda', name: 'Goda', class: 'aquatic', face: 'drain', power: 1 },
-    { id: 'axie-kiss', name: 'Axie Kiss', class: 'bug', face: 'strike', power: 3 },
+    { id: 'goda', name: 'Goda', class: 'beast', face: 'drain', power: 1 },
+    { id: 'axie-kiss', name: 'Axie Kiss', class: 'beast', face: 'strike', power: 3 },
   ],
   back: [
-    { id: 'hermit', name: 'Hermit', class: 'bug', face: 'guard', power: 2 },
+    { id: 'hermit', name: 'Hermit', class: 'aquatic', face: 'guard', power: 2 },
     { id: 'balloon', name: 'Balloon', class: 'bird', face: 'guard', power: 1 },
-    { id: 'timber', name: 'Timber', class: 'plant', face: 'strike', power: 2 },
+    { id: 'timber', name: 'Timber', class: 'beast', face: 'strike', power: 2 },
   ],
   tail: [
     { id: 'ant', name: 'Ant', class: 'bug', face: 'strike', power: 2 },

@@ -194,9 +194,13 @@ npm run lint     # oxlint
 
 ```
 src/
-  App.jsx      logica de partida y UI (componente unico)
-  axie.js      datos de partes, clases, dados y resolucion de efectos
-  App.css      estilos
+  App.jsx              logica de partida y UI (componente unico)
+  axie.js              datos de partes, clases, dados y resolucion de efectos
+  axieMixer.js          puente genoma -> @axieinfinity/mixer (tabla de genes reales,
+                         animaciones de ataque)
+  AxieSprite.jsx        render 2D real del Axie (PixiJS + pixi-spine) en carta y tablero
+  LunaciaBackdrop.jsx   fondo 3D ambiental (Three.js), decorativo, ver nota abajo
+  App.css               estilos
 ```
 
 ### Reglas de trabajo (importantes, hay 13 días)
@@ -212,19 +216,39 @@ src/
   que hace que se entienda la idea en cinco segundos sin leer nada. Prioridad máxima de
   interfaz.
 - **No usar TypeScript ni añadir dependencias** salvo `@axieinfinity/mixer` y sus pares
-  de PixiJS cuando toque el paso de renderizado.
+  de PixiJS, y `three` (ver nota sobre `LunaciaBackdrop.jsx`). Cualquier otra dependencia
+  nueva se pide primero.
+
+> **Nota sobre `three`:** decisión explícita del usuario, no mía. Pidió ver el tablero "en
+> 3D, en el mundo de Lunacia". Se le avisó de que el tablero/piezas en 3D de verdad
+> significaría abandonar `@axieinfinity/mixer` (2D) y depender del Three.js Axie Mixer,
+> que `docs/estudio-mercado-2026.md` marca como beta inestable — eligió la alternativa de
+> bajo riesgo: un fondo 3D puramente decorativo (`LunaciaBackdrop.jsx`, `pointer-events:
+> none`) detrás del tablero 2D real, que sigue intacto. No hay assets de entorno de
+> Lunacia publicados por Sky Mavis, así que la escena es abstracta (islas flotantes, luna,
+> motas de luz) en la paleta del juego, no un lugar del lore inventado.
 
 ### Orden de trabajo previsto
 
 1. ~~Conversión del dado: caras = partes~~ (hecho)
-2. Assets reales: integrar `@axieinfinity/mixer` para dibujar los Axies en las cartas y
-   en el tablero, en lugar de los cuadros de color.
-3. IA enemiga con prioridades (rematar al herido, ir al Lord si está libre) y ajuste de
-   ritmo del spawn.
+2. ~~Assets reales: integrar `@axieinfinity/mixer` para dibujar los Axies en las cartas
+   y en el tablero~~ (hecho — `src/axieMixer.js` + `src/AxieSprite.jsx`; ver nota abajo)
+3. ~~IA enemiga con prioridades (rematar al herido, ir al Lord si está libre)~~ (hecho —
+   prioriza un remate sobre solo "el más herido", y rodea un bloqueo simple hacia el
+   Lord). El ritmo del spawn, cada 3 turnos, se dejó igual.
 4. Despliegue (Vercel o Netlify desde Vite), vídeo de respaldo y declaración de encaje
    con Axie Core.
 5. Playtest con alguien que no lo haya visto: si no entiende el dado en un minuto, el
    problema es de interfaz, no de diseño.
+
+> **Nota sobre el paso 2:** `@axieinfinity/mixer` no acepta nombres de parte ("Imp",
+> "Goda"), solo un genoma binario real o un `AxieBodyStructure` con clase + partValue
+> numerico por parte. `axieMixer.js` trae esa tabla (`PART_GENE`) verificada contra el
+> decodificador de genes comunitario (github.com/ShaneMaglangit/agp), no inventada. Al
+> verificarla salió que 6 de las 18 partes de `PARTS` en `axie.js` tenían la clase real
+> equivocada (Little Branch, Goda, Axie Kiss y Timber son Beast; Hermit es Aquatic; Papi
+> es Plant) — ya está corregido. Solo enemigos "Axie salvaje" siguen sin genoma propio
+> (son genéricos a proposito, fuera del sistema de partes).
 
 ### Ideas guardadas para más adelante (no ahora)
 

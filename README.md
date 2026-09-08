@@ -20,20 +20,28 @@ turno**:
 
 | Cara | Efecto |
 |---|---|
-| ✦ Invocación | Fuera del tablero: entra. Dentro: reposiciona (mueve 2). |
+| ✦ Invocación | Fuera del tablero: entra. Dentro: reposiciona (mueve 2) o golpea por 1. |
 | ⚔ Golpe | Ataque normal, la DEF lo reduce. |
 | ➤ Perforante | Ignora la DEF del objetivo. |
 | ♥ Drenaje | Ataca y te cura 1. |
-| ◉ Guardia | Escudo inmediato, se aplica solo al tirar. Dura un turno. |
+| ◉ Guardia | Escudo inmediato, se aplica solo al tirar. También puede golpear por 1. |
 | ⇉ Impulso | Mueve hasta 2 y puede atacar. |
+
+No hay cara "muerta" en combate: cualquier cara con la que tengas un rival al lado te
+deja darle un golpe simple de 1 de daño, aunque su especialidad sea otra cosa (invocar,
+moverte, dar guardia). Las caras de ataque de verdad (Golpe, Perforante, Drenaje,
+Impulso) siguen siendo mejores — más daño, o encima curan o mueven.
 
 Qué cara tiene cada parte depende de **qué parte concreta** llevas: un cuerno *Imp*
 perfora por 3, un *Little Branch* por 2, un *Cactus* ni siquiera ataca, da guardia. Dos
 Axies con el mismo esqueleto pero distinto genoma juegan distinto.
 
-Las dos crías de partida están construidas como opuestas a propósito: **Ascua** es
-agresiva (cuerno Imp perforante, boca que drena, cola con impulso) y **Musgo** es
-defensiva (orejas y lomo que dan guardia, más DEF, cola de golpe fiable).
+Las dos crías de partida están construidas como opuestas a propósito: **Axie #1** es
+agresivo (cuerno Imp perforante, boca que drena, cola con impulso) y **Axie #2** es
+defensivo (orejas y lomo que dan guardia, más DEF, cola de golpe fiable). Sin nombre de
+fantasía: un Axie real sin apodo se muestra como "Axie #\<id>" en el marketplace, así que
+el prototipo hace lo mismo en vez de inventar nombres que no significan nada en el juego
+real.
 
 ## Controles
 
@@ -63,14 +71,22 @@ defensiva (orejas y lomo que dan guardia, más DEF, cola de golpe fiable).
 - **Sin integración on-chain.** Las bases del Vibeathon la marcan como opcional en fase
   de prototipo, y la AXP API requiere una app aprobada en el Ronin Developer Console con
   permiso explícito del servicio AXP.
-- **IA enemiga: simple.** Prioriza rematar al herido y avanza hacia tu Lord. Suficiente
-  para demostrar el loop, no para un balance final.
-- **Arte: marcadores de posición.** Cuadros de color con el borde teñido por la clase.
+- **IA enemiga.** Prioriza un remate (dejar a un rival a 0) sobre solo "el más herido", y
+  si tiene el paso recto al Lord bloqueado por una de tus criaturas, prueba rodear por
+  fila. Suficiente para demostrar el loop, no para un balance final.
+- **Arte: Axies reales**, dibujados con `@axieinfinity/mixer` + `pixi.js`/`pixi-spine` a
+  partir del genoma de cada criatura (ver `src/axieMixer.js` y `src/AxieSprite.jsx`), con
+  animación de ataque real según la parte que golpea. Si el navegador no puede cargar las
+  texturas del CDN de Axie, la carta cae de vuelta al cuadro de color con la inicial, para
+  que la partida nunca se rompa por falta de red.
+- **Fondo 3D: decorativo, no el tablero.** El tablero y las piezas siguen siendo el
+  sistema 2D real de arriba. Detrás hay una escena Three.js ambiental (`src/
+  LunaciaBackdrop.jsx`) — islas flotantes, una luna, motas de luz — en la paleta del
+  juego. No es un lugar del lore de Lunacia: Sky Mavis no publica assets de entorno, así
+  que es deliberadamente abstracta en vez de inventar geografía.
 
 ## Siguientes pasos
 
-- Sustituir los cuadros por Axies reales con `@axieinfinity/mixer` (requiere
-  `pixi.js@7.2.4` y `pixi-spine@4.0.3`).
 - Afinidad de clase por terreno en el tablero (Aquatic por agua, Bird ignora obstáculos).
 - Escena explorable previa al combate.
 - Ritual de Ascensión con pantalla propia en lugar del aviso actual.

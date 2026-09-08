@@ -1,5 +1,7 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import './App.css'
+import AxieSprite from './AxieSprite'
+import LunaciaBackdrop from './LunaciaBackdrop'
 import {
   SLOTS,
   SLOT_LABEL,
@@ -13,6 +15,8 @@ import {
   moveRange,
   damageFrom,
 } from './axie'
+import { SLOT_ATTACK_ANIM, FALLBACK_ATTACK_ANIM } from './axieMixer'
+import { loadClip, AdditiveAtlas, playOnCanvas } from './originsVfx'
 
 const ROWS = 5
 const COLS = 7
@@ -21,19 +25,40 @@ const ENEMY_LORD = { r: 2, c: 6 }
 const LORD_HP = 3
 const AXP_PER_ASCENSION = 3
 
-// Dos Axies con genomas deliberadamente opuestos:
-// Ascua es agresiva (perforante + drenaje), Musgo es defensiva (guardia + alcance).
+// VFX de combate de Origins: sufijo de clip por slot de ataque, y buffs universales.
+// El clip completo es <clase de la parte>_<sufijo> (beast_gore, plant_bite...).
+const SLOT_VFX_SUFFIX = { horn: 'gore', mouth: 'bite', tail: 'slash', back: 'smash' }
+const atlasCache = new Map()
+
+// Terreno visual por celda: hash determinista sin dependencias.
+// ~55% cesped, ~28% tierra, ~17% piedra.
+function cellTerrain(r, c) {
+  const h = ((r * 7 + c) * 2654435761) >>> 0
+  const v = h % 100
+  if (v < 55) return 'grass'
+  if (v < 83) return 'earth'
+  return 'stone'
+}
+
+// Los Lords son Axies coleccionables/misticos: se renderizan con su Axie real.
+// Genomas deliberadamente raros para distinguirlos de la tropa.
+const PLAYER_LORD_GENOME = buildGenome(['papi', 'lotus', 'cactus', 'axie-kiss', 'timber', 'shrimp'])
+const ENEMY_LORD_GENOME = buildGenome(['chubby', 'nut-cracker', 'imp', 'goda', 'balloon', 'ant'])
+
+// Dos Axies con genomas deliberadamente opuestos: #1 es agresivo (perforante + drenaje),
+// #2 es defensivo (guardia + alcance). Sin nombre de fantasia: un Axie real sin apodo se
+// muestra como "Axie #<id>" en el marketplace/app, asi que el prototipo hace lo mismo.
 const STARTING_GENOMES = [
   {
     id: 'p1',
-    name: 'Cria de Ascua',
+    name: 'Axie #1',
     hp: 6,
     def: 1,
     parts: ['chubby', 'puppy', 'imp', 'goda', 'balloon', 'hare'],
   },
   {
     id: 'p2',
-    name: 'Cria de Musgo',
+    name: 'Axie #2',
     hp: 7,
     def: 2,
     parts: ['clear', 'nut-cracker', 'little-branch', 'serious', 'hermit', 'ant'],
@@ -68,6 +93,8 @@ function dist(a, r, c) {
 }
 
 export default function App() {
+  const boardRef = useRef(null)
+  const vfxCanvas = useRef(null)
   const [roster, setRoster] = useState(() => STARTING_GENOMES.map(makeCreature))
   const [enemies, setEnemies] = useState([])
   const [playerLordHp, setPlayerLordHp] = useState(LORD_HP)
@@ -79,10 +106,98 @@ export default function App() {
   const [turn, setTurn] = useState(1)
   const [status, setStatus] = useState('playing')
   const [ascensionToast, setAscensionToast] = useState(null)
+  const [attackFx, setAttackFx] = useState({})
 
   const pushLog = useCallback((line) => {
     setLog((l) => [line, ...l].slice(0, 7))
   }, [])
+
+  // Dispara una animacion real del mixer sobre AxieSprite (ataque del que golpea,
+  // reaccion del que recibe), sin desmontarlo.
+  function triggerAnimFx(creatureId, anim) {
+    setAttackFx((fx) => ({ ...fx, [creatureId]: { tick: (fx[creatureId]?.tick || 0) + 1, anim } }))
+  }
+
+  // Canvas de VFX encima del tablero (mismo espacio 3D CSS): se redimensiona con dpr
+  // la primera vez que se usa.
+  function vfxCtx() {
+    const canvas = vfxCanvas.current
+    const board = boardRef.current
+    if (!canvas || !board) return null
+    const dpr = window.devicePixelRatio || 1
+    const bw = Math.round(board.clientWidth * dpr)
+    const bh = Math.round(board.clientHeight * dpr)
+    if (canvas.width !== bw || canvas.height !== bh) {
+      canvas.width = bw
+      canvas.height = bh
+      canvas.getContext('2d').setTransform(dpr, 0, 0, dpr, 0, 0)
+    }
+    return canvas.getContext('2d')
+  }
+
+  // Centro de una celda en el layout del tablero (antes del transform 3D: como el canvas
+  // vive dentro de .board, el mismo rotateX le aplica perspectiva al VFX).
+  function cellCenter(r, c) {
+    const el = boardRef.current?.querySelector(`[data-r="${r}"][data-c="${c}"]`)
+    if (!el) return { x: 0, y: 0 }
+    return { x: el.offsetLeft + el.offsetWidth / 2, y: el.offsetTop + el.offsetHeight / 2 }
+  }
+
+  function atlasFor(id) {
+    if (!atlasCache.has(id)) {
+      const p = loadClip(id)
+        .then((clip) => AdditiveAtlas.load(clip))
+        .catch((err) => {
+          atlasCache.delete(id)
+          throw err
+        })
+      atlasCache.set(id, p)
+    }
+    return atlasCache.get(id)
+  }
+
+  // Reproduce un clip en una celda (buffs: escudo, invocacion). El clip de buff esta
+  // anclado en "target", asi que atacante y defensor apuntan a la misma celda.
+  function playClipAt(vfxId, cell, onEvent) {
+    atlasFor(vfxId)
+      .then((atlas) => {
+        const ctx = vfxCtx()
+        const board = boardRef.current
+        if (!ctx || !board) return
+        const point = cellCenter(cell.r, cell.c)
+        playOnCanvas(
+          atlas,
+          ctx,
+          () => ({ attacker: point, defender: point, fieldWidth: board.clientWidth }),
+          { onEvent }
+        )
+      })
+      .catch(() => {})
+  }
+
+  // VFX de ataque entre dos celdas. El clip decide la animacion de ataque (OnAttack) y
+  // la reaccion de golpe (OnHit) con los nombres reales que usa Origins.
+  function playCombatVfx(creature, targetCell, rolled, hitTargetId) {
+    triggerAnimFx(creature.id, SLOT_ATTACK_ANIM[rolled.slot] || FALLBACK_ATTACK_ANIM)
+    const suffix = SLOT_VFX_SUFFIX[rolled.slot]
+    if (!suffix) return
+    const vfxId = `${rolled.partClass}_${suffix}`
+    atlasFor(vfxId)
+      .then((atlas) => {
+        const ctx = vfxCtx()
+        const board = boardRef.current
+        if (!ctx || !board) return
+        const attacker = cellCenter(creature.pos.r, creature.pos.c)
+        const defender = cellCenter(targetCell.r, targetCell.c)
+        playOnCanvas(atlas, ctx, () => ({ attacker, defender, fieldWidth: board.clientWidth }), {
+          onEvent: (evt) => {
+            if (evt.function === 'OnAttack' && evt.string) triggerAnimFx(creature.id, evt.string)
+            if (evt.function === 'OnHit' && evt.string && hitTargetId) triggerAnimFx(hitTargetId, evt.string)
+          },
+        })
+      })
+      .catch(() => {})
+  }
 
   function occupied(r, c) {
     if ((r === PLAYER_LORD.r && c === PLAYER_LORD.c) || (r === ENEMY_LORD.r && c === ENEMY_LORD.c)) return true
@@ -110,6 +225,7 @@ export default function App() {
           guarded.some((g) => g.id === cr.id) ? { ...cr, shield: cr.shield + result[cr.id].power } : cr
         )
       )
+      guarded.forEach((g) => playClipAt('shield', g.pos, null))
     }
 
     const summonable = alive.filter((c) => !c.pos && result[c.id].face === 'summon')
@@ -133,6 +249,7 @@ export default function App() {
     setRoster((rs) => rs.map((cr) => (cr.id === creatureId ? { ...cr, pos: { r, c } } : cr)))
     setActed((a) => ({ ...a, [creatureId]: true }))
     const cr = roster.find((x) => x.id === creatureId)
+    playClipAt('summon_on_cast', { r, c }, null)
     pushLog(`${cr.name} entra al tablero.`)
   }
 
@@ -155,6 +272,7 @@ export default function App() {
   }
 
   function attackEnemy(creature, enemy, rolled) {
+    playCombatVfx(creature, enemy.pos, rolled, null)
     const dmg = damageFrom(rolled, enemy.def)
     const newHp = enemy.hp - dmg
     const killed = newHp <= 0
@@ -191,19 +309,19 @@ export default function App() {
 
     const d = dist(creature.pos, r, c)
 
+    // Cualquier cara permite un golpe simple (1 de dano) a quien tengas al lado: no hay
+    // cara "muerta" en combate, solo caras mejores o peores para atacar. damageFrom ya
+    // resuelve ese golpe base para las caras que no son de ataque (igual que la guardia).
     const enemyHere = enemies.find((e) => e.alive && e.pos.r === r && e.pos.c === c)
     if (enemyHere) {
       if (d !== 1) return
-      if (rolled.face === 'summon') {
-        pushLog(`${creature.name} no puede atacar con una cara de invocacion.`)
-        return
-      }
       attackEnemy(creature, enemyHere, rolled)
       return
     }
 
     if (r === ENEMY_LORD.r && c === ENEMY_LORD.c) {
-      if (d !== 1 || rolled.face === 'summon') return
+      if (d !== 1) return
+      playCombatVfx(creature, { r: ENEMY_LORD.r, c: ENEMY_LORD.c }, rolled, 'enemy-lord')
       const dmg = damageFrom(rolled, 0)
       const newHp = enemyLordHp - dmg
       setEnemyLordHp(newHp)
@@ -272,13 +390,25 @@ export default function App() {
     nextEnemies.forEach((e) => {
       if (!e.alive) return
 
-      // Prioriza rematar a la criatura mas herida que tenga al lado.
-      const reachable = nextRoster.filter((c) => c.alive && c.pos && adjacent(e.pos, c.pos))
-      const target = reachable.sort((a, b) => a.hp - b.hp)[0]
+      // Prioriza un remate (dejar a 0) sobre solo "la mas herida": entre las criaturas
+      // al lado, primero mira si puede matar alguna este golpe: si puede, esa gana
+      // siempre aunque otra tenga menos HP absoluto. Si no puede matar a nadie, va a
+      // por la mas herida para acercarla a un remate futuro.
+      const reachable = nextRoster
+        .filter((c) => c.alive && c.pos && adjacent(e.pos, c.pos))
+        .map((c) => {
+          const absorbed = Math.min(c.shield, e.atk)
+          const dealt = Math.max(0, e.atk - absorbed - Math.floor(c.def / 2))
+          return { target: c, absorbed, dealt, lethal: dealt >= c.hp }
+        })
+        .sort((a, b) => {
+          if (a.lethal !== b.lethal) return a.lethal ? -1 : 1
+          return a.target.hp - b.target.hp
+        })
+      const hit = reachable[0]
 
-      if (target) {
-        const absorbed = Math.min(target.shield, e.atk)
-        const dealt = Math.max(0, e.atk - absorbed - Math.floor(target.def / 2))
+      if (hit) {
+        const { target, absorbed, dealt } = hit
         target.shield -= absorbed
         target.hp -= dealt
         if (absorbed > 0) lines.push(`El escudo de ${target.name} absorbe ${absorbed}.`)
@@ -297,8 +427,18 @@ export default function App() {
         return
       }
 
+      // Avanza hacia el Lord en linea recta; si esa casilla esta ocupada, prueba
+      // rodear por fila (acercarse a la fila del Lord) en vez de quedarse quieto.
       const nc = e.pos.c - 1
-      if (nc >= 0 && !busy(e.pos.r, nc)) e.pos = { r: e.pos.r, c: nc }
+      if (nc >= 0 && !busy(e.pos.r, nc)) {
+        e.pos = { r: e.pos.r, c: nc }
+        return
+      }
+      const rowStep = e.pos.r < PLAYER_LORD.r ? 1 : e.pos.r > PLAYER_LORD.r ? -1 : 0
+      if (rowStep !== 0) {
+        const nr = e.pos.r + rowStep
+        if (nr >= 0 && nr < ROWS && !busy(nr, e.pos.c)) e.pos = { r: nr, c: e.pos.c }
+      }
     })
 
     if (turn % 3 === 0) {
@@ -339,6 +479,7 @@ export default function App() {
 
   return (
     <div className="app">
+      <LunaciaBackdrop />
       <header>
         <h1>Vinculo de Lunacia</h1>
         <p className="subtitle">
@@ -366,7 +507,8 @@ export default function App() {
         </div>
       )}
 
-      <div className="board" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}>
+      <div className="board" ref={boardRef} style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}>
+        <canvas ref={vfxCanvas} className="vfx-overlay" />
         {Array.from({ length: ROWS }).map((_, r) =>
           Array.from({ length: COLS }).map((_, c) => {
             const isPLord = r === PLAYER_LORD.r && c === PLAYER_LORD.c
@@ -381,8 +523,11 @@ export default function App() {
             return (
               <div
                 key={`${r}-${c}`}
+                data-r={r}
+                data-c={c}
                 className={[
                   'cell',
+                  `terrain-${cellTerrain(r, c)}`,
                   summonZone && summonableIds.length ? 'summon-zone' : '',
                   inRange ? 'in-range' : '',
                   selected && own?.id === selected ? 'selected' : '',
@@ -391,14 +536,30 @@ export default function App() {
                   .join(' ')}
                 onClick={() => cellClick(r, c)}
               >
-                {isPLord && <span className="lord-icon">◆</span>}
-                {isELord && <span className="lord-icon enemy">◆</span>}
+                {isPLord && (
+                  <div className="lord-unit own-lord">
+                    <AxieSprite genome={PLAYER_LORD_GENOME} dominantClass={dominantClass(PLAYER_LORD_GENOME)} size={52} />
+                    <small>{playerLordHp}</small>
+                  </div>
+                )}
+                {isELord && (
+                  <div className="lord-unit enemy-lord">
+                    <AxieSprite
+                      genome={ENEMY_LORD_GENOME}
+                      dominantClass={dominantClass(ENEMY_LORD_GENOME)}
+                      size={52}
+                      attackSignal={attackFx['enemy-lord']}
+                    />
+                    <small>{enemyLordHp}</small>
+                  </div>
+                )}
                 {own && (
                   <div
                     className={`unit own ${own.ascLevel > 0 ? 'ascended' : ''} ${acted[own.id] ? 'spent' : ''}`}
                     style={{ borderColor: CLASSES[own.klass].color }}
                   >
-                    <span>{own.name.split(' ').pop()[0]}</span>
+                    <span className="unit-fallback">{own.id.replace(/\D/g, '')}</span>
+                    <AxieSprite genome={own.genome} dominantClass={own.klass} size={44} attackSignal={attackFx[own.id]} />
                     <small>{own.hp}</small>
                     {own.shield > 0 && <em className="shield">{own.shield}</em>}
                   </div>
@@ -425,10 +586,13 @@ export default function App() {
               style={{ borderColor: CLASSES[c.klass].color }}
             >
               <div className="card-head">
-                <strong>{c.name}</strong>
-                <span className="klass" style={{ background: CLASSES[c.klass].color }}>
-                  {CLASSES[c.klass].label}
-                </span>
+                <AxieSprite genome={c.genome} dominantClass={c.klass} size={56} attackSignal={attackFx[c.id]} />
+                <div className="card-title">
+                  <strong>{c.name}</strong>
+                  <span className="klass" style={{ background: CLASSES[c.klass].color }}>
+                    {CLASSES[c.klass].label}
+                  </span>
+                </div>
               </div>
               <div className="stat-row">
                 <span>HP {Math.max(c.hp, 0)}/{c.maxHp}</span>
