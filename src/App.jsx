@@ -2,12 +2,13 @@ import { useState } from 'react'
 import './App.css'
 import AxieSprite from './AxieSprite'
 import LunaciaBackdrop from './LunaciaBackdrop'
-import { CLASS_STATS, LORD_STATS, buildGenome, dominantClass } from './axie'
+import { CLASS_STATS, LORD_STATS, TERRAIN_TYPES, buildGenome, dominantClass } from './axie'
 
-// MVP1vinculodelunacia.md, pasos 1-3 del orden de construccion:
+// MVP1vinculodelunacia.md, pasos 1-4 del orden de construccion:
 //   1. Tablero 8x6, colocacion de Lord y 3 moviles, turnos alternos.
 //   2. Movimiento por chasis + zona de control.
 //   3. Ataque basico, vida, muerte, victoria por Lord a 0.
+//   4. Terreno: piedra, zona lenta, agua, obstaculo bajo.
 // Sin dados todavia (paso 5) ni IA (paso 10): los dos bandos se juegan a mano
 // (hotseat) para poder probar cada regla por separado antes de automatizar al rival.
 const ROWS = 6
@@ -22,7 +23,37 @@ const TURN_CLOCK = 12
 const PLAYER_LORD_GENOME = buildGenome(['papi', 'lotus', 'cactus', 'axie-kiss', 'timber', 'shrimp'])
 const ENEMY_LORD_GENOME = buildGenome(['chubby', 'nut-cracker', 'imp', 'goda', 'balloon', 'ant'])
 
-const STARTING_CLASSES = ['plant', 'beast', 'bird']
+// Aqua entra en la composicion de prueba para poder verificar la regla del agua
+// ("el Aqua entra en el agua y los demas no", comprobable del paso 4).
+const STARTING_CLASSES = ['beast', 'bird', 'aqua']
+
+// Mapa de prueba para el paso 4 (los 3 mapas reales de la seccion 6.1 son el paso 11):
+// un muro de piedra arriba, un obstaculo bajo y una zona lenta en la fila del Lord,
+// y un canal de agua exclusivo para Aqua justo debajo.
+const TERRAIN_LAYOUT = {
+  '0,3': 'stone',
+  '0,4': 'stone',
+  '1,3': 'slow',
+  '1,4': 'slow',
+  '2,3': 'obstacle',
+  '3,3': 'water',
+  '3,4': 'water',
+  '3,5': 'water',
+  '4,2': 'slow',
+  '4,3': 'slow',
+  '4,4': 'slow',
+  '4,5': 'slow',
+}
+function terrainAt(r, c) {
+  return TERRAIN_LAYOUT[`${r},${c}`] || 'open'
+}
+const TERRAIN_CLASS = {
+  open: 'terrain-grass',
+  stone: 'terrain-stone',
+  slow: 'terrain-earth',
+  water: 'terrain-water',
+  obstacle: 'terrain-grass terrain-obstacle',
+}
 
 function makeUnit(side, klass, id, pos) {
   const stats = CLASS_STATS[klass]
@@ -43,13 +74,20 @@ function adjacent(a, b) {
   return dist(a, b) === 1
 }
 
-// Casillas alcanzables por movimiento respetando la zona de control: al entrar en una
-// casilla adyacente a un enemigo vivo, esa rama del recorrido se para ahi (regla 6).
+// Casillas alcanzables por movimiento respetando el terreno (regla 6) y la zona de
+// control: al entrar en una casilla adyacente a un enemigo vivo, esa rama del
+// recorrido se para ahi (regla 6, seccion 5).
 function reachableCells(unit, units, lords) {
   const stats = CLASS_STATS[unit.klass]
   const occupied = (r, c) => {
     if ((r === lords.player.r && c === lords.player.c) || (r === lords.enemy.r && c === lords.enemy.c)) return true
     return units.some((u) => u.alive && u.pos && u.pos.r === r && u.pos.c === c)
+  }
+  const passable = (r, c) => {
+    const terrain = TERRAIN_TYPES[terrainAt(r, c)]
+    if (terrain.blocksMove) return false
+    if (terrain.aquaOnly && unit.klass !== 'aqua') return false
+    return true
   }
   const enemyAdjacentTo = (r, c) => {
     const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
@@ -75,7 +113,8 @@ function reachableCells(unit, units, lords) {
       const nc = cur.c + dc
       if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
       if (occupied(nr, nc)) continue
-      const cost = cur.cost + 1
+      if (!passable(nr, nc)) continue
+      const cost = cur.cost + TERRAIN_TYPES[terrainAt(nr, nc)].moveCost
       if (cost > stats.move) continue
       const k = key(nr, nc)
       if (visited.has(k) && visited.get(k) <= cost) continue
@@ -88,13 +127,51 @@ function reachableCells(unit, units, lords) {
   return out
 }
 
+// Bresenham entre dos celdas, extremos incluidos: sirve para saber que casillas
+// atraviesa un disparo. Solo la piedra bloquea la linea de tiro (regla 6); el
+// obstaculo bajo bloquea el movimiento pero no el disparo.
+function lineCells(a, b) {
+  let r0 = a.r
+  let c0 = a.c
+  const dr = Math.abs(b.r - r0)
+  const dc = Math.abs(b.c - c0)
+  const sr = r0 < b.r ? 1 : -1
+  const sc = c0 < b.c ? 1 : -1
+  let err = dr - dc
+  const cells = []
+  for (;;) {
+    cells.push({ r: r0, c: c0 })
+    if (r0 === b.r && c0 === b.c) break
+    const e2 = 2 * err
+    if (e2 > -dc) {
+      err -= dc
+      r0 += sr
+    }
+    if (e2 < dr) {
+      err += dr
+      c0 += sc
+    }
+  }
+  return cells
+}
+
+function hasLineOfSight(from, to) {
+  const between = lineCells(from, to).slice(1, -1)
+  return between.every((cell) => !TERRAIN_TYPES[terrainAt(cell.r, cell.c)].blocksLine)
+}
+
 function attackTargets(unit, units, lords) {
   const stats = CLASS_STATS[unit.klass]
   const targets = []
   const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
-  if (dist(unit.pos, enemyLord) <= stats.range) targets.push({ kind: 'lord', pos: enemyLord })
+  if (dist(unit.pos, enemyLord) <= stats.range && hasLineOfSight(unit.pos, enemyLord)) {
+    targets.push({ kind: 'lord', pos: enemyLord })
+  }
   units
-    .filter((u) => u.alive && u.side !== unit.side && u.pos && dist(unit.pos, u.pos) <= stats.range)
+    .filter(
+      (u) =>
+        u.alive && u.side !== unit.side && u.pos && dist(unit.pos, u.pos) <= stats.range && hasLineOfSight(unit.pos, u.pos)
+    )
     .forEach((u) => targets.push({ kind: 'unit', id: u.id, pos: u.pos }))
   return targets
 }
@@ -234,6 +311,14 @@ export default function App() {
         </div>
       )}
 
+      <div className="terrain-legend">
+        <span><i className="terrain-swatch terrain-grass" /> Abierto</span>
+        <span><i className="terrain-swatch terrain-stone" /> Piedra: bloquea todo</span>
+        <span><i className="terrain-swatch terrain-earth" /> Zona lenta: cuesta 2</span>
+        <span><i className="terrain-swatch terrain-water" /> Agua: solo Aqua</span>
+        <span><i className="terrain-swatch terrain-grass terrain-obstacle-swatch" /> Obstaculo: bloquea mover, no disparar</span>
+      </div>
+
       <div className="board" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}>
         {Array.from({ length: ROWS }).map((_, r) =>
           Array.from({ length: COLS }).map((_, c) => {
@@ -250,7 +335,7 @@ export default function App() {
                 data-c={c}
                 className={[
                   'cell',
-                  'terrain-grass',
+                  TERRAIN_CLASS[terrainAt(r, c)],
                   canMoveHere ? 'summon-zone' : '',
                   canAttackHere ? 'in-range' : '',
                   isSelected ? 'selected' : '',
@@ -259,6 +344,7 @@ export default function App() {
                   .join(' ')}
                 onClick={() => cellClick(r, c)}
               >
+                {terrainAt(r, c) === 'obstacle' && <span className="terrain-obstacle-icon" />}
                 {isPLord && (
                   <div className="lord-unit own-lord">
                     <AxieSprite genome={PLAYER_LORD_GENOME} dominantClass={dominantClass(PLAYER_LORD_GENOME)} size={52} />
@@ -276,7 +362,7 @@ export default function App() {
                     className={`unit ${unit.side === 'player' ? 'own' : 'enemy'} ${unit.acted ? 'spent' : ''}`}
                     style={{ borderColor: CLASS_STATS[unit.klass].color, background: `${CLASS_STATS[unit.klass].color}30` }}
                   >
-                    <span>{CLASS_STATS[unit.klass].label[0]}</span>
+                    <span>{CLASS_STATS[unit.klass].label.slice(0, 2)}</span>
                     <small>{unit.hp}</small>
                   </div>
                 )}

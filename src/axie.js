@@ -171,3 +171,17 @@ export const CLASS_STATS = {
 }
 
 export const LORD_STATS = { hp: 24, move: 0, range: 2, atk: 3 }
+
+// Paso 4: los 4 tipos de terreno (seccion 6 del documento). El layout concreto de
+// celdas vive en App.jsx (es un mapa de prueba: los 3 mapas reales son el paso 11).
+//   blocksMove  -> nadie entra (piedra, obstaculo bajo).
+//   blocksLine  -> tampoco se puede disparar a traves (solo piedra).
+//   aquaOnly    -> solo entran unidades Aqua (agua).
+//   moveCost    -> puntos de movimiento que cuesta entrar (zona lenta cuesta 2).
+export const TERRAIN_TYPES = {
+  open: { label: 'Abierto', blocksMove: false, blocksLine: false, aquaOnly: false, moveCost: 1 },
+  stone: { label: 'Piedra', blocksMove: true, blocksLine: true, aquaOnly: false, moveCost: Infinity },
+  slow: { label: 'Zona lenta', blocksMove: false, blocksLine: false, aquaOnly: false, moveCost: 2 },
+  water: { label: 'Agua', blocksMove: false, blocksLine: false, aquaOnly: true, moveCost: 1 },
+  obstacle: { label: 'Obstaculo bajo', blocksMove: true, blocksLine: false, aquaOnly: false, moveCost: Infinity },
+}
