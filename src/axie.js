@@ -155,3 +155,19 @@ export function damageFrom(rolled, targetDef) {
   if (!isAttackFace(rolled.face)) return 1
   return Math.max(1, rolled.power - (targetDef || 0))
 }
+
+// --- MVP1 (MVP1vinculodelunacia.md) ---
+// Asedio a una torre: Lord fijo + 3 Axies moviles por bando. Las 4 clases son
+// deliberadamente incompatibles entre si (tanque/soldado/arquero/asesino). Los 12
+// nombres de parte reales (paso 5 del documento) llegan mas adelante; de momento solo
+// hace falta el chasis para tablero, movimiento, zona de control y ataque basico
+// (pasos 1-3 del orden de construccion). Sin estadistica de defensa: el dano es el
+// ataque basico del atacante, sin reduccion, hasta que las partes lo cambien.
+export const CLASS_STATS = {
+  plant: { label: 'Plant', role: 'Tanque', hp: 12, move: 1, range: 1, atk: 1, color: '#71c14b' },
+  beast: { label: 'Beast', role: 'Soldado', hp: 9, move: 2, range: 1, atk: 2, color: '#f0a04b' },
+  bird: { label: 'Bird', role: 'Arquero', hp: 7, move: 2, range: 3, atk: 1, color: '#ef6f9c' },
+  aqua: { label: 'Aqua', role: 'Asesino', hp: 7, move: 3, range: 1, atk: 2, color: '#3fa9e0' },
+}
+
+export const LORD_STATS = { hp: 24, move: 0, range: 2, atk: 3 }

@@ -1,5 +1,13 @@
 # Vínculo de Lunacia — contexto del proyecto
 
+> **Fuente de verdad del diseño: `MVP1vinculodelunacia.md`** (raíz del repo). Sustituye
+> las reglas de juego de este archivo allá donde difieran (tablero, clases, roster,
+> combate). Este `CLAUDE.md` sigue mandando en cómo trabajar en el repo (idioma, stack,
+> estilo). Estado actual: pasos 1-3 del "Orden de construcción" del MVP1 hechos y
+> probados (tablero 8×6, Lord fijo + 3 móviles por bando, movimiento con zona de
+> control, ataque básico/muerte/victoria) — ver `src/App.jsx`. Sin dados de unidad
+> todavía (paso 5) ni IA (paso 10): los dos bandos se juegan a mano por ahora.
+
 Prototipo para el **Axie Vibeathon 2026**, Ronda 1. Táctico de escaramuza por turnos
 sobre rejilla, en navegador, donde **las caras del dado de cada criatura son las partes
 de su cuerpo**.
