@@ -1207,6 +1207,12 @@ header h1::before {
   padding: 6px 12px;
   margin-bottom: 6px;
   font-size: 0.78rem;
+  /* Suelo de altura (bug real 2026-09-11): sin seleccion la linea queda a
+     18.7px y con texto/botones a 21.8px; esos ~3px de diferencia encogian
+     .board3d-host y la camara re-encuadraba -> el tablero hacia zoom al
+     pulsar un axie. Con min-height igual al estado mas alto, la altura del
+     ActionBar es identica en todos los estados y el tablero no se mueve. */
+  min-height: 87px;
 }
 .action-bar-line {
   display: flex;
@@ -1253,6 +1259,11 @@ header h1::before {
   color: #cfe6e0;
 }
 .exchange-preview div::first-line { color: #9ff0c1; }
+/* Cada renglon del desglose es SIEMPRE una linea (bug real 2026-09-11): si un
+   texto del desglose envolviera a 2 lineas, la caja del ActionBar creceria *
+   dentro del propio hover y el tablero volveria a saltar de zoom. */
+.exchange-preview div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exchange-preview-empty div::first-line { color: inherit; }
 
 /* Chip flotante de la preview del intercambio (seccion 6.9.1): desglose del
    golpe sobre la casilla objetivo mientras el cursor esta encima. */

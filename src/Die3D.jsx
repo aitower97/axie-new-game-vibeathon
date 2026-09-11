@@ -180,7 +180,7 @@ function stampIcon(ctx, canvas, url, dim) {
 
 let dieSeed = 0
 
-export default function Die3D({ slots, rolling, rollTick, rolledSlot, size = 120 }) {
+export default function Die3D({ slots, rolling, rolledSlot, size = 120 }) {
   const hostRef = useRef(null)
   // Handles del bucle de render (que vive en el efecto principal): el efecto de
   // control de estado (abajo) los llama para tumble/landing según las props.
@@ -389,14 +389,29 @@ export default function Die3D({ slots, rolling, rollTick, rolledSlot, size = 120
   }, [size])
 
   // Control de estado: tumble mientras rolling, landing al commit (rolledSlot).
-  // rollTick esta en la lista de deps para re-lanzar el aterrizaje aunque el
-  // mismo slot gane dos turnos seguidos.
+  // rollTick YA NO esta en las deps (bug real 2026-09-11): es un contador
+  // GLOBAL que sube cada vez que CUALQUIER bando tira, asi que un dado con la
+  // cara aterrizada volvia a girar cuando el OTRO bando lanzaba sus dados.
+  // Ahora el aterrizaje solo ocurre en el commit de ESTE dado: justo despues
+  // de su ventana de tumble (rolling pasa de true a false), o si su ranura
+  // ganadora cambia de verdad. Dos turnos seguidos con la misma cara siguen
+  // aterrizando bien (hay una ventana de tumble antes de cada commit).
+  const lastLandRef = useRef({ wasRolling: false, slot: null })
   useEffect(() => {
     const ctrl = controlRef.current
     if (!ctrl) return
-    if (rolling) ctrl.toggleTumble(true)
-    else if (rolledSlot) ctrl.startLanding(rolledSlot)
-  }, [rolling, rollTick, rolledSlot])
+    const st = lastLandRef.current
+    if (rolling) {
+      st.wasRolling = true
+      ctrl.toggleTumble(true)
+    } else if (rolledSlot && (st.wasRolling || rolledSlot !== st.slot)) {
+      st.wasRolling = false
+      st.slot = rolledSlot
+      ctrl.startLanding(rolledSlot)
+    } else {
+      st.wasRolling = false
+    }
+  }, [rolling, rolledSlot])
 
   return (
     <div

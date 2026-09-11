@@ -90,7 +90,7 @@ function hexToRgba(hex, alpha) {
 
 let lordDieSeed = 0
 
-export default function LordDie3D({ rolling, rollTick, rolledEffect, size = 78 }) {
+export default function LordDie3D({ rolling, rolledEffect, size = 78 }) {
   const hostRef = useRef(null)
   const controlRef = useRef(null)
 
@@ -241,12 +241,27 @@ export default function LordDie3D({ rolling, rollTick, rolledEffect, size = 78 }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size])
 
+  // Mismo fix que en Die3D (bug real 2026-09-11): rollTick es un contador
+  // global que sube cuando CUALQUIER bando tira; fuera de la lista de deps el
+  // dado del Lord no vuelve a girar sobre la cara ya aterrizada cuando el otro
+  // bando lanza. Aterriza solo en su propio commit (ventana de tumble previa o
+  // cambio real de efecto).
+  const lastLandRef = useRef({ wasRolling: false, effect: null })
   useEffect(() => {
     const ctrl = controlRef.current
     if (!ctrl) return
-    if (rolling) ctrl.toggleTumble(true)
-    else if (rolledEffect) ctrl.startLanding(rolledEffect)
-  }, [rolling, rollTick, rolledEffect])
+    const st = lastLandRef.current
+    if (rolling) {
+      st.wasRolling = true
+      ctrl.toggleTumble(true)
+    } else if (rolledEffect && (st.wasRolling || rolledEffect !== st.effect)) {
+      st.wasRolling = false
+      st.effect = rolledEffect
+      ctrl.startLanding(rolledEffect)
+    } else {
+      st.wasRolling = false
+    }
+  }, [rolling, rolledEffect])
 
   return (
     <div
