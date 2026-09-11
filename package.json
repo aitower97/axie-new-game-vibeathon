@@ -11,17 +11,21 @@
   },
   "dependencies": {
     "@axieinfinity/mixer": "^1.4.9",
+    "@jaatster/threejs-axie-mixer3d-public": "file:../../../../AppData/Local/Temp/claude/C--Users-PC-Documents-Proyectos-Personal-axie-alpha/3e9643ab-53ed-4760-b1db-a2b1a6ac4af3/scratchpad/jaatster-threejs-axie-mixer3d-public-0.1.0-alpha.0.tgz",
     "pixi-spine": "^4.0.3",
     "pixi.js": "^7.2.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "three": "^0.185.1"
+    "three": "^0.178.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@vitejs/plugin-react": "^6.1.0",
+    "chrome-devtools-mcp": "^1.8.0",
     "oxlint": "^1.79.0",
+    "tailwindcss": "^4.3.3",
     "vite": "^8.2.2"
   }
 }

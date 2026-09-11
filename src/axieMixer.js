@@ -136,3 +136,29 @@ export function getAxieSprite(genome, dominantClass) {
   spineCache.set(key, result)
   return result
 }
+
+// mapa clase MVP1 (axie.js, CLASS_STATS) -> CharacterClass del mixer. 'aqua' del
+// MVP1 es 'aquatic' en el catalogo real de Axie.
+const MVP1_CLASS_TO_MIXER = { plant: 'Plant', beast: 'Beast', bird: 'Bird', aqua: 'Aquatic' }
+
+// Axie "de clase pura" para las unidades moviles del MVP1 (paso 5: no tienen un
+// genoma de seis partes propio, solo una clase de chasis). partValue 2 en las seis
+// ranuras porque es el unico valor presente en las seis a la vez para las cuatro
+// clases en la tabla real de muestras del paquete (genesStuff.partSamples, el mismo
+// dato que trae @axieinfinity/mixer para generar combos -no es un genoma inventado,
+// es el paquete resolviendo su propia clase con su propio dato real).
+// Sin cache: puede haber varias unidades vivas de la misma clase a la vez (tablero
+// + carta), cada una con su propio Spine, y SkeletonJson.readSkeletonData muta el
+// skeletonDataAsset que recibe -reusar el mismo objeto entre Spines rompia el
+// segundo que lo tocaba. getAdultCombo es una tabla en memoria, no una red; recalcular
+// es barato.
+export function getClassSprite(klass) {
+  const mixerClass = MVP1_CLASS_TO_MIXER[klass] || 'Beast'
+  const parts = {}
+  for (const mixerSlot of Object.values(MIXER_SLOT)) {
+    parts[mixerSlot] = partStructure(mixerClass, 2)
+  }
+  const bodyStructure = { class: mixerClass, body: [0, 0, 0], bodySkin: 0, primaryColors: [0, 0, 0], secondaryColors: [0, 0, 0], parts }
+  const combo = genesStuff.getAdultCombo(bodyStructure)
+  return getAxieSpineFromCombo(combo, 0, false)
+}

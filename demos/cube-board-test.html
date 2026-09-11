@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vinculo de Lunacia — Prueba de losa unica (paleta del juego)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 20% -10%, #1c332e, #10201d 60%);
+    font-family: system-ui, sans-serif;
+  }
+  .stage { filter: drop-shadow(0 30px 24px rgba(0, 0, 0, 0.5)); }
+  .platform {
+    position: relative;
+    transform-style: preserve-3d;
+    transform: perspective(1400px) rotateX(60deg);
+    transform-origin: center bottom;
+  }
+  .cell {
+    position: absolute;
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  }
+  .hint {
+    position: fixed;
+    bottom: 18px;
+    left: 0; right: 0;
+    text-align: center;
+    color: #eaf3ef;
+    font-size: 14px;
+    text-shadow: 0 1px 3px rgba(0,0,0,.6);
+    opacity: .8;
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="platform" id="platform"></div>
+  </div>
+  <div class="hint">7x4 · losa unica (top plano + paredes plegadas) · paleta real del juego · CSS 3D puro</div>
+
+<script>
+  // Vuelta a la tecnica YA probada esta sesion (antes del intento con cubos por
+  // celda): UNA sola losa. La cara de ARRIBA es un grid 2D normal, SIN ninguna
+  // rotacion propia por celda (nada de rotateX por cubo -eso fue lo que genero
+  // los bugs de orden de profundidad con muchos cubos superpuestos). El volumen
+  // lo dan dos paredes UNICAS, "plegadas" desde el borde de la losa con
+  // transform-origin + rotateX/rotateY (la misma receta que ya funciono bien
+  // antes de la desviacion hacia los cubos). Todo el conjunto se inclina UNA vez
+  // con el rotateX de .platform -esa es la unica rotacion "de camara" que hay.
+  const COLS = 7
+  const ROWS = 4
+  const SIZE = 90
+  const THICK = 90
+
+  const TERRAIN = {
+    '1,2': 'stone', '1,3': 'stone',
+    '2,4': 'water', '2,5': 'water',
+    '3,1': 'earth', '3,2': 'earth',
+  }
+  const terrainAt = (r, c) => TERRAIN[`${r},${c}`] || 'grass'
+  const BASE = { grass: '#4f7a45', stone: '#6b6f76', earth: '#8c7048', water: '#2c6f8c' }
+  function shade(hex, factor) {
+    const n = parseInt(hex.slice(1), 16)
+    let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255
+    r = Math.max(0, Math.min(255, Math.round(r * factor)))
+    g = Math.max(0, Math.min(255, Math.round(g * factor)))
+    b = Math.max(0, Math.min(255, Math.round(b * factor)))
+    return `rgb(${r},${g},${b})`
+  }
+
+  const platform = document.getElementById('platform')
+  const boardW = COLS * SIZE
+  const boardH = ROWS * SIZE
+  platform.style.width = boardW + 'px'
+  platform.style.height = boardH + 'px'
+
+  // Cara de arriba: grid 2D plano y corriente, cada celda un div absoluto normal.
+  const topFace = document.createElement('div')
+  topFace.style.position = 'absolute'
+  topFace.style.inset = '0'
+  topFace.style.width = boardW + 'px'
+  topFace.style.height = boardH + 'px'
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const cell = document.createElement('div')
+      cell.className = 'cell'
+      cell.style.left = c * SIZE + 'px'
+      cell.style.top = r * SIZE + 'px'
+      cell.style.width = SIZE + 'px'
+      cell.style.height = SIZE + 'px'
+      cell.style.background = shade(BASE[terrainAt(r, c)], 1.1)
+      topFace.appendChild(cell)
+    }
+  }
+  platform.appendChild(topFace)
+
+  // Pared frontal: pegada justo debajo de la cara de arriba, plegada hacia abajo.
+  const front = document.createElement('div')
+  front.style.position = 'absolute'
+  front.style.left = '0'
+  front.style.top = boardH + 'px'
+  front.style.width = boardW + 'px'
+  front.style.height = THICK + 'px'
+  front.style.transformOrigin = 'top'
+  front.style.transform = 'rotateX(-90deg)'
+  front.style.background = 'linear-gradient(to bottom, #8a6339 0%, #5c3f22 55%, #3f2a15 100%)'
+  platform.appendChild(front)
+
+  // Pared derecha: pegada justo a la derecha de la cara de arriba, plegada hacia el lado.
+  const right = document.createElement('div')
+  right.style.position = 'absolute'
+  right.style.top = '0'
+  right.style.left = boardW + 'px'
+  right.style.width = THICK + 'px'
+  right.style.height = boardH + 'px'
+  right.style.transformOrigin = 'left'
+  right.style.transform = 'rotateY(90deg)'
+  right.style.background = 'linear-gradient(to right, #6b4b28 0%, #4a3319 60%, #35240f 100%)'
+  platform.appendChild(right)
+</script>
+</body>
+</html>

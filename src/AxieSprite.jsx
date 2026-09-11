@@ -8,12 +8,15 @@ import { Application, Assets } from 'pixi.js'
 import { Spine, TextureAtlas } from 'pixi-spine'
 import { AtlasAttachmentLoader, SkeletonJson } from '@pixi-spine/runtime-3.8'
 import { getAxieColorPartShift, getVariantAttachmentPath } from '@axieinfinity/mixer'
-import { getAxieSprite, IDLE_ANIM } from './axieMixer'
+import { getAxieSprite, getClassSprite, IDLE_ANIM } from './axieMixer'
 
 const AXIE_IMAGES_URL = 'https://axiecdn.axieinfinity.com/mixer-stuffs/v6/'
 
-async function loadSpine(genome, dominantClass) {
-  const { skeletonDataAsset, variant, error } = getAxieSprite(genome, dominantClass)
+// Dos formas de pedir un Axie: genoma completo de seis partes (Lords, tienen
+// identidad propia) o solo la clase de chasis (unidades moviles del MVP1, paso 5:
+// no tienen genoma propio, ver getClassSprite en axieMixer.js).
+async function loadSpine(genome, dominantClass, klass) {
+  const { skeletonDataAsset, variant, error } = klass ? getClassSprite(klass) : getAxieSprite(genome, dominantClass)
   if (error || !skeletonDataAsset) throw new Error(error || 'Sin skeletonDataAsset')
 
   const partColorShift = getAxieColorPartShift(variant)
@@ -54,7 +57,7 @@ async function loadSpine(genome, dominantClass) {
 
 // attackSignal: { tick, anim } — cada vez que `tick` cambia se reproduce `anim` una vez
 // y se vuelve a la animacion de reposo, sin desmontar el sprite ni recargar texturas.
-export default function AxieSprite({ genome, dominantClass, size = 96, animation = IDLE_ANIM, attackSignal }) {
+export default function AxieSprite({ genome, dominantClass, klass, size = 96, animation = IDLE_ANIM, attackSignal }) {
   const hostRef = useRef(null)
   const spineRef = useRef(null)
 
@@ -65,7 +68,7 @@ export default function AxieSprite({ genome, dominantClass, size = 96, animation
 
     async function mount() {
       try {
-        const s = await loadSpine(genome, dominantClass)
+        const s = await loadSpine(genome, dominantClass, klass)
         if (cancelled || !hostRef.current) return
         spine = s
 
@@ -114,7 +117,7 @@ export default function AxieSprite({ genome, dominantClass, size = 96, animation
       if (app) app.destroy(true, { children: true })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [genome, dominantClass, size, animation])
+  }, [genome, dominantClass, klass, size, animation])
 
   useEffect(() => {
     const spine = spineRef.current

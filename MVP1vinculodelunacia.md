@@ -11,11 +11,11 @@
 
 ## 1. Qué es el MVP 1
 
-Un táctico por turnos, en navegador, de **asedio a una torre**.
+Un táctico por turnos, en navegador, de **asedio a un mando fijo**.
 
 > **Objetivo del MVP 1: que los Axies, según su clase y sus partes, tengan habilidades definidas y que se pueda jugar.**
 
-Cada bando tiene un **Lord inmóvil** (la torre) y **3 Axies móviles**. Ganas reduciendo a 0 la vida del Lord rival. Cada unidad tiene un dado cuyas caras son sus partes del cuerpo; tirar no dice cuánto pegas, dice **qué puedes hacer este turno**.
+Cada bando tiene un **Lord inmóvil** y **3 Axies móviles**. Ganas reduciendo a 0 la vida del Lord rival. Cada unidad tiene un dado cuyas caras son sus partes del cuerpo; tirar no dice cuánto pegas, dice **qué puedes hacer este turno**.
 
 Alrededor del combate hay lo mínimo para que signifique algo: un territorio PVE de 5 nodos, dos recursos, dos edificios y un puñado de desbloqueos.
 
@@ -29,20 +29,29 @@ Cuatro roles deliberadamente incompatibles entre sí. Si dos se parecen, una sob
 
 | Clase | Rol | Vida | Movimiento | Alcance | Ataque básico |
 |---|---|---|---|---|---|
-| **Plant** | Tanque | 12 | 1 | 1 | 1 |
-| **Beast** | Soldado | 9 | 2 | 1 | 2 |
-| **Bird** | Arquero | 7 | 2 | **3** | 1 |
-| **Aqua** | Asesino | 7 | **3** | 1 | 2 |
+| **Plant** | Tanque | 120 | 1 | 1 | 10 |
+| **Beast** | Soldado | 90 | 2 | 1 | 20 |
+| **Bird** | Arquero | 70 | 2 | **3** | 10 |
+| **Aqua** | Asesino | 70 | **3** | 1 | 20 |
 
-**Lord** (ambos bandos): vida **24** · movimiento **0** · alcance **2** · ataque de torre **3**.
+**Lord** (ambos bandos): vida **240** · movimiento **0** · alcance **2** · ataque **30**.
 
 *(Todos los valores prov.)*
+
+**Escala x10:** vida y daño van en decenas (120/90/70/70 en vez de 12/9/7/7) para que
+un golpe no se coma media barra de un tiro; no cambia el balance (golpes-para-matar
+igual), solo la sensación de barra de vida. El orden de vida es a propósito
+Beast > Aqua (soldado más duro que asesino, arquetipo estándar) y no copia el dato
+real de Axie Classic, donde Aquatic es casi tan tanque como Plant — decisión
+explícita del usuario sobre el arquetipo por encima del dato real.
 
 **Por qué estas cuatro y no un mago:** el mago tendría movimiento 2 y alcance 2 — duplica al soldado en movilidad y al arquero en alcance, se solapa con el papel de utilidad del Lord, y necesita un sistema de estados que el MVP no tiene. El asesino, en cambio, es la única unidad rápida del juego, es la única que puede usar el terreno de agua, y es lo que impide que las partidas se atasquen. Dawn y Dusk entran en el MVP 2.
 
 ### 2.1 Regla del ataque básico
 
 > Toda unidad puede atacar siempre con el **ataque básico de su clase**, salga la cara que salga. Ninguna combinación de partes produce una unidad incapaz de actuar.
+
+**2.1.1 Primer contacto.** Si el movimiento de este turno mete a la unidad al alcance de un rival **por primera vez** (no lo estaba antes de moverse), gana el ataque básico de la regla 2.1 en la misma acción, sin esperar al turno siguiente. Si ya estaba al alcance antes de moverse (o no se mueve), sigue la regla normal: el ataque básico solo entra como respaldo cuando la cara tirada no ofrece un ataque propio. Decisión del usuario durante la implementación del combate: moverse hasta el rival no debía costar un turno entero sin devolver nada.
 
 ---
 
@@ -56,32 +65,32 @@ En Axie las cartas de combate salen de **cuerno, boca, lomo y cola**. Ojos y ore
 
 | # | Parte | Clase | Habilidad | Valor |
 |---|---|---|---|---|
-| H1 | **Little Branch** | Plant | Perforante: ignora el escudo del objetivo | 2 |
-| H2 | **Imp** | Beast | Perforante: ignora el escudo. **+1 si el objetivo está por debajo de la mitad de su vida máxima** | 3 |
-| H3 | **Feather Spear** | Bird | Ataque a distancia con **+1 de alcance** sobre el del chasis | 2 |
+| H1 | **Little Branch** | Plant | Perforante: ignora el escudo del objetivo | 20 |
+| H2 | **Imp** | Beast | Perforante: ignora el escudo. **+10 si el objetivo está por debajo de la mitad de su vida máxima** | 30 |
+| H3 | **Feather Spear** | Bird | Ataque a distancia con **+1 de alcance** sobre el del chasis | 20 |
 
 ### 3.2 Boca — sostenimiento
 
 | # | Parte | Clase | Habilidad | Valor |
 |---|---|---|---|---|
-| M1 | **Serious** | Plant | Golpe. **El atacante gana 2 de escudo** | 2 |
-| M2 | **Risky Fish** | Aqua | Golpe fuerte. **El atacante se hace 1 de daño** (ignora su propio escudo) | 4 |
-| M3 | **Nut Crack** | Beast | Golpe. **+2 si este mismo Axie lleva también Nut Throw** | 3 |
+| M1 | **Serious** | Plant | Golpe. **El atacante gana 20 de escudo** | 20 |
+| M2 | **Risky Fish** | Aqua | Golpe fuerte. **El atacante se hace 10 de daño** (ignora su propio escudo) | 40 |
+| M3 | **Nut Crack** | Beast | Golpe. **+20 si este mismo Axie lleva también Nut Throw** | 30 |
 
 ### 3.3 Lomo — defensivo
 
 | # | Parte | Clase | Habilidad | Valor |
 |---|---|---|---|---|
-| B1 | **Pumpkin** | Plant | Guardia. **Se aplica al tirar y no gasta la acción** | 3 |
-| B2 | **Clam Shell** | Aqua | Guardia **y cura 1** de vida. Se aplica al tirar, no gasta la acción | 2 |
-| B3 | **Balloon** | Bird | Guardia **y empuja 1 casilla** a un enemigo adyacente, en línea recta. Se aplica al tirar, no gasta la acción | 2 |
+| B1 | **Pumpkin** | Plant | Guardia. **Se aplica al tirar y no gasta la acción** | 30 |
+| B2 | **Clam Shell** | Aqua | Guardia **y cura 10** de vida. Se aplica al tirar, no gasta la acción | 20 |
+| B3 | **Balloon** | Bird | Guardia **y empuja 1 casilla** a un enemigo adyacente, en línea recta. Se aplica al tirar, no gasta la acción | 20 |
 
 ### 3.4 Cola — movilidad y control
 
 | # | Parte | Clase | Habilidad | Valor |
 |---|---|---|---|---|
-| T1 | **Nut Throw** | Beast | Ataque a **distancia 2** (independiente del alcance del chasis). **+2 si lleva también Nut Crack** | 2 |
-| T2 | **Shrimp** | Aqua | Impulso: **mueve hasta 2 y ataca al final**. El movimiento sigue sujeto a zona de control | 2 |
+| T1 | **Nut Throw** | Beast | Ataque a **distancia 2** (independiente del alcance del chasis). **+20 si lleva también Nut Crack** | 20 |
+| T2 | **Shrimp** | Aqua | Impulso: **mueve hasta 2 y ataca al final**. El movimiento sigue sujeto a zona de control | 20 |
 | T3 | **Pigeon Post** | Bird | Reposiciona: **mueve 1 casilla a un aliado adyacente**. No ataca | — |
 
 ### 3.5 Ojos y orejas
@@ -90,11 +99,11 @@ En el MVP 1 **no se eligen**. Producen **caras de invocación**. Se diseñan en 
 
 ### 3.6 Afinidad de clase
 
-> Si la clase de la parte coincide con la clase del chasis, **el valor de esa cara sube +1**.
+> Si la clase de la parte coincide con la clase del chasis, **el valor de esa cara sube +10**.
 
 Es la única razón por la que un Axie puro rinde más que un híbrido, y es la decisión de construcción central del juego.
 
-*Ejemplo:* **Imp** (Beast) en un chasis Beast → perforante **4**. El mismo Imp en un chasis Aqua → perforante **3**.
+*Ejemplo:* **Imp** (Beast) en un chasis Beast → perforante **40**. El mismo Imp en un chasis Aqua → perforante **30**.
 
 ### 3.7 Estructura de datos sugerida
 
@@ -105,9 +114,9 @@ Es la única razón por la que un Axie puro rinde más que un híbrido, y es la 
   "ranura": "cuerno",
   "clase": "beast",
   "efecto": "perforante",
-  "valor": 3,
+  "valor": 30,
   "modificadores": [
-    { "cuando": "objetivo_bajo_50pc_vida", "valor": 1 }
+    { "cuando": "objetivo_bajo_50pc_vida", "valor": 10 }
   ]
 }
 ```
@@ -116,10 +125,10 @@ Es la única razón por la que un Axie puro rinde más que un híbrido, y es la 
 {
   "id": "plant",
   "rol": "tanque",
-  "vida": 12,
+  "vida": 120,
   "movimiento": 1,
   "alcance": 1,
-  "ataqueBasico": 1
+  "ataqueBasico": 10
 }
 ```
 
@@ -140,41 +149,65 @@ Las unidades estándar llevan 3 de las 4 partes de combate, todas de su propia c
 
 ### 4.2 Dado del Lord — 6 caras
 
+> **Rediseñado dos veces (sesión 2026-09-10, ambas a pedido explícito del
+> usuario).** Primer rediseño: la versión original dejaba 5 de 6 caras
+> invocando (2 Invocación + 3 ranuras bloqueadas que, sin el sistema de
+> Esencia implementado, se comportaban también como Invocación), lo que
+> alargaba la partida sin sentido. Las 3 ranuras bloqueadas pasaron a las 3
+> habilidades de la sección 4.3, desbloqueadas de base.
+>
+> Segundo rediseño (mismo día, el usuario pidió ir más lejos): **"quiero que
+> las habilidades no sean meter más axies... el que haya invocación solo sea
+> en la de duplicar"**, y además quitar toda mención a "torre" (el Lord ya no
+> se llama así en ningún sitio — el ataque pasa a llamarse **Ataque del
+> Lord**, y el subtítulo de su carta, antes "Torre del mando", pasa a
+> **"Puesto de mando"**). Las 2 caras de Invocación desaparecen del todo,
+> sustituidas por dos buffs pequeños para el equipo: **Cura** y **Templanza**.
+> La reserva de 3 unidades no se queda sin forma de entrar en juego —
+> **Duplicar** pasa a cubrir tanto clonar un aliado en el tablero como sacar
+> de la reserva (el jugador elige con el click: toca a un aliado para
+> clonarlo, o toca una casilla libre junto al Lord para sacar al siguiente de
+> la reserva). Es la ÚNICA cara que mete una unidad nueva en el tablero.
+
 | Cara | Contenido |
 |---|---|
-| 1 | **Ataque de torre** — daño 3, alcance 2 |
-| 2 | **Invocación** |
-| 3 | **Invocación** |
-| 4 | **Ranura de habilidad** — bloqueada |
-| 5 | **Ranura de habilidad** — bloqueada |
-| 6 | **Ranura de habilidad** — bloqueada |
+| 1 | **Ataque del Lord** — daño 30, alcance 2 |
+| 2 | **Muro** — 30 de escudo a un aliado propio a alcance 3 |
+| 3 | **Marca** — un enemigo a alcance 3 recibe +20 de daño del próximo ataque que le impacte (de cualquier atacante); se consume al primer golpe |
+| 4 | **Cura** — 15 de vida a un aliado propio a alcance 3 |
+| 5 | **Templanza** — bendice a un aliado propio a alcance 3: su próximo ataque hace +15; se consume al golpear |
+| 6 | **Duplicar** — clona a un aliado propio vivo a alcance 3 a vida llena junto al Lord (misma regla 16 que la invocación, no adyacente al original), **o** saca al siguiente de la reserva si se toca una casilla libre junto al Lord en vez de a un aliado |
 
-> **Una ranura bloqueada se comporta como Invocación.**
-
-Un Lord sin mejorar tiene **5 caras de 6 que invocan**: es una fábrica. Cada habilidad que desbloqueas lo hace más peligroso y menos generoso.
-
-**Esto no es un adorno: es la válvula anti-bola-de-nieve.** Con solo 3 móviles, perder uno pronto decidiría la partida si no hubiera reposición constante. No bajar las invocaciones del Lord base sin sustituir la válvula por otra cosa.
+Ya no hay ninguna cara que invoque por sí misma — la reposición constante
+("válvula anti-bola-de-nieve" de versiones anteriores de este documento) se
+sustituye por Duplicar (más lento, cuesta la misma cara que clonar) y por las
+4 caras de apoyo activo (Muro/Marca/Cura/Templanza), que ayudan a que las 3
+unidades que ya tienes aguanten más en vez de simplemente reponerlas.
 
 ### 4.3 Habilidades del Lord
 
-Se desbloquean con **Esencia**, una por ranura.
+Ya no dependen de Esencia: están desbloqueadas de base en las caras 2-6 del
+dado (sección 4.2). Esta sección queda como referencia del efecto exacto de
+cada una.
 
-| Habilidad | Efecto | Coste |
-|---|---|---|
-| **Muro** | Da **3 de escudo** a un aliado a alcance 3 | 2 Esencia *(prov.)* |
-| **Llamada** | Invoca **2 unidades** de la reserva en el mismo turno | 3 Esencia *(prov.)* |
-| **Marca** | Un enemigo a alcance 3 recibe **+2 de daño** del próximo ataque que le impacte | 3 Esencia *(prov.)* |
+| Habilidad | Efecto |
+|---|---|
+| **Muro** | Da **30 de escudo** a un aliado a alcance 3 |
+| **Marca** | Un enemigo a alcance 3 recibe **+20 de daño** del próximo ataque que le impacte |
+| **Cura** | Da **15 de vida** a un aliado a alcance 3 |
+| **Templanza** | El próximo ataque de un aliado a alcance 3 hace **+15 de daño** |
+| **Duplicar** | Clona a un aliado propio vivo a alcance 3 a vida llena junto al Lord, o saca a alguien de la reserva |
 
 ---
 
 ## 5. Reglas de combate
 
 1. **Formato: 4 contra 4.** Un Lord inmóvil + 3 unidades móviles por bando.
-2. **Tablero 8×6.** La casilla del Lord **la fija el mapa**, no el jugador.
+2. **Tablero 8×7** (8 columnas, 7 filas — filas impares para que el Lord caiga exacto en la fila central). La casilla del Lord **la fija el mapa**, no el jugador.
 3. **Reserva de 3** unidades fuera del tablero por bando.
 4. **Victoria:** reducir a 0 la vida del Lord rival.
 5. **Reloj: 12 turnos** *(prov.)*. Al terminar el turno 12 sin Lord caído, gana quien conserve **mayor porcentaje de vida** en su Lord. Empate exacto → gana el defensor.
-6. **ZONA DE CONTROL.** Cuando una unidad **entra** en una casilla adyacente (ortogonal) a una unidad enemiga viva, **su movimiento termina inmediatamente**. No se puede pasar de largo. ← *Sin esta regla el juego es una carrera a la torre y no funciona. Es la primera regla que hay que implementar.*
+6. **ZONA DE CONTROL.** Cuando una unidad **entra** en una casilla adyacente (ortogonal) a una unidad enemiga viva, **su movimiento termina inmediatamente**. No se puede pasar de largo. ← *Sin esta regla el juego es una carrera al Lord rival y no funciona. Es la primera regla que hay que implementar.*
 7. **Un dado por unidad**, tirado **una vez al inicio del turno**, por todas las unidades vivas del jugador activo, estén dentro o fuera del tablero.
 8. **Una acción por unidad y turno.** El jugador elige el orden.
 9. **Movimiento:** hasta el valor del chasis, en ortogonal. Diagonal no.
@@ -277,7 +310,7 @@ Cada paso deja algo comprobable. No pasar al siguiente sin cerrar el anterior.
 
 | # | Paso | Comprobable cuando |
 |---|---|---|
-| 1 | Tablero 8×6, colocación de Lord y 3 móviles, turnos alternos | Se ven las piezas y se pasa turno |
+| 1 | Tablero 8×7, colocación de Lord y 3 móviles, turnos alternos | Se ven las piezas y se pasa turno |
 | 2 | Movimiento por chasis + **zona de control** | Una unidad no puede pasar de largo junto a un enemigo |
 | 3 | Ataque básico, vida, muerte, victoria por Lord a 0 | Se puede ganar una partida |
 | 4 | Terreno: piedra, zona lenta, agua, obstáculo bajo | El Aqua entra en el agua y los demás no |
@@ -327,5 +360,5 @@ La segunda parte importa tanto como la primera. Si no sabe explicar la derrota, 
 **Tres señales de alarma que hay que vigilar desde el primer playtest:**
 
 1. **Las partidas se deciden por el reloj del turno 12** en vez de por muerte del Lord → atacar sale demasiado caro. Bajar la vida del Lord o subir el daño.
-2. **Nadie usa el asesino** → el terreno de agua no está bien colocado, o el movimiento 3 no compensa tener 7 de vida.
+2. **Nadie usa el asesino** → el terreno de agua no está bien colocado, o el movimiento 3 no compensa tener 70 de vida.
 3. **El tanque no aparece nunca en las composiciones** → la zona de control no está haciendo su trabajo, o los corredores son demasiado anchos.

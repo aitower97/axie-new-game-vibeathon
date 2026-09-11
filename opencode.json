@@ -1,0 +1,27 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "chrome-devtools": {
+      "type": "local",
+      "command": [
+        "node",
+        "node_modules/chrome-devtools-mcp/build/src/bin/chrome-devtools-mcp.js",
+        "--headless",
+        "--executablePath",
+        "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+        "--viewport",
+        "1600x900",
+        "--screenshotMaxWidth",
+        "1280",
+        "--screenshotFormat",
+        "jpeg",
+        "--screenshotQuality",
+        "80",
+        "--no-usage-statistics",
+        "--no-performance-crux",
+        "--no-page-id-routing"
+      ],
+      "enabled": true
+    }
+  }
+}

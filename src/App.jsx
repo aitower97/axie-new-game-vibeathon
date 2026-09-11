@@ -1,69 +1,168 @@
-import { useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import './App.css'
-import AxieSprite from './AxieSprite'
+import { AXIE_SAMPLE_GENES } from './Board3D'
+import { LORD_DESCRIPTORS, ROSTER_DESCRIPTORS } from './axieGeneCatalog'
+import {
+  CLASS_STATS,
+  faceValue,
+  LORD_DIE,
+  LORD_STATS,
+  rollFace,
+  SLOT_LABEL_MVP1,
+  standardDie,
+  TERRAIN_TYPES,
+} from './axie'
+import { ROWS, COLS, PLAYER_LORD, ENEMY_LORD } from './gameConstants'
+import LoadingCurtain from './components/LoadingCurtain'
+import BattleLog from './components/BattleLog'
+import VictoryBanner from './components/VictoryBanner'
+import Hud from './components/Hud'
+import Controls from './components/Controls'
+import ActionBar from './components/ActionBar'
+import Roster from './components/Roster'
+import BoardRegion from './components/BoardRegion'
 import LunaciaBackdrop from './LunaciaBackdrop'
-import { CLASS_STATS, LORD_STATS, TERRAIN_TYPES, buildGenome, dominantClass } from './axie'
+import { useHashRoute } from './routes'
+import MetaNav from './components/MetaNav'
+import BaseScreen from './components/meta/BaseScreen'
+import ResourcesScreen from './components/meta/ResourcesScreen'
+import ResearchScreen from './components/meta/ResearchScreen'
+import PveScreen from './components/meta/PveScreen'
+import PvpScreen from './components/meta/PvpScreen'
 
-// MVP1vinculodelunacia.md, pasos 1-4 del orden de construccion:
-//   1. Tablero 8x6, colocacion de Lord y 3 moviles, turnos alternos.
+// MVP1vinculodelunacia.md, pasos 1-5 del orden de construccion:
+//   1. Tablero 8x7, colocacion de Lord y 3 moviles, turnos alternos.
 //   2. Movimiento por chasis + zona de control.
 //   3. Ataque basico, vida, muerte, victoria por Lord a 0.
 //   4. Terreno: piedra, zona lenta, agua, obstaculo bajo.
-// Sin dados todavia (paso 5) ni IA (paso 10): los dos bandos se juegan a mano
-// (hotseat) para poder probar cada regla por separado antes de automatizar al rival.
-const ROWS = 6
-const COLS = 8
-const PLAYER_LORD = { r: 2, c: 0 }
-const ENEMY_LORD = { r: 2, c: COLS - 1 }
+//   5. Dados de unidad (3 caras) y las 12 partes reales con sus efectos.
+// Sin IA todavia (paso 10): los dos bandos se juegan a mano (hotseat) para poder
+// probar cada regla por separado antes de automatizar al rival.
+// ROWS/COLS/PLAYER_LORD/ENEMY_LORD/CELL_SIZE/EFFECT_GLYPH/LORD_GLYPH viven en
+// gameConstants.js (los necesitan tambien los componentes de presentacion).
+
+// Tablero en 3D real (Board3D.jsx, Three.js vanilla + bloques GLB de Kenney,
+// Platformer Kit CC0 -kenney.nl/assets/platformer-kit): se paso por CSS 3D puro
+// (una losa, sin bug de profundidad, pero sin volumen "de verdad") antes de
+// llegar aqui; ver la nota de estado en CLAUDE.md para el porque de cada paso.
+// De momento solo hay pieza 3D para "abierto" (block-grass.glb, un bloque de
+// cesped por celda); piedra/agua/zona lenta se quedan con su tinte CSS plano
+// hasta que el usuario elija que pieza de Kenney usar para cada una.
+// Reconstruccion "poco a poco" del tablero 3D: terreno -> Axies reales
+// encima -> interactividad, cada pieza validada antes de encender la
+// siguiente (bloques, luego roster+Lords con genoma real, ahora el grid
+// interactivo). Ningun codigo se borra, estos flags solo controlan que se
+// renderiza, para poder desactivar una pieza sin reconstruir nada si hiciera
+// falta.
+const SHOW_BOARD = true
+const SHOW_DASHBOARD = true
+const SHOW_OVERLAY = true
+const BOARD3D_BLOCK_URL = '/models/block-grass.glb'
+// Piezas de Kenney por tipo de terreno: el bloque de cesped se queda SIEMPRE
+// debajo (nunca se sustituye), y encima va una decoracion propia por terreno.
+// "stone": rocks.glb (Platformer Kit, CC0) como prop suelto, a 62% de la celda.
+// "slow": patch-dirt.glb (Mini Forest, CC0) -tierra/desierto, no nieve, a
+// peticion del usuario- casi a tamano completo de celda (fit 0.92) para que
+// lea como una capa de tierra encima del bloque, no como un objeto suelto.
+// Constantes a nivel de modulo a proposito -si fueran objetos literales inline
+// en el JSX, Board3D recrearia toda la escena en cada render (ver Board3D.jsx).
+const TERRAIN_BLOCK_URLS = {}
+// "water": no hay ninguna pieza de agua en los packs de Kenney descargados -a
+// peticion del usuario, un "laguito" dibujado a mano en Three.js (ver makePond
+// en Board3D.jsx: un poligono redondeado e irregular, material azul brillante),
+// no un modelo cargado. fit 0.44 = radio, no lado -queda un poco mas chico que
+// la celda para leer como una laguna, no como una baldosa cuadrada.
+const TERRAIN_DECOR_URLS = {
+  stone: '/models/rocks.glb',
+  slow: { url: '/models/mini-forest/patch-dirt.glb', fit: 0.92 },
+  water: { type: 'pond', fit: 0.44 },
+  // Obstaculo bajo: bloquea el movimiento pero no la linea de tiro (regla del
+  // MVP1) -una caja/crate del Platformer Kit se lee bien como "bulto que no
+  // dejar pasar" sin confundirse con la roca de "stone" (que bloquea todo).
+  // Sustituye al icono 2D plano (terrain-obstacle-icon) que habia antes.
+  obstacle: '/models/crate.glb',
+}
 const TURN_CLOCK = 12
 
-// Los Lords son Axies misticos de verdad (renderizados con el mixer); las tres clases
-// moviles todavia no tienen partes propias (llegan en el paso 5), asi que se ven como
-// fichas de chasis por ahora: color de clase + HP, sin sprite.
-const PLAYER_LORD_GENOME = buildGenome(['papi', 'lotus', 'cactus', 'axie-kiss', 'timber', 'shrimp'])
-const ENEMY_LORD_GENOME = buildGenome(['chubby', 'nut-cracker', 'imp', 'goda', 'balloon', 'ant'])
+// Banco de Energia (A3, docs/combate-dinamico-dado.md seccion 6.4): la cara que
+// no produce golpe da +1 al banco del turno (maximo 5) y se puede gastar en
+// comprar +10 al siguiente golpe (2) o mover 1 casilla extra (2). El remate (3,
+// tratar la cara de guardia como golpe basico) y el gasto de la IA quedan como
+// TODO documentado en App.jsx para la primera iteracion basica.
+const ENERGY_CAP = 5
+const ENERGY_BOOST_COST = 2
+const ENERGY_MOVE_COST = 2
+// TODO del banco (iteracion basica A3): el remate (3 E, tratar una cara sin
+// golpe como el golpe basico de la clase) exige decidir por unidad y no esta
+// en el pedido actual -queda documentado en docs/combate-dinamico-dado.md 6.4
+// para una iteracion futura. El +10 al golpe y el +1 de movimiento SI estan
+// implementados (attack()/moveTo() mas abajo).
+const _ENERGY_FINISH_COST = 3
 
 // Aqua entra en la composicion de prueba para poder verificar la regla del agua
 // ("el Aqua entra en el agua y los demas no", comprobable del paso 4).
 const STARTING_CLASSES = ['beast', 'bird', 'aqua']
 
 // Mapa de prueba para el paso 4 (los 3 mapas reales de la seccion 6.1 son el paso 11):
-// un muro de piedra arriba, un obstaculo bajo y una zona lenta en la fila del Lord,
-// y un canal de agua exclusivo para Aqua justo debajo.
+// un muro de piedra, una zona lenta, un obstaculo bajo en la fila del Lord (fila 3,
+// ahora que el tablero es 8x7) y un canal de agua exclusivo para Aqua justo debajo,
+// con una fila libre de terreno arriba y abajo para que quede simetrico.
 const TERRAIN_LAYOUT = {
-  '0,3': 'stone',
-  '0,4': 'stone',
-  '1,3': 'slow',
-  '1,4': 'slow',
-  '2,3': 'obstacle',
-  '3,3': 'water',
-  '3,4': 'water',
-  '3,5': 'water',
-  '4,2': 'slow',
-  '4,3': 'slow',
-  '4,4': 'slow',
-  '4,5': 'slow',
+  '1,3': 'stone',
+  '1,4': 'stone',
+  '2,3': 'slow',
+  '2,4': 'slow',
+  '3,3': 'obstacle',
+  '4,3': 'water',
+  '4,4': 'water',
+  '4,5': 'water',
+  '5,2': 'slow',
+  '5,3': 'slow',
+  '5,4': 'slow',
+  '5,5': 'slow',
 }
 function terrainAt(r, c) {
   return TERRAIN_LAYOUT[`${r},${c}`] || 'open'
 }
-const TERRAIN_CLASS = {
-  open: 'terrain-grass',
-  stone: 'terrain-stone',
-  slow: 'terrain-earth',
-  water: 'terrain-water',
-  obstacle: 'terrain-grass terrain-obstacle',
-}
+
+const GUARD_EFFECTS = new Set(['guard', 'guard-heal', 'guard-push'])
 
 function makeUnit(side, klass, id, pos) {
   const stats = CLASS_STATS[klass]
-  return { id, side, klass, hp: stats.hp, maxHp: stats.hp, pos, alive: true, acted: false }
+  // marked (Marca del Lord): true = el PROXIMO ataque que impacte a esta
+  // unidad hace +20, luego se consume. buffed (Templanza del Lord): true =
+  // el PROXIMO ataque que HAGA esta unidad hace +15, luego se consume.
+  // broken (Rotura, Fase A de docs/combate-dinamico-dado.md): al recibir un
+  // golpe con ventaja de relacion, la unidad no puede contraatacar esta vuelta
+  // ni la siguiente accion (se limpia en su siguiente tirada). energyMove/
+  // energyBoost (banco de Energia, A3): gastos de la banca del turno.
+  return { id, side, klass, hp: stats.hp, maxHp: stats.hp, shield: 0, pos, alive: true, acted: false, marked: false, buffed: false, broken: false, energyMove: false, energyBoost: false, die: standardDie(klass) }
+}
+
+// Genera un id unico para un clon (habilidad "Duplicar" del Lord): cuenta los
+// clones ya presentes de ese bando y sigue la numeracion -no hace falta un
+// contador aparte, `units` ya es la fuente de verdad.
+function nextCloneId(side, units) {
+  const prefix = side === 'player' ? 'pc' : 'ec'
+  const count = units.filter((u) => u.id.startsWith(prefix)).length
+  return `${prefix}${count}`
 }
 
 function initialUnits() {
-  const player = STARTING_CLASSES.map((klass, i) => makeUnit('player', klass, `p${i}`, { r: i + 1, c: 1 }))
-  const enemy = STARTING_CLASSES.map((klass, i) => makeUnit('enemy', klass, `e${i}`, { r: i + 1, c: COLS - 2 }))
+  const player = STARTING_CLASSES.map((klass, i) =>
+    makeUnit('player', klass, `p${i}`, { r: PLAYER_LORD.r - 1 + i, c: 1 })
+  )
+  const enemy = STARTING_CLASSES.map((klass, i) =>
+    makeUnit('enemy', klass, `e${i}`, { r: ENEMY_LORD.r - 1 + i, c: COLS - 2 })
+  )
   return [...player, ...enemy]
+}
+
+// Paso 8: reserva de 3 unidades fuera del tablero por bando (regla 3), con la misma
+// composicion de clases que el roster inicial. pos:null las mantiene fuera del
+// tablero y de cellOccupied/renderizado sin ningun caso especial.
+function initialReserve(side) {
+  return STARTING_CLASSES.map((klass, i) => makeUnit(side, klass, `${side === 'player' ? 'pr' : 'er'}${i}`, null))
 }
 
 function dist(a, b) {
@@ -74,21 +173,23 @@ function adjacent(a, b) {
   return dist(a, b) === 1
 }
 
+function cellOccupied(r, c, units, lords) {
+  if ((r === lords.player.r && c === lords.player.c) || (r === lords.enemy.r && c === lords.enemy.c)) return true
+  return units.some((u) => u.alive && u.pos && u.pos.r === r && u.pos.c === c)
+}
+
+function cellPassable(r, c, klass) {
+  const terrain = TERRAIN_TYPES[terrainAt(r, c)]
+  if (terrain.blocksMove) return false
+  if (terrain.aquaOnly && klass !== 'aqua') return false
+  return true
+}
+
 // Casillas alcanzables por movimiento respetando el terreno (regla 6) y la zona de
 // control: al entrar en una casilla adyacente a un enemigo vivo, esa rama del
-// recorrido se para ahi (regla 6, seccion 5).
-function reachableCells(unit, units, lords) {
-  const stats = CLASS_STATS[unit.klass]
-  const occupied = (r, c) => {
-    if ((r === lords.player.r && c === lords.player.c) || (r === lords.enemy.r && c === lords.enemy.c)) return true
-    return units.some((u) => u.alive && u.pos && u.pos.r === r && u.pos.c === c)
-  }
-  const passable = (r, c) => {
-    const terrain = TERRAIN_TYPES[terrainAt(r, c)]
-    if (terrain.blocksMove) return false
-    if (terrain.aquaOnly && unit.klass !== 'aqua') return false
-    return true
-  }
+// recorrido se para ahi (regla 6, seccion 5). moveBudget parametriza el presupuesto de
+// movimiento: por defecto el del chasis, pero Shrimp (Impulso) usa el suyo propio (2).
+function reachableCells(unit, units, lords, moveBudget = CLASS_STATS[unit.klass].move) {
   const enemyAdjacentTo = (r, c) => {
     const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
     if (adjacent({ r, c }, enemyLord)) return true
@@ -112,10 +213,10 @@ function reachableCells(unit, units, lords) {
       const nr = cur.r + dr
       const nc = cur.c + dc
       if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
-      if (occupied(nr, nc)) continue
-      if (!passable(nr, nc)) continue
+      if (cellOccupied(nr, nc, units, lords)) continue
+      if (!cellPassable(nr, nc, unit.klass)) continue
       const cost = cur.cost + TERRAIN_TYPES[terrainAt(nr, nc)].moveCost
-      if (cost > stats.move) continue
+      if (cost > moveBudget) continue
       const k = key(nr, nc)
       if (visited.has(k) && visited.get(k) <= cost) continue
       visited.set(k, cost)
@@ -160,85 +261,1587 @@ function hasLineOfSight(from, to) {
   return between.every((cell) => !TERRAIN_TYPES[terrainAt(cell.r, cell.c)].blocksLine)
 }
 
-function attackTargets(unit, units, lords) {
+// Alcance efectivo de la cara: Feather Spear suma al del chasis, Nut Throw lo
+// sustituye por uno fijo, el resto usa el del chasis tal cual.
+function effectiveRange(rolled, stats) {
+  if (rolled.effect === 'ranged-bonus') return stats.range + rolled.rangeBonus
+  if (rolled.effect === 'ranged-fixed') return rolled.fixedRange
+  return stats.range
+}
+
+// Shrimp (Impulso): mueve hasta su propio presupuesto (2) y ataca al final con el
+// alcance del chasis desde la casilla de llegada. `landing` es la casilla concreta
+// donde aterriza para poder golpear a ese objetivo.
+function dashTargets(unit, rolled, units, lords) {
   const stats = CLASS_STATS[unit.klass]
+  const cells = reachableCells(unit, units, lords, rolled.moveRange)
+  const landingSpots = [{ r: unit.pos.r, c: unit.pos.c }, ...cells]
+  const targets = []
+  const tryTarget = (kind, id, pos) => {
+    // A5: si la casilla de aterrizaje esta pegada a un obstaculo, ese tiro
+    // concreto llega 1 mas lejos (terrainRangeBonus).
+    const landing = landingSpots.find((cell) => dist(cell, pos) <= stats.range + terrainRangeBonus(cell) && hasLineOfSight(cell, pos))
+    if (landing) targets.push({ kind, id, pos, landing })
+  }
+  const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
+  tryTarget('lord', null, enemyLord)
+  units.filter((u) => u.alive && u.side !== unit.side && u.pos).forEach((u) => tryTarget('unit', u.id, u.pos))
+  return targets
+}
+
+// Regla 2.1: toda unidad puede atacar siempre con el ataque basico de su clase, salga
+// la cara que salga -ninguna combinacion de partes deja a una unidad sin poder actuar.
+// Guardia y Pigeon Post no traen ataque propio, asi que caen aqui como respaldo.
+function basicAttackTargets(unit, units, lords) {
+  const stats = CLASS_STATS[unit.klass]
+  // A5: obstaculo bajo pegado a la propia casilla = +1 de alcance a este tiro.
+  const range = stats.range + terrainRangeBonus(unit.pos)
   const targets = []
   const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
-  if (dist(unit.pos, enemyLord) <= stats.range && hasLineOfSight(unit.pos, enemyLord)) {
+  if (dist(unit.pos, enemyLord) <= range && hasLineOfSight(unit.pos, enemyLord)) {
+    targets.push({ kind: 'lord', pos: enemyLord, basic: true })
+  }
+  units
+    .filter((u) => u.alive && u.side !== unit.side && u.pos && dist(unit.pos, u.pos) <= range && hasLineOfSight(unit.pos, u.pos))
+    .forEach((u) => targets.push({ kind: 'unit', id: u.id, pos: u.pos, basic: true }))
+  return targets
+}
+
+function attackTargetsForFace(unit, rolled, units, lords) {
+  if (!rolled) return []
+  if (GUARD_EFFECTS.has(rolled.effect) || rolled.effect === 'reposition-ally') {
+    return basicAttackTargets(unit, units, lords)
+  }
+  if (rolled.effect === 'dash-attack') return dashTargets(unit, rolled, units, lords)
+  const stats = CLASS_STATS[unit.klass]
+  // A5: obstaculo bajo pegado a la propia casilla = +1 de alcance a este tiro.
+  const range = effectiveRange(rolled, stats) + terrainRangeBonus(unit.pos)
+  const targets = []
+  const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
+  if (dist(unit.pos, enemyLord) <= range && hasLineOfSight(unit.pos, enemyLord)) {
     targets.push({ kind: 'lord', pos: enemyLord })
   }
   units
-    .filter(
-      (u) =>
-        u.alive && u.side !== unit.side && u.pos && dist(unit.pos, u.pos) <= stats.range && hasLineOfSight(unit.pos, u.pos)
-    )
+    .filter((u) => u.alive && u.side !== unit.side && u.pos && dist(unit.pos, u.pos) <= range && hasLineOfSight(unit.pos, u.pos))
     .forEach((u) => targets.push({ kind: 'unit', id: u.id, pos: u.pos }))
   return targets
 }
+
+// Paso 8: ataque del Lord (cara 1 de su dado, seccion 4.2). El Lord no se
+// mueve nunca (regla 18), asi que dispara siempre desde su casilla fija.
+function lordAttackTargets(side, units, lords) {
+  const pos = lords[side]
+  const range = LORD_STATS.range
+  const targets = []
+  const enemyLord = side === 'player' ? lords.enemy : lords.player
+  if (dist(pos, enemyLord) <= range && hasLineOfSight(pos, enemyLord)) {
+    targets.push({ kind: 'lord', pos: enemyLord })
+  }
+  units
+    .filter((u) => u.alive && u.side !== side && u.pos && dist(pos, u.pos) <= range && hasLineOfSight(pos, u.pos))
+    .forEach((u) => targets.push({ kind: 'unit', id: u.id, pos: u.pos }))
+  return targets
+}
+
+// Paso 8: invocacion del Lord (caras 2-6). Los refuerzos del Lord aparecen junto al
+// Lord (regla 16), en una casilla ortogonal libre. reserveKlass filtra el agua para
+// que no se ofrezca una casilla que la siguiente unidad de la reserva no podria pisar.
+function lordSummonTargets(side, units, lords, reserveKlass) {
+  if (!reserveKlass) return []
+  const pos = lords[side]
+  const deltas = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ]
+  const cells = []
+  for (const [dr, dc] of deltas) {
+    const nr = pos.r + dr
+    const nc = pos.c + dc
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+    if (cellOccupied(nr, nc, units, lords)) continue
+    if (!cellPassable(nr, nc, reserveKlass)) continue
+    cells.push({ r: nr, c: nc })
+  }
+  return cells
+}
+
+// Habilidades de apoyo del Lord (rediseño 2026-09-10, dos veces el mismo dia
+// -ver el comentario largo junto a LORD_DIE en axie.js para el porque de
+// cada version). Las 5 comparten alcance 3 desde la casilla fija del Lord:
+// es apoyo, no el ataque corto del Lord, asi que llega mas lejos.
+const LORD_SUPPORT_RANGE = 3
+
+// Aliado propio VIVO en el tablero a alcance 3 -misma forma para Muro, Cura,
+// Templanza y Duplicar (las 4 apuntan a un aliado; Duplicar ademas puede
+// apuntar a una casilla vacia junto al Lord, ver lordSummonTargets).
+function lordAllyTargets(side, units, lords) {
+  const pos = lords[side]
+  return units
+    .filter((u) => u.alive && u.side === side && u.pos && dist(pos, u.pos) <= LORD_SUPPORT_RANGE)
+    .map((u) => ({ kind: 'unit', id: u.id, pos: u.pos }))
+}
+const lordShieldTargets = lordAllyTargets
+const lordHealTargets = lordAllyTargets
+const lordBuffTargets = lordAllyTargets
+const lordCloneTargets = lordAllyTargets
+
+// Marca: enemigo VIVO en el tablero a alcance 3 (solo unidades, no el Lord
+// rival -mantiene la marca contenida al mismo tipo de objetivo que el resto
+// de habilidades de apoyo, sin tocar el HP del Lord fuera del ataque
+// propio). Requiere linea de tiro, igual que un ataque real.
+function lordMarkTargets(side, units, lords) {
+  const pos = lords[side]
+  const enemySide = side === 'player' ? 'enemy' : 'player'
+  return units
+    .filter((u) => u.alive && u.side === enemySide && u.pos && dist(pos, u.pos) <= LORD_SUPPORT_RANGE && hasLineOfSight(pos, u.pos))
+    .map((u) => ({ kind: 'unit', id: u.id, pos: u.pos }))
+}
+
+// Pigeon Post (Reposiciona): aliados adyacentes que se pueden mover. Simplificacion
+// deliberada del prototipo: el destino lo elige el juego (primera casilla libre en
+// horario desde arriba), no el jugador -evita un segundo paso de seleccion.
+function repositionableAllies(unit, units) {
+  return units.filter((u) => u.alive && u.side === unit.side && u.id !== unit.id && u.pos && adjacent(unit.pos, u.pos))
+}
+function firstFreeNeighbor(pos, klass, units, lords) {
+  const deltas = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ]
+  for (const [dr, dc] of deltas) {
+    const nr = pos.r + dr
+    const nc = pos.c + dc
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+    if (cellOccupied(nr, nc, units, lords)) continue
+    if (!cellPassable(nr, nc, klass)) continue
+    return { r: nr, c: nc }
+  }
+  return null
+}
+
+const labelOf = (u) => `${CLASS_STATS[u.klass].label} ${u.side === 'player' ? 'propio' : 'rival'}`
+const sideLabel = (side) => (side === 'player' ? 'propio' : 'rival')
+
+// Un dado por unidad, tirado una vez al inicio del turno (regla 7), mas el dado del
+// Lord (paso 8). Resuelve enseguida las caras de guardia (regla 11: se aplican
+// solas, sin gastar la accion). Funcion pura para poder compartir el mismo calculo
+// entre el boton manual de Player y el resolutor automatico de Enemy (paso 10).
+function rollSideDice(units, side, lords) {
+  // A1: la Rotura se limpia cuando la unidad rota de nuevo (la siguiente vez
+  // que tira, ya puede contraatacar). Equal para player (rollDice) y enemy.
+  let next = units.map((u) => (u.side === side ? { ...u, shield: 0, broken: false } : u))
+  const newRolls = {}
+  const lines = []
+  const lordFace = rollFace(LORD_DIE)
+  lines.push(`Lord ${sideLabel(side)}: ${lordFace.name}.`)
+  next.forEach((u) => {
+    if (!u.alive || u.side !== side) return
+    const face = rollFace(u.die)
+    newRolls[u.id] = face
+    lines.push(`${labelOf(u)}: ${SLOT_LABEL_MVP1[face.slot]} (${face.name}) - ${face.text}`)
+  })
+  next.forEach((u, idx) => {
+    if (!u.alive || u.side !== side) return
+    const face = newRolls[u.id]
+    if (!GUARD_EFFECTS.has(face.effect)) return
+    const val = faceValue(face)
+    next[idx] = { ...next[idx], shield: val }
+    if (face.effect === 'guard-heal') {
+      next[idx] = { ...next[idx], hp: Math.min(next[idx].maxHp, next[idx].hp + face.heal) }
+    }
+    if (face.effect === 'guard-push') {
+      const enemy = next.find((x) => x.alive && x.side !== u.side && x.pos && adjacent(next[idx].pos, x.pos))
+      if (enemy) {
+        const dr = Math.sign(enemy.pos.r - next[idx].pos.r)
+        const dc = Math.sign(enemy.pos.c - next[idx].pos.c)
+        const dest = { r: enemy.pos.r + dr, c: enemy.pos.c + dc }
+        const inBounds = dest.r >= 0 && dest.r < ROWS && dest.c >= 0 && dest.c < COLS
+        const blocked = !inBounds || !cellPassable(dest.r, dest.c, enemy.klass)
+        const occupied = inBounds && cellOccupied(dest.r, dest.c, next.filter((x) => x.id !== enemy.id), lords)
+        if (!blocked && !occupied) {
+          const eIdx = next.findIndex((x) => x.id === enemy.id)
+          next[eIdx] = { ...next[eIdx], pos: dest }
+          lines.push(`${labelOf(next[idx])} empuja a ${labelOf(enemy)}.`)
+        }
+      }
+    }
+  })
+  return { next, newRolls, lines, lordFace }
+}
+
+// Calculo puro del dano de un ataque de unidad (no del Lord): mismas reglas que la
+// funcion attack() del componente (perforante, remate de Imp, combos, autoefectos),
+// pero sin tocar el estado de React -asi la puede usar tambien el resolutor de IA.
+function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyLordHp) {
+  let damage
+  let actionName
+  let ignoresShield = false
+  let selfDamage = 0
+  let attackerShieldGain = 0
+  const targetMaxHp = target.kind === 'lord' ? LORD_STATS.hp : units.find((u) => u.id === target.id).maxHp
+  const targetHp =
+    target.kind === 'lord' ? (attacker.side === 'player' ? enemyLordHp : playerLordHp) : units.find((u) => u.id === target.id).hp
+  if (target.basic) {
+    damage = CLASS_STATS[attacker.klass].atk
+    actionName = 'un golpe basico'
+  } else {
+    damage = faceValue(rolled)
+    actionName = rolled.name
+    switch (rolled.effect) {
+      case 'pierce':
+        ignoresShield = true
+        break
+      case 'pierce-execute':
+        ignoresShield = true
+        if (targetHp < targetMaxHp / 2) damage += 10
+        break
+      case 'strike-shield-self':
+        attackerShieldGain = rolled.shieldGain
+        break
+      case 'strike-self-damage':
+        selfDamage = rolled.selfDamage
+        break
+      case 'strike-combo':
+      case 'ranged-fixed':
+        if (attacker.die.some((f) => f.id === rolled.comboWith)) damage += rolled.comboBonus
+        break
+      default:
+        break
+    }
+  }
+  // Marca del Lord: el PROXIMO ataque que impacte a una unidad marcada hace
+  // +20, sea de quien sea. Se consume aqui (el que aplica el resultado
+  // limpia `marked`), no importa si mata o no al objetivo.
+  const wasMarked = target.kind === 'unit' && units.find((u) => u.id === target.id)?.marked
+  if (wasMarked) damage += 20
+  // Templanza del Lord: el PROXIMO ataque que HAGA un aliado bendecido hace
+  // +15. Se consume igual que Marca, aqui mismo (attacker.buffed ya viene del
+  // estado actual, el caller limpia `buffed` en el propio atacante).
+  const wasBuffed = !!attacker.buffed
+  if (wasBuffed) damage += 15
+  // Banco de Energia (A3): la banca del turno compra +10 al proximo golpe de
+  // esta unidad. Se consume al impactar igual que marked/buffed.
+  const energyHit = !!attacker.energyBoost
+  if (energyHit) damage += 10
+  return { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit }
+}
+
+// --- Fase A (docs/combate-dinamico-dado.md) ---
+// El "tratado" de integracion: el triángulo de efectos (A1), el intercambio
+// con contragolpe (A2), el terreno defensivo (A5) y el banco de Energia (A3).
+// Se resuelven en helpers compartidos entre la IA (applyUnitAttackLocal) y el
+// ataque manual del jugador (attack()), para que la preview y el golpe real
+// nunca se desincronicen.
+
+// A1: las caras se agrupan en tres familias (todos efectos ya existentes) y se
+// relacionan Perforar > Guardar > Golpear > Perforar (seccion 6.2.1). Las
+// caras de Cola (dash/distancias fijas) y Reposicion quedan NEUTRAS a
+// proposito: quemar la Cola es la unica forma de "no entrar en el ciclo"
+// cuando el rival te tiene leido (6.2.1).
+const EFFECT_FAMILY = {
+  pierce: 'pierce',
+  'pierce-execute': 'pierce',
+  guard: 'guard',
+  'guard-heal': 'guard',
+  'guard-push': 'guard',
+  strike: 'strike',
+  'strike-shield-self': 'strike',
+  'strike-self-damage': 'strike',
+  'strike-combo': 'strike',
+  drain: 'strike',
+  'ranged-bonus': 'strike',
+  'ranged-fixed': 'strike',
+}
+const TRIANGLE = { pierce: 'guard', guard: 'strike', strike: 'pierce' }
+// 'advantage'/'disadvantage'/'neutral'. El ataque basico (regla 2.1) pega como
+// familia Golpear (Boca): es un "golpe seco" de la clase.
+function relationGain(attackerEffect, defenderEffect) {
+  const a = EFFECT_FAMILY[attackerEffect]
+  const d = EFFECT_FAMILY[defenderEffect]
+  if (!a || !d) return 'neutral'
+  if (TRIANGLE[a] === d) return 'advantage'
+  if (TRIANGLE[d] === a) return 'disadvantage'
+  return 'neutral'
+}
+
+// A1: la Rotura. La ventaja de relacion NO modifica el dano (6.2.2): su unico
+// efecto es negarle la vuelta al objetivo en este intercambio y en su siguiente
+// accion. Solo se concede contra otro UNIDAD (contra el Lord todo es neutral).
+// A 0 de dano real (todo absorbido) no hay rotura: golpe que no duele no rompe.
+function grantsBreak(relation, dealtDamage, targetKind) {
+  return targetKind === 'unit' && relation === 'advantage' && dealtDamage > 0
+}
+
+// A5: zona lenta = trinchera (seccion 6.6). Quien recibe un golpe estando sobre
+// una casilla de zona lenta suma +10 de guardia a su escudo real SOLO para ese
+// golpe. Una sola fuente de verdad para que ataque y contragolpe lean el mismo
+// bonus (se premian las casillas que ya se pisan por obligacion, sin crear
+// fortalezas inexpugnables: 6.6 "Riesgo mitigado").
+function terrainGuardBonus(r, c) {
+  return terrainAt(r, c) === 'slow' ? 10 : 0
+}
+
+// A5: obstaculo bajo = refugio (seccion 6.6). Disparar desde una casilla
+// ortogonalmente pegada a un obstaculo da +1 de alcance a ESE tiro -"el
+// arquero se esconde y amplia su ventana de no contraataque". Mismo bonus en
+// ataque, ataque basico, Impulso y contragolpe (una sola fuente de verdad:
+// quien dispara desde ahi lo tiene siempre, sea cual sea el lado de la
+// accion), igual que terrainGuardBonus arriba.
+function terrainRangeBonus(pos) {
+  const deltas = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1],
+  ]
+  for (const [dr, dc] of deltas) {
+    const nr = pos.r + dr
+    const nc = pos.c + dc
+    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) continue
+    if (terrainAt(nr, nc) === 'obstacle') return 1
+  }
+  return 0
+}
+
+// A2: una cara de defensor puede devolver el golpe del intercambio con su
+// propio dano SOLO si es una cara de golpe (familias Perforar/Golpear del
+// triangulo). Guardar/Reposicion tienen `value` (escudo) pero no son golpes:
+// un defensor que guardo nunca contesta, porque su cara no tiene dano que
+// devolver (6.3.1). Pigeon Post (reposition-ally) tampoco.
+function canCounterWith(face) {
+  if (!face) return false
+  const family = EFFECT_FAMILY[face.effect]
+  return family === 'pierce' || family === 'strike'
+}
+
+// Golpe del contragolpe, PURO: condiciones + numeros, sin mutar nada. null si
+// no hay contragolpe. El triángulo NO se materializa aqui (6.2.2): la ventaja
+// solo vale al INICIAR el combate, la vuelta es un golpe seco del defensor.
+// Tampoco arrastra efectos propios del atacante (sin combos, sin escudo-auto
+// de Serious, sin auto-dano de Risky Fish): la respuesta es un golpe, no una
+// repeticion de la accion.
+function computeCounterHit(defender, rolled, attacker) {
+  if (!defender || !defender.alive) return null
+  if (defender.broken) return null
+  if (!canCounterWith(rolled)) return null
+  // A5: el defensor tambien se beneficia del refugio si su casilla esta
+  // pegada a un obstaculo -misma regla que un ataque normal, la vuelta es
+  // un disparo como cualquier otro.
+  const range = effectiveRange(rolled, CLASS_STATS[defender.klass]) + terrainRangeBonus(defender.pos)
+  if (dist(defender.pos, attacker.pos) > range || !hasLineOfSight(defender.pos, attacker.pos)) return null
+  let damage = faceValue(rolled)
+  let ignoresShield = false
+  if (rolled.effect === 'pierce' || rolled.effect === 'pierce-execute') ignoresShield = true
+  if (rolled.effect === 'pierce-execute' && attacker.hp < attacker.maxHp / 2) damage += 10
+  // Marca y Templanza se consumen igual que en cualquier ataque (mismas reglas
+  // marked/buffed que computeUnitAttack): el contraatacante las lee y el
+  // aplicador las limpia.
+  const wasMarked = !!attacker.marked
+  if (wasMarked) damage += 20
+  const wasBuffed = !!defender.buffed
+  if (wasBuffed) damage += 15
+  const terrainBonus = terrainGuardBonus(attacker.pos.r, attacker.pos.c)
+  let absorbed = 0
+  let dealt = damage
+  if (!ignoresShield) {
+    absorbed = Math.min(attacker.shield + terrainBonus, damage)
+    dealt = damage - absorbed
+  }
+  const killed = attacker.hp - dealt <= 0
+  return { name: rolled.name, damage, ignoresShield, absorbed, dealt, killed, wasMarked, wasBuffed, terrainBonus }
+}
+
+// Aplica el contragolpe sobre un estado local (units + hps por lado), mutacion
+// pura como applyUnitAttackLocal. Devuelve el estado siguiente + lines/
+// floatEvents; si no hay contragolpe devuelve el estado sin tocar.
+function applyCounterLocal(state, defender, rolled, attackerId) {
+  const attacker = state.units.find((u) => u.id === attackerId)
+  if (!attacker || !attacker.alive) return { ...state, lines: [], floatEvents: [] }
+  const hit = computeCounterHit(defender, rolled, attacker)
+  if (!hit) return { ...state, lines: [], floatEvents: [] }
+  const lines = []
+  const floatEvents = []
+  lines.push(`${labelOf(defender)} contesta con ${rolled.name} sobre ${labelOf(attacker)} (-${hit.dealt}).`)
+  floatEvents.push({ text: rolled.name, variant: 'cast', ...defender.pos })
+  floatEvents.push({ text: `-${hit.dealt}`, variant: 'damage', ...attacker.pos })
+  if (hit.terrainBonus > 0 && hit.absorbed > 0) {
+    lines.push(`El terreno de ${labelOf(attacker)} absorbe ${hit.terrainBonus} de la vuelta.`)
+    floatEvents.push({ text: `+${hit.terrainBonus} guardia terreno`, variant: 'shield', ...attacker.pos })
+  }
+  if (hit.wasMarked) {
+    lines.push(`${labelOf(attacker)} estaba marcado: +20 de dano.`)
+    floatEvents.push({ text: '+20 marcado', variant: 'buff', ...attacker.pos })
+  }
+  if (hit.wasBuffed) {
+    lines.push(`${labelOf(defender)} estaba bendecido: +15 de dano.`)
+    floatEvents.push({ text: '+15 Templanza', variant: 'buff', ...defender.pos })
+  }
+  if (hit.killed) lines.push(`${labelOf(attacker)} cae.`)
+  // El contraatacante ha golpeado: consume su Templanza. El atacante original
+  // recibe el golpe y, si estaba marcado, pierde la Marca.
+  const shieldConsumed = Math.min(attacker.shield, hit.absorbed)
+  const units = state.units.map((u) => {
+    if (u.id === attacker.id) {
+      return {
+        ...u,
+        hp: Math.max(0, u.hp - hit.dealt),
+        shield: u.shield - shieldConsumed,
+        alive: u.hp - hit.dealt > 0,
+        pos: u.hp - hit.dealt > 0 ? u.pos : null,
+        marked: hit.wasMarked ? false : u.marked,
+      }
+    }
+    if (u.id === defender.id && hit.wasBuffed) return { ...u, buffed: false }
+    return u
+  })
+  return { units, playerLordHp: state.playerLordHp, enemyLordHp: state.enemyLordHp, lines, floatEvents, victory: null }
+}
+
+// A3: banco de Energia (seccion 6.4). La cara que no produce golpe (Guardia,
+// Invocacion, Reposicion, utilidad) da +1 a la banca del turno. En el MVP1 las
+// unicas caras sin golpe son las de guardia (4 de las 12 partes) y Pigeon Post;
+// el resto (incluido el Impulso de la Cola) golpean y no banquean.
+function yieldsEnergy(effect) {
+  if (!effect) return false
+  if (effect.startsWith('guard')) return true
+  if (effect === 'reposition-ally') return true
+  return false
+}
+
+// Relacion de una cara de ataque contra la cara tirada del objetivo (para A1
+// y la preview del intercambio). Contra el Lord todo es neutral (6.2.4).
+function relationFor(rolled, target, rolls) {
+  if (target.kind !== 'unit') return 'neutral'
+  const defenderFace = rolls?.[target.id]
+  return relationGain(target.basic ? 'strike' : rolled?.effect, defenderFace?.effect)
+}
+
+// Numeros completos de un ataque (golpe + posible vuelta) para la preview del
+// intercambio (6.3.3): la pieza que vuelve competitiva la decision. Pura: la
+// UI del ActionBar y el golpe real (attack) calculan con la misma funcion.
+function describeExchange(attacker, rolled, target, units, playerLordHp, enemyLordHp, rolls) {
+  const primary = computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyLordHp)
+  const victim = target.kind === 'unit' ? units.find((u) => u.id === target.id) : null
+  let dealt = primary.damage
+  let absorbed = 0
+  let terrainAbsorbed = 0
+  if (victim && !primary.ignoresShield) {
+    const tBonus = terrainGuardBonus(victim.pos.r, victim.pos.c)
+    absorbed = Math.min(victim.shield + tBonus, primary.damage)
+    dealt = primary.damage - absorbed
+    terrainAbsorbed = Math.max(0, absorbed - Math.min(victim.shield, absorbed))
+  }
+  const killed = !!victim && victim.hp - dealt <= 0
+  let relation = 'neutral'
+  let broke = false
+  let counter = null
+  if (victim) {
+    const defenderFace = rolls?.[target.id]
+    relation = relationFor(rolled, target, rolls)
+    broke = grantsBreak(relation, dealt, 'unit')
+    if (!killed && !broke && canCounterWith(defenderFace)) {
+      const survivor = { ...victim, hp: victim.hp - dealt }
+      counter = computeCounterHit(survivor, defenderFace, attacker)
+    }
+  }
+  return {
+    targetLabel: victim ? labelOf(victim) : null,
+    actionName: primary.actionName,
+    damage: primary.damage,
+    absorbed,
+    terrainAbsorbed,
+    dealt,
+    killed,
+    relation,
+    broke,
+    defenderFace: victim ? (rolls?.[target.id] ?? null) : null,
+    counter,
+  }
+}
+
+// Aplica un ataque de unidad sobre un estado local (units/playerLordHp/enemyLordHp)
+// y devuelve el siguiente estado mas las lineas de log, sin usar setState -para
+// poder encadenar varias acciones de la IA en un solo turno antes de confirmar nada.
+function applyUnitAttackLocal(state, attacker, rolled, target) {
+  const { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit } = computeUnitAttack(
+    attacker, rolled, target, state.units, state.playerLordHp, state.enemyLordHp
+  )
+  const lines = []
+  // Floats de combate generados por ESTE ataque (los consume runEnemyTurn para
+  // apilarlos en el paso correspondiente de la secuencia del rival).
+  const floatEvents = []
+  const castPos = target.landing || attacker.pos
+  const victimPos = target.kind === 'lord' ? (attacker.side === 'player' ? ENEMY_LORD : PLAYER_LORD) : state.units.find((u) => u.id === target.id)?.pos || castPos
+  floatEvents.push({ text: actionName === 'un golpe basico' ? `Ataque basico (${CLASS_STATS[attacker.klass].label})` : actionName, variant: 'cast', ...castPos })
+  let units = state.units
+  let playerLordHp = state.playerLordHp
+  let enemyLordHp = state.enemyLordHp
+  let victory = null
+  // A1: relacion de este golpe con la cara tirada del defensor. Solo entre
+  // unidades; contra el Lord todo es neutral (6.2.4).
+  const relation = relationFor(rolled, target, state.rolls)
+  let broke = false
+
+  if (target.kind === 'lord') {
+    const attackingPlayerLord = attacker.side === 'enemy'
+    const current = attackingPlayerLord ? playerLordHp : enemyLordHp
+    const next = Math.max(0, current - damage)
+    if (attackingPlayerLord) playerLordHp = next
+    else enemyLordHp = next
+    lines.push(`${labelOf(attacker)} usa ${actionName} sobre el Lord rival (-${damage}).`)
+    floatEvents.push({ text: `-${damage}`, variant: 'damage', ...victimPos })
+    if (next <= 0) victory = attackingPlayerLord ? 'enemy-won' : 'player-won'
+  } else {
+    const victim = units.find((u) => u.id === target.id)
+    let dealt = damage
+    let absorbed = 0
+    let shieldConsumed = 0
+    let terrainAbsorbed = 0
+    if (!ignoresShield) {
+      // A5: el terreno de zona lenta suma 10 de guardia al escudo real solo
+      // para este golpe (trinchera). Absorbido = escudo real + bonus terreno.
+      const tBonus = terrainGuardBonus(victim.pos.r, victim.pos.c)
+      absorbed = Math.min(victim.shield + tBonus, damage)
+      dealt = damage - absorbed
+      shieldConsumed = Math.min(victim.shield, absorbed)
+      terrainAbsorbed = Math.max(0, absorbed - shieldConsumed)
+      if (shieldConsumed > 0) lines.push(`El escudo de ${labelOf(victim)} absorbe ${shieldConsumed}.`)
+      if (terrainAbsorbed > 0) lines.push(`El terreno de ${labelOf(victim)} absorbe ${terrainAbsorbed} de la guardia.`)
+    }
+    const killed = victim.hp - dealt <= 0
+    lines.push(`${labelOf(attacker)} usa ${actionName} sobre ${labelOf(victim)} (-${dealt}).`)
+    floatEvents.push({ text: `-${dealt}`, variant: 'damage', ...victimPos })
+    if (shieldConsumed > 0) floatEvents.push({ text: `escudo -${shieldConsumed}`, variant: 'shield', ...victimPos })
+    if (terrainAbsorbed > 0) floatEvents.push({ text: `+${terrainAbsorbed} guardia terreno`, variant: 'shield', ...victimPos })
+    if (wasMarked) lines.push(`${labelOf(victim)} estaba marcado: +20 de dano.`)
+    if (wasMarked) floatEvents.push({ text: '+20 marcado', variant: 'buff', ...victimPos })
+    if (killed) lines.push(`${labelOf(victim)} cae.`)
+    // A1: la Rotura se decide con el dano real ya calculado.
+    broke = grantsBreak(relation, dealt, target.kind)
+    if (broke) {
+      lines.push(`${labelOf(victim)} sufre Rotura: no puede contraatacar.`)
+      floatEvents.push({ text: 'Rotura', variant: 'break', ...victimPos })
+    }
+    units = units.map((u) =>
+      u.id === target.id
+        ? { ...u, hp: Math.max(0, u.hp - dealt), shield: Math.max(0, u.shield - shieldConsumed), alive: u.hp - dealt > 0, pos: u.hp - dealt > 0 ? u.pos : null, marked: false, broken: broke ? true : u.broken }
+        : u
+    )
+  }
+  if (ignoresShield) lines.push('Ignora el escudo del objetivo.')
+  if (attackerShieldGain > 0) lines.push(`${labelOf(attacker)} gana ${attackerShieldGain} de escudo.`)
+  if (attackerShieldGain > 0) floatEvents.push({ text: `+${attackerShieldGain} escudo`, variant: 'shield', ...castPos })
+  if (selfDamage > 0) lines.push(`${labelOf(attacker)} se hace ${selfDamage} de dano.`)
+  if (selfDamage > 0) floatEvents.push({ text: `-${selfDamage}`, variant: 'damage', ...castPos })
+  if (wasBuffed) lines.push(`${labelOf(attacker)} estaba bendecido: +15 de dano.`)
+  if (wasBuffed) floatEvents.push({ text: '+15 Templanza', variant: 'buff', ...castPos })
+  if (energyHit) lines.push(`${labelOf(attacker)} gasta 2 de Energia: +10 al golpe.`)
+  if (energyHit) floatEvents.push({ text: '+10 Energia', variant: 'buff', ...castPos })
+
+  units = units.map((u) => {
+    if (u.id !== attacker.id) return u
+    let next = { ...u, acted: true, buffed: false, energyBoost: false }
+    if (target.landing && (target.landing.r !== next.pos.r || target.landing.c !== next.pos.c)) next.pos = target.landing
+    if (attackerShieldGain > 0) next.shield = Math.max(next.shield, attackerShieldGain)
+    if (selfDamage > 0) {
+      next.hp = Math.max(0, next.hp - selfDamage)
+      next.alive = next.hp > 0
+      if (!next.alive) next.pos = null
+    }
+    return next
+  })
+
+  // A2: el contragolpe. Tras resolver el golpe primario, si el objetivo es una
+  // unidad que sobrevive, tiene alcance y NO tiene Rotura, contesta UNA vez con
+  // su propia cara tirada (6.3). Un golpe mortal no concede contraataque; la
+  // Rotura (A1) se lo niega. Se aplica sobre el estado ya actualizado (escudo
+  // ganado por Serious incluido) y no toca `acted` del defensor (es una
+  // respuesta, no su accion).
+  let counterFx = null
+  if (target.kind === 'unit' && !broke) {
+    const defenderAfter = units.find((u) => u.id === target.id)
+    const defenderRoll = state.rolls?.[target.id]
+    if (defenderAfter && defenderAfter.alive && canCounterWith(defenderRoll)) {
+      const counter = applyCounterLocal({ units, playerLordHp, enemyLordHp }, defenderAfter, defenderRoll, attacker.id)
+      if (counter.lines.length > 0) {
+        units = counter.units
+        playerLordHp = counter.playerLordHp
+        enemyLordHp = counter.enemyLordHp
+        lines.push(...counter.lines)
+        floatEvents.push(...counter.floatEvents)
+        counterFx = { kind: 'attack', unitId: target.id, slot: defenderRoll.slot ?? null }
+      }
+    }
+  }
+
+  return { units, playerLordHp, enemyLordHp, lines, victory, floatEvents, counterFx }
+}
+
+// Casilla alcanzable que mas acerca a la unidad al Lord rival (aproximacion a "la
+// ruta mas corta que no este bloqueada", regla de IA #3): reachableCells ya para el
+// recorrido en seco al entrar en zona de control (regla 6), asi que basta escoger,
+// de entre lo alcanzable, lo que minimiza la distancia Manhattan al Lord rival.
+function bestAdvanceCell(unit, units, lords) {
+  const cells = reachableCells(unit, units, lords)
+  if (cells.length === 0) return null
+  const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
+  return cells.reduce((best, cell) => (dist(cell, enemyLord) < dist(best, enemyLord) ? cell : best))
+}
+
+// Rematar al objetivo con menos vida al alcance (prioridad 1 de la IA), o al Lord
+// si no hay unidades (prioridad 2). null si no hay nada al alcance.
+function pickWeakestTarget(options, units) {
+  const unitTargets = options.filter((t) => t.kind === 'unit')
+  if (unitTargets.length > 0) {
+    return unitTargets.reduce((best, t) =>
+      units.find((u) => u.id === t.id).hp < units.find((u) => u.id === best.id).hp ? t : best
+    )
+  }
+  return options.find((t) => t.kind === 'lord') || null
+}
+
+// IA enemiga minima (paso 10, seccion "IA enemiga minima" del documento), en su
+// orden: (1) rematar al objetivo con menos vida al alcance, (2) atacar al Lord
+// rival si esta al alcance, (3) avanzar hacia el Lord rival por la ruta mas corta
+// disponible. La 4a prioridad del documento ("si esta bloqueada, atacar a quien
+// bloquea") ya queda cubierta por la 1a: la regla 2.1 garantiza que cualquier
+// enemigo adyacente es siempre un objetivo valido de ataque basico, asi que un
+// bloqueador nunca llega a la fase de movimiento sin haber sido ya atacado antes.
+function decideUnitAction(unit, rolled, units, lords) {
+  const target = pickWeakestTarget(attackTargetsForFace(unit, rolled, units, lords), units)
+  if (target) return { kind: 'attack', target }
+  const cell = bestAdvanceCell(unit, units, lords)
+  if (cell) return { kind: 'move', cell }
+  return { kind: 'none' }
+}
+
+// Resuelve el turno de Enemy entero -tirada, guardia, y la accion de cada unidad
+// mas el Lord- sobre un estado local, sin tocar React hasta que el componente
+// confirma el resultado. Enemy ya no se juega a mano (paso 10). Devuelve
+// `steps`: la secuencia ordenada de pasos { units, playerLordHp, enemyLordHp,
+// reserve, lines, fx } (paso 0 = la tirada) para que passTurn() la reproduzca
+// de uno en uno con su pausa visible, en vez de confirmar todo de un tiron
+// (pedido del usuario: "que el turno del rival se vea"). `lines`/`fx` globales
+// se mantienen porque algunos pasos se capturan a mitad de rama y conviene que
+// sigan siendo la acumulacion total para el log final.
+function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLordHp, startRolls = {}) {
+  const lords = { player: PLAYER_LORD, enemy: ENEMY_LORD }
+  const { next: rolledUnits, newRolls, lines: rollLines, lordFace } = rollSideDice(startUnits, 'enemy', lords)
+  // Fase A: para leer relacion y contragolpe, la IA necesita la cara tirada del
+  // DEFENSOR -si ataca a una unidad del jugador, esa cara esta en las tiradas
+  // del bando propio (startRolls), no en las del rival (newRolls).
+  const allRolls = { ...startRolls, ...newRolls }
+  let units = rolledUnits
+  let playerLordHp = startPlayerLordHp
+  let enemyLordHp = startEnemyLordHp
+  let reserve = startReserve
+  const lines = [...rollLines]
+  let victory = null
+  const fxEvents = []
+  const floatEvents = []
+  // Floats de la tirada del rival: caras de guardia que se aplican solas
+  // (escudo ganado / cura inmediata) visibles en el paso 0.
+  const rollFloats = []
+  rolledUnits.forEach((u) => {
+    if (!u.alive || u.side !== 'enemy') return
+    const face = newRolls[u.id]
+    if (!face || !GUARD_EFFECTS.has(face.effect)) return
+    if (face.effect === 'guard-heal' && face.heal > 0) rollFloats.push({ text: `+${face.heal} vida`, variant: 'heal', ...u.pos })
+    const val = faceValue(face)
+    if (val > 0) rollFloats.push({ text: `+${val} escudo`, variant: 'shield', ...u.pos })
+  })
+  // Paso 0: la tirada del rival. El estado es el que ha dejado rollSideDice
+  // (escudos restablecidos, guardas aplicadas); pasos posteriores aplican sus
+  // deltas sobre el resultado del paso anterior.
+  const steps = [{ units, playerLordHp, enemyLordHp, reserve, lines: [...rollLines], fx: [], floatEvents: rollFloats }]
+  // Captura el estado justo despues de cada accion: las nuevas lineas
+  // generadas en esa rama y sus eventos fx van en el paso; `units`/hps son ya
+  // los hagamos que el jugador debe ver al terminar el paso.
+  const stepFrom = (mark, markFx) =>
+    steps.push({ units, playerLordHp, enemyLordHp, reserve, lines: lines.slice(mark), fx: fxEvents.slice(markFx), floatEvents: floatEvents.slice(markFx) })
+
+  const order = units.filter((u) => u.side === 'enemy' && u.alive && newRolls[u.id]).map((u) => u.id)
+  for (const id of order) {
+    if (victory) break
+    const current = units.find((x) => x.id === id)
+    if (!current || !current.alive || current.acted) continue
+    const rolled = newRolls[id]
+    const decision = decideUnitAction(current, rolled, units, lords)
+    if (decision.kind === 'attack') {
+      const mark = lines.length
+      const markFx = fxEvents.length
+      const result = applyUnitAttackLocal({ units, playerLordHp, enemyLordHp, rolls: allRolls }, current, rolled, decision.target)
+      units = result.units
+      playerLordHp = result.playerLordHp
+      enemyLordHp = result.enemyLordHp
+      lines.push(...result.lines)
+      fxEvents.push({ kind: 'attack', unitId: current.id, slot: rolled.slot ?? null })
+      if (result.counterFx) fxEvents.push(result.counterFx)
+      floatEvents.push(...result.floatEvents)
+      stepFrom(mark, markFx)
+      if (result.victory) victory = result.victory
+      continue
+    }
+    if (rolled.effect === 'reposition-ally') {
+      const allies = repositionableAllies(current, units)
+      if (allies.length > 0) {
+        const ally = allies[0]
+        const dest = firstFreeNeighbor(ally.pos, ally.klass, units, lords)
+        const mark = lines.length
+        units = units.map((x) => (x.id === current.id ? { ...x, acted: true } : x))
+        if (dest) {
+          units = units.map((x) => (x.id === ally.id ? { ...x, pos: dest } : x))
+          lines.push(`${labelOf(current)} reposiciona a ${labelOf(ally)}.`)
+        }
+        stepFrom(mark, fxEvents.length)
+        continue
+      }
+    }
+    if (decision.kind === 'move') {
+      const mark = lines.length
+      units = units.map((x) => (x.id === current.id ? { ...x, pos: decision.cell } : x))
+      lines.push(`${labelOf(current)} avanza.`)
+      // Primer contacto: si el movimiento la mete al alcance basico por primera
+      // vez, remata en la misma accion en vez de esperar al turno siguiente.
+      const movedUnit = units.find((x) => x.id === current.id)
+      const bonusTarget = pickWeakestTarget(basicAttackTargets(movedUnit, units, lords), units)
+      if (!bonusTarget) {
+        units = units.map((x) => (x.id === current.id ? { ...x, acted: true } : x))
+      }
+      stepFrom(mark, fxEvents.length)
+      if (bonusTarget) {
+        const mark2 = lines.length
+        const markFx2 = fxEvents.length
+        const result = applyUnitAttackLocal({ units, playerLordHp, enemyLordHp, rolls: allRolls }, movedUnit, null, bonusTarget)
+        units = result.units
+        playerLordHp = result.playerLordHp
+        enemyLordHp = result.enemyLordHp
+        lines.push(...result.lines)
+        fxEvents.push({ kind: 'attack', unitId: current.id, slot: null })
+        if (result.counterFx) fxEvents.push(result.counterFx)
+        floatEvents.push(...result.floatEvents)
+        stepFrom(mark2, markFx2)
+        if (result.victory) victory = result.victory
+      }
+    }
+  }
+
+  const lordMark = lines.length
+  const lordMarkFx = fxEvents.length
+  if (!victory && lordFace.effect === 'lord-attack') {
+    const target = pickWeakestTarget(lordAttackTargets('enemy', units, lords), units)
+    if (target) {
+      let damage = LORD_STATS.atk
+      const lordPos = lords.enemy
+      const victimPos = target.kind === 'lord' ? PLAYER_LORD : units.find((u) => u.id === target.id).pos
+      floatEvents.push({ text: 'Ataque del Lord', variant: 'cast', ...lordPos })
+      if (target.kind === 'lord') {
+        const next = Math.max(0, playerLordHp - damage)
+        playerLordHp = next
+        lines.push(`Lord rival dispara al Lord propio (-${damage}).`)
+        floatEvents.push({ text: `-${damage}`, variant: 'damage', ...victimPos })
+        if (next <= 0) victory = 'enemy-won'
+      } else {
+        const victim = units.find((u) => u.id === target.id)
+        const marked = !!victim.marked
+        if (marked) damage += 20
+        let absorbed = 0
+        let shieldConsumed = 0
+        let terrainAbsorbed = 0
+        // A5: la trinchera de zona lenta cubre a la unidad aunque el golpe venga
+        // del Lord (misma regla que un ataque de unidad).
+        const tBonus = terrainGuardBonus(victim.pos.r, victim.pos.c)
+        absorbed = Math.min(victim.shield + tBonus, damage)
+        const dealt = damage - absorbed
+        shieldConsumed = Math.min(victim.shield, absorbed)
+        terrainAbsorbed = Math.max(0, absorbed - shieldConsumed)
+        if (shieldConsumed > 0) lines.push(`El escudo de ${labelOf(victim)} absorbe ${shieldConsumed}.`)
+        if (terrainAbsorbed > 0) lines.push(`El terreno de ${labelOf(victim)} absorbe ${terrainAbsorbed} de la guardia.`)
+        const killed = victim.hp - dealt <= 0
+        lines.push(`Lord rival dispara a ${labelOf(victim)} (-${dealt}).`)
+        floatEvents.push({ text: `-${dealt}`, variant: 'damage', ...victimPos })
+        if (shieldConsumed > 0) floatEvents.push({ text: `escudo -${shieldConsumed}`, variant: 'shield', ...victimPos })
+        if (terrainAbsorbed > 0) floatEvents.push({ text: `+${terrainAbsorbed} guardia terreno`, variant: 'shield', ...victimPos })
+        if (marked) lines.push(`${labelOf(victim)} estaba marcado: +20 de dano.`)
+        if (marked) floatEvents.push({ text: '+20 marcado', variant: 'buff', ...victimPos })
+        if (killed) lines.push(`${labelOf(victim)} cae.`)
+        units = units.map((u) =>
+          u.id === target.id
+            ? { ...u, hp: Math.max(0, u.hp - dealt), shield: Math.max(0, u.shield - shieldConsumed), alive: u.hp - dealt > 0, pos: u.hp - dealt > 0 ? u.pos : null, marked: false }
+            : u
+        )
+        fxEvents.push({ kind: 'attack', unitId: 'lord-enemy', slot: null })
+      }
+    }
+  } else if (!victory && lordFace.effect === 'lord-shield') {
+    // Muro: protege al aliado propio con menos vida al alcance -quien mas lo
+    // necesita, no el primero de la lista.
+    const choices = lordShieldTargets('enemy', units, lords)
+    if (choices.length > 0) {
+      const weakest = choices.reduce((best, c) =>
+        units.find((u) => u.id === c.id).hp < units.find((u) => u.id === best.id).hp ? c : best
+      )
+      const ally = units.find((u) => u.id === weakest.id)
+      units = units.map((u) => (u.id === weakest.id ? { ...u, shield: Math.max(u.shield, 30) } : u))
+      lines.push(`Lord rival protege a ${labelOf(ally)} con Muro.`)
+      floatEvents.push({ text: 'Muro', variant: 'cast', ...lords.enemy }, { text: '+30 escudo', variant: 'shield', ...ally.pos })
+    } else {
+      lines.push('Lord rival no tiene a quien proteger con Muro.')
+    }
+  } else if (!victory && lordFace.effect === 'lord-mark') {
+    // Marca: al enemigo (bando propio, desde el punto de vista de Enemy) con
+    // menos vida al alcance -mismo criterio que pickWeakestTarget para ataques.
+    const choices = lordMarkTargets('enemy', units, lords)
+    if (choices.length > 0) {
+      const weakest = choices.reduce((best, c) =>
+        units.find((u) => u.id === c.id).hp < units.find((u) => u.id === best.id).hp ? c : best
+      )
+      const victim = units.find((u) => u.id === weakest.id)
+      units = units.map((u) => (u.id === weakest.id ? { ...u, marked: true } : u))
+      lines.push(`Lord rival marca a ${labelOf(victim)}.`)
+      floatEvents.push({ text: 'Marca', variant: 'cast', ...lords.enemy }, { text: 'Marcado', variant: 'buff', ...victim.pos })
+    } else {
+      lines.push('Lord rival no tiene a quien marcar.')
+    }
+  } else if (!victory && lordFace.effect === 'lord-heal') {
+    // Cura: al aliado propio con menos vida al alcance -mismo criterio que Muro.
+    const choices = lordHealTargets('enemy', units, lords)
+    if (choices.length > 0) {
+      const weakest = choices.reduce((best, c) =>
+        units.find((u) => u.id === c.id).hp < units.find((u) => u.id === best.id).hp ? c : best
+      )
+      const ally = units.find((u) => u.id === weakest.id)
+      units = units.map((u) => (u.id === weakest.id ? { ...u, hp: Math.min(u.maxHp, u.hp + 15) } : u))
+      lines.push(`Lord rival cura a ${labelOf(ally)}.`)
+      floatEvents.push({ text: 'Cura', variant: 'cast', ...lords.enemy }, { text: '+15 vida', variant: 'heal', ...ally.pos })
+    } else {
+      lines.push('Lord rival no tiene a quien curar.')
+    }
+  } else if (!victory && lordFace.effect === 'lord-buff') {
+    // Templanza: al aliado propio con MAS vida al alcance -el que mas
+    // probable es que llegue a atacar y aproveche el bonus, no el herido
+    // (para eso ya esta Cura/Muro).
+    const choices = lordBuffTargets('enemy', units, lords)
+    if (choices.length > 0) {
+      const strongest = choices.reduce((best, c) =>
+        units.find((u) => u.id === c.id).hp > units.find((u) => u.id === best.id).hp ? c : best
+      )
+      const ally = units.find((u) => u.id === strongest.id)
+      units = units.map((u) => (u.id === strongest.id ? { ...u, buffed: true } : u))
+      lines.push(`Lord rival bendice a ${labelOf(ally)} con Templanza.`)
+      floatEvents.push({ text: 'Templanza', variant: 'cast', ...lords.enemy }, { text: '+15 dano', variant: 'buff', ...ally.pos })
+    } else {
+      lines.push('Lord rival no tiene a quien bendecir.')
+    }
+  } else if (!victory && lordFace.effect === 'lord-clone') {
+    // Duplicar: al aliado propio con MAS vida al alcance -refuerza la punta de
+    // lanza, para reponer al herido ya esta Cura/Muro. Si no hay a quien
+    // clonar, cae a la reserva (misma cara cubre las dos, rediseño
+    // 2026-09-10 -ver el comentario largo junto a LORD_DIE en axie.js).
+    const choices = lordCloneTargets('enemy', units, lords)
+    if (choices.length > 0) {
+      const strongest = choices.reduce((best, c) =>
+        units.find((u) => u.id === c.id).hp > units.find((u) => u.id === best.id).hp ? c : best
+      )
+      const original = units.find((u) => u.id === strongest.id)
+      const cells = lordSummonTargets('enemy', units, lords, original.klass)
+      if (cells.length > 0) {
+        units = [...units, makeUnit('enemy', original.klass, nextCloneId('enemy', units), cells[0])]
+        lines.push(`Lord rival duplica a ${labelOf(original)}.`)
+        floatEvents.push({ text: 'Duplicar', variant: 'cast', ...lords.enemy }, { text: 'Clon', variant: 'info', ...cells[0] })
+      } else {
+        lines.push('Lord rival no tiene hueco junto a el para duplicar.')
+      }
+    } else if (reserve.enemy.length > 0) {
+      const cells = lordSummonTargets('enemy', units, lords, reserve.enemy[0].klass)
+      if (cells.length > 0) {
+        const [summoned, ...rest] = reserve.enemy
+        reserve = { ...reserve, enemy: rest }
+        units = [...units, { ...summoned, pos: cells[0] }]
+        lines.push(`Lord rival invoca a ${labelOf(summoned)}.`)
+        floatEvents.push({ text: 'Invoca', variant: 'cast', ...cells[0] })
+      } else {
+        lines.push('Lord rival no tiene hueco para invocar.')
+      }
+    } else {
+      lines.push('Lord rival no tiene a quien duplicar ni reserva que invocar.')
+    }
+  }
+  // El paso del Lord se captura solo si la rama genero algo que mostrar (un
+  // ataque, una habilidad aplicada o un "no tiene a quien" informativo).
+  if (lines.length > lordMark || fxEvents.length > lordMarkFx) stepFrom(lordMark, lordMarkFx)
+
+  // rolls: bug real encontrado con logging (reportado como "el dado cae con
+  // la cara al reves") -newRolls SI se calculaba aqui (rollSideDice, arriba)
+  // y se usaba para decidir la IA y armar `lines`, pero nunca salia de la
+  // funcion. passTurn() nunca llamaba a setRolls con el resultado del rival,
+  // asi que rolls[u.id] del rival se quedaba siempre null: Die3D nunca
+  // recibia un rolledSlot valido y el cubo nunca llegaba a "aterrizar" de
+  // verdad en la cara correcta (se quedaba con la pose que tuviera de antes).
+  return { units, reserve, playerLordHp, enemyLordHp, lines, victory, fx: fxEvents, rolls: newRolls, steps, lordFace }
+}
+
+// HpBar, ShieldBar, ClassEmblem, CrownEmblem, ShieldEmblem, PartLogo,
+// HeartEmblem viven en components/Emblems.jsx (sin closures sobre estado de
+// partida, movidos tal cual).
 
 export default function App() {
   const [units, setUnits] = useState(initialUnits)
   const [playerLordHp, setPlayerLordHp] = useState(LORD_STATS.hp)
   const [enemyLordHp, setEnemyLordHp] = useState(LORD_STATS.hp)
-  const [activeSide, setActiveSide] = useState('player')
+
+  // Meta-estado de sesion (first-approach de las pantallas meta, no toca la
+  // partida): monedas y mejoras visibles en Base/Recursos/Investigacion. Vive
+  // aqui para que sobreviva a los cambios de pestana; se reinicia solo si se
+  // recarga el navegador. Sin on-chain (CLAUDE.md: nada de cadena en prototipo).
+  const [meta, setMeta] = useState({ essence: 0, axp: 0, upgrades: {} })
+  const { route, navigate } = useHashRoute()
+  const isMeta = route !== 'partida'
+  const collect = (key) => setMeta((m) => ({ ...m, [key]: (m[key] || 0) + 1 }))
+  const invest = (key) =>
+    setMeta((m) =>
+      m.essence >= 2
+        ? { ...m, essence: m.essence - 2, upgrades: { ...m.upgrades, [key]: (m.upgrades[key] || 0) + 1 } }
+        : m,
+    )
+  const healLord = () => {
+    if (meta.essence >= 1 && playerLordHp < LORD_STATS.hp) {
+      setMeta((m) => ({ ...m, essence: m.essence - 1 }))
+      setPlayerLordHp((h) => Math.min(LORD_STATS.hp, h + 30))
+      pushLog('El Lord se cura +30 a cambio de 1 esencia (meta).')
+      pushFloats([{ id: crypto.randomUUID(), text: '+30 Cura', variant: 'heal', r: PLAYER_LORD.r, c: PLAYER_LORD.c }])
+    }
+  }
+  const goPlay = () => {
+    resetMatch()
+    navigate('partida')
+  }
+  const META_SCREENS = {
+    base: (
+      <BaseScreen units={units} playerLordHp={playerLordHp} essence={meta.essence} onHealLord={healLord} />
+    ),
+    recursos: <ResourcesScreen meta={meta} collect={collect} />,
+    investigacion: <ResearchScreen units={units} meta={meta} invest={invest} />,
+    pve: <PveScreen onPlay={goPlay} />,
+    pvp: <PvpScreen onPlay={goPlay} />,
+  }
+  const [reserve, setReserve] = useState(() => ({ player: initialReserve('player'), enemy: initialReserve('enemy') }))
+  const [lordRoll, setLordRoll] = useState({ player: null, enemy: null })
+  const [lordActed, setLordActed] = useState({ player: false, enemy: false })
+  // Sube en cada tirada de Player para que la cara ganadora reinicie su animacion
+  // de giro (paso "pulido visual"): forzar un key distinto es lo que hace que el
+  // CSS vuelva a reproducirse aunque sea la misma cara que la ultima vez.
+  const [rollTick, setRollTick] = useState(0)
+  // El tablero es una escena 3D real (Board3D.jsx, Three.js vanilla + bloques GLB
+  // de Kenney), no un truco de CSS. Board3D se encarga solo de su propio tamano
+  // (ResizeObserver interno) y nos avisa (onBoard3DTransform) con una matriz CSS
+  // `matrix(a,b,c,d,e,f)` -la camara es ortografica (sin escorzo de perspectiva),
+  // asi que la proyeccion 3D->pantalla es una transformacion afin: esa unica
+  // matriz alinea TODO el grid interactivo de golpe con la escena renderizada,
+  // sin recalcular nada celda por celda.
+  const boardColRef = useRef(null)
+  const [board3dMatrix, setBoard3dMatrix] = useState('matrix(1,0,0,1,0,0)')
+  const onBoard3DTransform = useCallback((matrix) => setBoard3dMatrix(matrix), [])
+  // Cortina de carga (T4): el tablero 3D tarda un instante en montarse (cargan
+  // los bloques GLB del terreno y los axies con el mixer). boardReady lo pone en
+  // true Board3D la primera vez que el terreno esta listo y ya no quedan unidades
+  // pendientes (onReady en Board3D.jsx) -mientras tanto, una cortina con marca
+  // de agua cubre la pantalla para que no se vea la escena a medio construir.
+  const [boardReady, setBoardReady] = useState(false)
+  // Canal fx (T1, animaciones): App.jsx no sabe nada de Three.js, pero los eventos
+  // que hacen que el tablero "reaccione" (quien ataca y con que parte) se emiten
+  // aqui como objetos {kind:'attack', unitId, slot} y Board3D los convierte en
+  // clips de animacion (attack/melee/<slot>). Los ids crecen siempre; Board3D solo
+  // consume los que todavia no ha visto.
+  const [fxQueue, setFxQueue] = useState([])
+  const fxIdRef = useRef(1)
+  function pushFx(events) {
+    if (!events || events.length === 0) return
+    setFxQueue((prev) => prev.concat(events.map((e) => ({ id: fxIdRef.current++, ...e }))))
+  }
+  // Feedback visual de combate (T3): numeros que flotan sobre las casillas del
+  // tablero (dano, escudo absorbido, curaciones, marcas, nombre de la habilidad
+  // que se esta usando). Nota: NO sirve el array de estados de dentro del
+  // renderer 3D; estos floats viven en el overlay de React (BoardRegion.jsx),
+  // alineados por la MISMA matriz CSS que el grid interactivo, asi que las
+  // posiciones son celdas (r,c), no coordenadas del canvas.
+  const COMBAT_FLOAT_MS = 1500
+  const [floats, setFloats] = useState([])
+  const floatIdRef = useRef(1)
+  function pushFloats(items) {
+    if (!items || items.length === 0) return
+    const stamped = items.map((f) => ({ id: floatIdRef.current++, ...f }))
+    setFloats((prev) => prev.concat(stamped))
+    const ids = new Set(stamped.map((f) => f.id))
+    window.setTimeout(() => {
+      setFloats((prev) => prev.filter((f) => !ids.has(f.id)))
+    }, COMBAT_FLOAT_MS)
+  }
+  // Paso 10: Enemy ya no se juega a mano, su turno entero se resuelve dentro de
+  // passTurn() -activeSide se queda fijo en 'player' para toda la UI interactiva.
+  const activeSide = 'player'
   const [turnCount, setTurnCount] = useState(1)
+  const [rolls, setRolls] = useState({})
+  // Banco de Energia (A3, seccion 6.4): +1 por cada cara sin golpe tirada en
+  // este turno (guarda/invocacion/reposicion/utilidad), tope ENERGY_CAP (5), se
+  // vacia al iniciar el turno propio. `boostArmed`: el jugador gasta 2 Energia
+  // para que el siguiente golpe de la unidad seleccionada haga +10 (se consume
+  // al impactar igual que marked/buffed).
+  const [energyBank, setEnergyBank] = useState(0)
+  const [boostArmed, setBoostArmed] = useState(false)
+  // `moveBoostArmed`: el jugador gasta 2 Energia para que la unidad
+  // seleccionada mueva 1 casilla extra este turno (independiente de
+  // boostArmed -una unidad puede mover+1 y despues, si gana el remate de
+  // "primer contacto", tambien golpear+10, si le llega la banca).
+  const [moveBoostArmed, setMoveBoostArmed] = useState(false)
+  // Preview del intercambio (A2.3): la celda bajo el cursor marca sobre que
+  // objetivo se calcula el desglose del ActionBar (no es estado de partida).
+  const [hoverCell, setHoverCell] = useState(null)
   const [selected, setSelected] = useState(null)
+  // Nuevo: si el movimiento de este turno mete a una unidad al alcance de un rival
+  // por primera vez, se gana un ataque basico de remate en la misma accion en vez
+  // de tener que esperar al turno siguiente (a peticion del usuario). Guarda el id
+  // de la unidad que sigue seleccionada a la espera de esa decision.
+  const [pendingBonus, setPendingBonus] = useState(null)
   const [status, setStatus] = useState('playing')
-  const [log, setLog] = useState(['Empieza el asedio. Le toca a Player.'])
+  // Fase de "lanzamiento de dados": las caras se ven barajandose un instante
+  // (recreacion visual pedida) y al commit cae la cara ganadora con la animacion
+  // de aterrizaje. rollPendingRef guarda el timeout para poder cancelarlo si se
+  // reinicia la partida a mitad de tirada.
+  const [rolling, setRolling] = useState(false)
+  const rollPendingRef = useRef(null)
+  // Turno del rival en vivo (secuencia animada): mientras pasa, toda la UI
+  // interactiva queda congelada (paso 10, "que el turno del rival se vea").
+  const [enemyTurnRunning, setEnemyTurnRunning] = useState(false)
+  // Token de cancelacion: reiniciar la partida a mitad de la secuencia del
+  // rival aborta la cola de pasos pendientes (mismo patron que rollPendingRef).
+  const enemyTurnTokenRef = useRef(0)
+  const [log, setLog] = useState(['Empieza el asedio. Tira los dados, Player.'])
 
   const lords = { player: PLAYER_LORD, enemy: ENEMY_LORD }
   const pushLog = (line) => setLog((l) => [line, ...l].slice(0, 7))
 
-  const selectedUnit = selected ? units.find((u) => u.id === selected) : null
-  const moveCells = selectedUnit ? reachableCells(selectedUnit, units, lords) : []
-  const targets = selectedUnit ? attackTargets(selectedUnit, units, lords) : []
+  const selectedUnit = selected && selected !== 'lord' ? units.find((u) => u.id === selected) : null
+  const selectedRoll = selectedUnit ? rolls[selectedUnit.id] : null
+  const isReposition = selectedRoll?.effect === 'reposition-ally'
+  const isBonusPhase = !!selectedUnit && pendingBonus === selectedUnit.id
+  // A3: con moveBoostArmed, el presupuesto de movimiento de esta accion crece
+  // en 1 (gasto real solo se cobra al completar el movimiento, en moveTo()).
+  const moveCells =
+    selectedUnit && selectedRoll && !isReposition && !isBonusPhase
+      ? reachableCells(selectedUnit, units, lords, CLASS_STATS[selectedUnit.klass].move + (moveBoostArmed ? 1 : 0))
+      : []
+  const bonusTargets = isBonusPhase ? basicAttackTargets(selectedUnit, units, lords) : []
+
+  const lordSelected = selected === 'lord'
+  const activeLordRoll = lordRoll[activeSide]
+  const nextReserveKlass = reserve[activeSide][0]?.klass
+  const lordAttackable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-attack'
+  // Muro/Cura/Templanza/Duplicar (rediseño 2026-09-10): apuntan a un aliado
+  // propio, igual que Pigeon Post -por eso comparten el mismo resaltado que
+  // `allyChoices` mas abajo, en vez de inventar un color de casilla nuevo
+  // por cada una.
+  const lordShieldable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-shield'
+  const lordMarkable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-mark'
+  const lordHealable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-heal'
+  const lordBuffable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-buff'
+  const lordCloneable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-clone'
+  const lordTargets = lordAttackable
+    ? lordAttackTargets(activeSide, units, lords)
+    : lordMarkable
+      ? lordMarkTargets(activeSide, units, lords)
+      : []
+  // Duplicar (rediseño 2026-09-10, "el que haya invocacion solo sea en la de
+  // duplicar"): la UNICA cara que puede meter una unidad nueva en el
+  // tablero. Cubre tanto clonar un aliado (allyChoices, abajo) como sacar de
+  // la reserva (estas celdas) -el jugador elige con el click cual de las
+  // dos quiere. Por eso lordSummonCells ya NO depende de una cara de
+  // invocacion propia (ya no existe): depende de Duplicar.
+  const lordSummonCells = lordCloneable ? lordSummonTargets(activeSide, units, lords, nextReserveKlass) : []
+
+  // Aliado a elegir: reposicion (Pigeon Post) si hay una unidad seleccionada
+  // con esa cara, o si no, la habilidad de apoyo del Lord que toque -son
+  // mutuamente excluyentes (solo una fuente de seleccion activa a la vez),
+  // asi que comparten esta lista y su resaltado en el tablero sin conflicto.
+  const allyChoices =
+    selectedUnit && isReposition && !isBonusPhase
+      ? repositionableAllies(selectedUnit, units)
+      : lordShieldable
+        ? lordShieldTargets(activeSide, units, lords)
+        : lordHealable
+          ? lordHealTargets(activeSide, units, lords)
+          : lordBuffable
+            ? lordBuffTargets(activeSide, units, lords)
+            : lordCloneable
+              ? lordCloneTargets(activeSide, units, lords)
+              : []
+
+  const targets = isBonusPhase
+    ? bonusTargets
+    : selectedUnit && selectedRoll
+      ? attackTargetsForFace(selectedUnit, selectedRoll, units, lords)
+      : lordTargets
+
+  // Preview del intercambio (6.3.3): cuando el cursor esta sobre una casilla de
+  // ataque, se calcula el desglose del golpe (dano real, rotura y vuelta del
+  // rival) para el ActionBar. Es puro: describeExchange comparte la misma
+  // resolucion que el golpe real, asi la preview nunca miente.
+  const exchangeInfo = useMemo(() => {
+    if (!hoverCell || !selectedUnit) return null
+    const target = targets.find((t) => t.pos.r === hoverCell.r && t.pos.c === hoverCell.c)
+    if (!target) return null
+    const rolled = isBonusPhase ? null : selectedRoll
+    if (!isBonusPhase && !rolled) return null
+    const ex = describeExchange(selectedUnit, rolled, target, units, playerLordHp, enemyLordHp, rolls)
+    const items = []
+    const shieldNote =
+      ex.terrainAbsorbed > 0 ? ` (escudo absorbe ${ex.absorbed - ex.terrainAbsorbed} + ${ex.terrainAbsorbed} de terreno)` : ex.absorbed > 0 ? ` (escudo absorbe ${ex.absorbed})` : ''
+    items.push(`${ex.actionName}: ${ex.dealt} de dano de ${ex.damage}${shieldNote}.`)
+    if (ex.relation === 'advantage') {
+      items.push(ex.broke ? `Ventaja (cara ${ex.defenderFace?.name ?? 'desconocida'}): ROTURA, no puede contraatacar.` : 'Ventaja de relacion, pero la rotura no se aplica (no hay dano real).')
+    } else if (ex.relation === 'disadvantage') {
+      items.push(`Desventaja (cara ${ex.defenderFace?.name ?? 'desconocida'}): este golpe no rompe y su vuelta seguira llegando.`)
+    } else if (ex.relation === 'neutral') {
+      items.push('Intercambio neutro (sin ventaja).')
+    }
+    if (ex.killed) {
+      items.push('Objetivo cae: no hay vuelta.')
+    } else if (ex.counter) {
+      items.push(`Vuelta del rival: ${ex.counter.name} -${ex.counter.dealt}.`)
+    } else if (ex.broke) {
+      items.push('Sin vuelta (Rotura).')
+    } else {
+      items.push('Sin vuelta.')
+    }
+    return items
+  }, [hoverCell, selectedUnit, selectedRoll, isBonusPhase, targets, units, playerLordHp, enemyLordHp, rolls])
+
+  // Axies 3D reales del tablero (Board3D.jsx): todo el roster vivo + los dos
+  // Lords, cada uno en su celda real. Orientacion (regla pedida por el usuario):
+  // por defecto cada unidad mira hacia el Lord rival ("hacia el lado del
+  // rival"); si es la unidad seleccionada AHORA MISMO y tiene objetivos de
+  // ataque disponibles (`targets`, ya calculado arriba para el resaltado del
+  // grid), mira al mas cercano de esos objetivos en su lugar. Genes reales por
+  // unidad (axieGeneCatalog.js, sacados en vivo del marketplace de Axie, no
+  // inventados) -AXIE_SAMPLE_GENES se queda solo de red de seguridad por si
+  // `klass` no tuviera entrada en el catalogo.
+  const axieUnits = useMemo(() => {
+    const nearestPos = (fromPos, list) => {
+      let best = null
+      let bestDist = Infinity
+      for (const t of list) {
+        const d = Math.max(Math.abs(t.pos.r - fromPos.r), Math.abs(t.pos.c - fromPos.c))
+        if (d < bestDist) {
+          bestDist = d
+          best = t.pos
+        }
+      }
+      return best
+    }
+
+    const list = []
+    units.forEach((u) => {
+      if (!u.alive) return
+      const rivalLordPos = u.side === 'player' ? ENEMY_LORD : PLAYER_LORD
+      const isActing = selectedUnit && selectedUnit.id === u.id && targets.length > 0
+      const facing = isActing ? nearestPos(u.pos, targets) || rivalLordPos : rivalLordPos
+      const descriptor = ROSTER_DESCRIPTORS[u.side]?.[u.klass]
+      list.push(
+        descriptor
+          ? { id: u.id, r: u.pos.r, c: u.pos.c, descriptor, isLord: false, facing, side: u.side, hp: u.hp, maxHp: u.maxHp }
+          : { id: u.id, r: u.pos.r, c: u.pos.c, genes: AXIE_SAMPLE_GENES, isLord: false, facing, side: u.side, hp: u.hp, maxHp: u.maxHp },
+      )
+    })
+
+    const playerActing = lordSelected && activeSide === 'player' && targets.length > 0
+    list.push({
+      id: 'lord-player',
+      r: PLAYER_LORD.r,
+      c: PLAYER_LORD.c,
+      descriptor: LORD_DESCRIPTORS.player,
+      isLord: true,
+      facing: playerActing ? nearestPos(PLAYER_LORD, targets) || ENEMY_LORD : ENEMY_LORD,
+      side: 'player',
+      hp: playerLordHp,
+      maxHp: LORD_STATS.hp,
+    })
+
+    const enemyActing = lordSelected && activeSide === 'enemy' && targets.length > 0
+    list.push({
+      id: 'lord-enemy',
+      r: ENEMY_LORD.r,
+      c: ENEMY_LORD.c,
+      descriptor: LORD_DESCRIPTORS.enemy,
+      isLord: true,
+      facing: enemyActing ? nearestPos(ENEMY_LORD, targets) || PLAYER_LORD : PLAYER_LORD,
+      side: 'enemy',
+      hp: enemyLordHp,
+      maxHp: LORD_STATS.hp,
+    })
+
+    return list
+  }, [units, selectedUnit, targets, lordSelected, playerLordHp, enemyLordHp])
+
+  // Un dado por unidad, tirado una vez al inicio del turno (regla 7). Los escudos
+  // dan hasta el final del siguiente turno rival (regla 12): como ya paso un turno
+  // rival entero desde la ultima vez que tiro este bando, caducan aqui, antes de la
+  // tirada nueva. Las caras de guardia se aplican solas, sin gastar la accion (regla 11).
+  function rollDice() {
+    // Con el bando rival guardando su tirada en `rolls` ahora tambien
+    // (arreglo del dado 3D: antes su tirada nunca se exponia y su cubo nunca
+    // aterrizaba de verdad), `rolls` ya no se vacia entre turnos -asi que
+    // "ya ha tirado" hay que mirarlo SOLO para el bando activo, no para
+    // cualquier entrada que quede de un turno anterior del otro bando.
+    if (status !== 'playing' || units.some((u) => u.side === activeSide && u.alive && rolls[u.id])) return
+    setRollTick((t) => t + 1)
+    let next = units.map((u) => (u.side === activeSide ? { ...u, shield: 0, broken: false } : u))
+    const newRolls = {}
+    const lines = []
+    const lordFace = rollFace(LORD_DIE)
+    lines.push(`Lord ${sideLabel(activeSide)}: ${lordFace.name}.`)
+    // A3: las caras sin golpe (guarda/invocacion/reposicion/utilidad) dan +1 a
+    // la banca del turno (se sella tras el commit de la tirada).
+    let energyGained = 0
+    next.forEach((u) => {
+      if (!u.alive || u.side !== activeSide) return
+      const face = rollFace(u.die)
+      newRolls[u.id] = face
+      if (yieldsEnergy(face.effect)) energyGained += 1
+      lines.push(`${labelOf(u)}: ${SLOT_LABEL_MVP1[face.slot]} (${face.name}) - ${face.text}`)
+    })
+    next.forEach((u, idx) => {
+      if (!u.alive || u.side !== activeSide) return
+      const face = newRolls[u.id]
+      if (!GUARD_EFFECTS.has(face.effect)) return
+      const val = faceValue(face)
+      next[idx] = { ...next[idx], shield: val }
+      if (face.effect === 'guard-heal') {
+        next[idx] = { ...next[idx], hp: Math.min(next[idx].maxHp, next[idx].hp + face.heal) }
+      }
+      if (face.effect === 'guard-push') {
+        const enemy = next.find((x) => x.alive && x.side !== u.side && x.pos && adjacent(next[idx].pos, x.pos))
+        if (enemy) {
+          const dr = Math.sign(enemy.pos.r - next[idx].pos.r)
+          const dc = Math.sign(enemy.pos.c - next[idx].pos.c)
+          const dest = { r: enemy.pos.r + dr, c: enemy.pos.c + dc }
+          const inBounds = dest.r >= 0 && dest.r < ROWS && dest.c >= 0 && dest.c < COLS
+          const blocked = !inBounds || !cellPassable(dest.r, dest.c, enemy.klass)
+          const occupied = inBounds && cellOccupied(dest.r, dest.c, next.filter((x) => x.id !== enemy.id), lords)
+          if (!blocked && !occupied) {
+            const eIdx = next.findIndex((x) => x.id === enemy.id)
+            next[eIdx] = { ...next[eIdx], pos: dest }
+            lines.push(`${labelOf(u)} empuja a ${labelOf(enemy)}.`)
+          }
+        }
+      }
+    })
+    // Revelado visual del lanzamiento: primero se ven las caras barajandose un
+    // instante (estado `rolling`, animacion CSS de la tirada) y al hacer commit
+    // encaja la cara ganadora con su animacion de aterrizaje (recreacion visual
+    // explicita del lanzamiento de dados pedida por el usuario).
+    setRolling(true)
+    rollPendingRef.current = window.setTimeout(() => {
+      rollPendingRef.current = null
+      setLordRoll((r) => ({ ...r, [activeSide]: lordFace }))
+      setUnits(next)
+      setRolls(newRolls)
+      pushLog(lines.join(' · '))
+      // A3: cierre de la banca de Energia con las caras sin golpe de la tirada.
+      if (energyGained > 0) {
+        setEnergyBank((b) => Math.min(ENERGY_CAP, b + energyGained))
+        pushLog(`+${energyGained} de Energia al banco del turno.`)
+      }
+      // Floats de las caras de guardia (se aplican solas al tirar): escudo que
+      // se gana y curas inmediatas, sobre la propia unidad.
+      const guardFloats = []
+      next.forEach((u) => {
+        if (!u.alive || u.side !== activeSide) return
+        const face = newRolls[u.id]
+        if (!face || !GUARD_EFFECTS.has(face.effect)) return
+        if (face.effect === 'guard-heal' && face.heal > 0) guardFloats.push({ text: `+${face.heal} vida`, variant: 'heal', ...u.pos })
+        const val = faceValue(face)
+        if (val > 0) guardFloats.push({ text: `+${val} escudo`, variant: 'shield', ...u.pos })
+      })
+      if (guardFloats.length) pushFloats(guardFloats)
+      setRolling(false)
+    }, 700)
+  }
 
   function selectUnit(u) {
-    if (status !== 'playing' || u.side !== activeSide || u.acted) return
-    setSelected(u.id === selected ? null : u.id)
+    if (status !== 'playing' || enemyTurnRunning || u.side !== activeSide || u.acted || !rolls[u.id]) return
+    const next = u.id === selected ? null : u.id
+    // A3: los boosts armados son de la unidad seleccionada en ese momento -si
+    // se cambia de seleccion sin gastarlos, no deben colarse en la siguiente.
+    if (next !== selected) {
+      setBoostArmed(false)
+      setMoveBoostArmed(false)
+    }
+    setSelected(next)
   }
 
   function moveTo(r, c) {
     if (!selectedUnit) return
     if (!moveCells.some((cell) => cell.r === r && cell.c === c)) return
+    // A3: se cobra el gasto de moveBoost al completar el movimiento (mismo
+    // criterio de "chequeo real al consumir" que boostArmed en attack()).
+    const moveBoosted = moveBoostArmed && energyBank >= ENERGY_MOVE_COST
+    if (moveBoosted) {
+      setEnergyBank((b) => Math.max(0, b - ENERGY_MOVE_COST))
+      setMoveBoostArmed(false)
+      pushLog(`${labelOf(selectedUnit)} gasta 2 de Energia: +1 casilla.`)
+      pushFloats([{ text: '+1 casilla', variant: 'buff', r, c }])
+    }
+    const hadTargetBefore = basicAttackTargets(selectedUnit, units, lords).length > 0
+    const targetsAfter = basicAttackTargets({ ...selectedUnit, pos: { r, c } }, units, lords)
+    if (!hadTargetBefore && targetsAfter.length > 0) {
+      setUnits((us) => us.map((u) => (u.id === selectedUnit.id ? { ...u, pos: { r, c } } : u)))
+      setPendingBonus(selectedUnit.id)
+      pushLog(`${labelOf(selectedUnit)} se mueve y puede rematar con un ataque basico.`)
+      return
+    }
     setUnits((us) => us.map((u) => (u.id === selectedUnit.id ? { ...u, pos: { r, c }, acted: true } : u)))
     pushLog(`${labelOf(selectedUnit)} se mueve.`)
     setSelected(null)
   }
 
-  function attack(target) {
+  function declineBonus() {
     if (!selectedUnit) return
-    const dmg = CLASS_STATS[selectedUnit.klass].atk
+    setUnits((us) => us.map((u) => (u.id === selectedUnit.id ? { ...u, acted: true } : u)))
+    pushLog(`${labelOf(selectedUnit)} no remata.`)
+    setPendingBonus(null)
+  }
+
+  function repositionAlly(ally) {
+    if (!selectedUnit) return
+    const dest = firstFreeNeighbor(ally.pos, ally.klass, units, lords)
+    setUnits((us) => us.map((u) => (u.id === selectedUnit.id ? { ...u, acted: true } : u)))
+    if (dest) {
+      setUnits((us) => us.map((u) => (u.id === ally.id ? { ...u, pos: dest } : u)))
+      pushLog(`${labelOf(selectedUnit)} reposiciona a ${labelOf(ally)}.`)
+    } else {
+      pushLog(`${labelOf(selectedUnit)} no encuentra hueco para reposicionar a ${labelOf(ally)}.`)
+    }
+    setSelected(null)
+  }
+
+  // Resuelve el efecto de la cara de ataque activa: perforante ignora escudo (regla
+  // 13), Imp remata por debajo de la mitad de vida, Serious/Risky Fish tienen efectos
+  // sobre el propio atacante, Nut Crack/Nut Throw se combinan entre si. Toda la
+  // resolucion vive en applyUnitAttackLocal (compartida con la IA enemiga y con la
+  // preview del intercambio), de modo que Fase A (triangulo, Rotura, contragolpe,
+  // terreno defensivo) e intercambio manual nunca divergen.
+  function attack(target) {
+    if (!selectedUnit || !selectedRoll) return
+    const rolled = selectedRoll
+    const isBasic = target.basic
+    // A3: el banco de Energia puede comprar +10 al golpe de esta unidad (cara
+    // de ataque de cualquier tipo; se consume al impactar en el propio
+    // resolutor, como marked/buffed).
+    const boosted = boostArmed && energyBank >= ENERGY_BOOST_COST
+    const attacker = boosted ? { ...selectedUnit, energyBoost: true } : selectedUnit
+    const result = applyUnitAttackLocal({ units, playerLordHp, enemyLordHp, rolls }, attacker, rolled, target)
+    setUnits(result.units)
+    setEnemyLordHp(result.enemyLordHp)
+    setPlayerLordHp(result.playerLordHp)
+    if (result.victory) setStatus(result.victory)
+    if (boosted) {
+      setEnergyBank((b) => Math.max(0, b - ENERGY_BOOST_COST))
+      setBoostArmed(false)
+    }
+    pushLog(result.lines.join(' · '))
+    setSelected(null)
+    setPendingBonus(null)
+    pushFx([{ kind: 'attack', unitId: selectedUnit.id, slot: isBasic ? null : rolled.slot ?? null }, ...(result.counterFx ? [result.counterFx] : [])])
+    pushFloats(result.floatEvents)
+  }
+
+  // Paso 8, cara 1: ataque del Lord. Mismo dano fijo del chasis del Lord, misma
+  // absorcion de escudo que un ataque basico normal; el Lord no tiene partes.
+  function lordAttack(target) {
+    let damage = LORD_STATS.atk
+    const lines = []
+    // Igual que en attack(): hoisted para los floats fuera de los bloques.
+    let victim = null
+    let absorbed = 0
+    let dealt = 0
+    let shieldConsumed = 0
+    let terrainAbsorbed = 0
+    let marked = false
     if (target.kind === 'lord') {
-      // attackTargets solo devuelve el Lord contrario, nunca el propio.
-      const attackingPlayerLord = selectedUnit.side === 'enemy'
-      const setHp = attackingPlayerLord ? setPlayerLordHp : setEnemyLordHp
+      const attackingPlayerLord = activeSide === 'enemy'
       const current = attackingPlayerLord ? playerLordHp : enemyLordHp
-      const next = Math.max(0, current - dmg)
-      setHp(next)
-      pushLog(`${labelOf(selectedUnit)} golpea al Lord rival (-${dmg}).`)
+      const next = Math.max(0, current - damage)
+      ;(attackingPlayerLord ? setPlayerLordHp : setEnemyLordHp)(next)
+      lines.push(`Lord ${sideLabel(activeSide)} dispara al Lord rival (-${damage}).`)
       if (next <= 0) setStatus(attackingPlayerLord ? 'enemy-won' : 'player-won')
     } else {
+      victim = units.find((u) => u.id === target.id)
+      // Marca del Lord: se consume aqui igual que en attack()/computeUnitAttack.
+      marked = !!victim.marked
+      if (marked) damage += 20
+      // A5: la trinchera de zona lenta cubre al objetivo aunque el golpe venga
+      // del Lord (misma regla que un ataque de unidad: +10 de guardia).
+      const tBonus = terrainGuardBonus(victim.pos.r, victim.pos.c)
+      absorbed = Math.min(victim.shield + tBonus, damage)
+      dealt = damage - absorbed
+      shieldConsumed = Math.min(victim.shield, absorbed)
+      terrainAbsorbed = Math.max(0, absorbed - shieldConsumed)
+      if (shieldConsumed > 0) lines.push(`El escudo de ${labelOf(victim)} absorbe ${shieldConsumed}.`)
+      if (terrainAbsorbed > 0) lines.push(`El terreno de ${labelOf(victim)} absorbe ${terrainAbsorbed} de la guardia.`)
+      const killed = victim.hp - dealt <= 0
+      lines.push(`Lord ${sideLabel(activeSide)} dispara a ${labelOf(victim)} (-${dealt}).`)
+      if (marked) lines.push(`${labelOf(victim)} estaba marcado: +20 de dano.`)
+      if (killed) lines.push(`${labelOf(victim)} cae.`)
       setUnits((us) =>
-        us.map((u) => {
-          if (u.id !== target.id) return u
-          const nextHp = Math.max(0, u.hp - dmg)
-          return { ...u, hp: nextHp, alive: nextHp > 0, pos: nextHp > 0 ? u.pos : null }
-        })
-      )
-      const victim = units.find((u) => u.id === target.id)
-      const killed = victim.hp - dmg <= 0
-      pushLog(
-        `${labelOf(selectedUnit)} ataca a ${labelOf(victim)} (-${dmg}).` + (killed ? ` ${labelOf(victim)} cae.` : '')
+        us.map((u) =>
+          u.id === target.id
+            ? { ...u, hp: Math.max(0, u.hp - dealt), shield: Math.max(0, u.shield - shieldConsumed), alive: u.hp - dealt > 0, pos: u.hp - dealt > 0 ? u.pos : null, marked: false }
+            : u
+        )
       )
     }
-    setUnits((us) => us.map((u) => (u.id === selectedUnit.id ? { ...u, acted: true } : u)))
+    setLordActed((a) => ({ ...a, [activeSide]: true }))
+    pushLog(lines.join(' · '))
+    setSelected(null)
+    pushFx([{ kind: 'attack', unitId: activeSide === 'player' ? 'lord-player' : 'lord-enemy', slot: null }])
+
+    const lordPos = lords[activeSide]
+    const victimPos = target.kind === 'lord' ? (activeSide === 'player' ? ENEMY_LORD : PLAYER_LORD) : victim ? victim.pos : lordPos
+    pushFloats([
+      { text: 'Ataque del Lord', variant: 'cast', ...lordPos },
+      { text: `-${dealt ?? damage}`, variant: 'damage', ...victimPos },
+      ...(shieldConsumed > 0 ? [{ text: `escudo -${shieldConsumed}`, variant: 'shield', ...victimPos }] : []),
+      ...(terrainAbsorbed > 0 ? [{ text: `+${terrainAbsorbed} guardia terreno`, variant: 'shield', ...victimPos }] : []),
+      ...(marked ? [{ text: '+20 marcado', variant: 'buff', ...victimPos }] : []),
+    ])
+  }
+
+  // Paso 8, caras 2-6: invocacion. Saca la primera unidad de la reserva (regla 15) a
+  // la casilla elegida junto al Lord (regla 16). No tira dado este turno: ya paso la
+  // tirada del bando cuando esta unidad seguia fuera del tablero (regla 7).
+  function lordSummon(cell) {
+    const queue = reserve[activeSide]
+    if (queue.length === 0) {
+      pushLog(`Lord ${sideLabel(activeSide)} no tiene reserva que invocar.`)
+    } else {
+      const [summoned, ...rest] = queue
+      setReserve((r) => ({ ...r, [activeSide]: rest }))
+      setUnits((us) => [...us, { ...summoned, pos: cell }])
+      pushLog(`Lord ${sideLabel(activeSide)} invoca a ${labelOf(summoned)}.`)
+      pushFloats([{ text: 'Invoca', variant: 'cast', ...cell }])
+    }
+    setLordActed((a) => ({ ...a, [activeSide]: true }))
+    setSelected(null)
+  }
+
+  // Muro (rediseño 2026-09-10): 30 de escudo a un aliado propio a alcance 3.
+  // Mismo criterio de "no se acumula, sustituye si es mayor" que cualquier otro
+  // escudo (regla 12) -Math.max, no suma.
+  function lordShield(target) {
+    const ally = units.find((u) => u.id === target.id)
+    setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, shield: Math.max(u.shield, 30) } : u)))
+    pushLog(`Lord ${sideLabel(activeSide)} protege a ${labelOf(ally)} con Muro (+30 escudo).`)
+    pushFloats([{ text: 'Muro', variant: 'cast', ...lords[activeSide] }, { text: '+30 escudo', variant: 'shield', ...target.pos }])
+    setLordActed((a) => ({ ...a, [activeSide]: true }))
+    setSelected(null)
+  }
+
+  // Marca (rediseño 2026-09-10): no hace dano por si misma, deja al objetivo
+  // marcado para el PROXIMO ataque que lo impacte (computeUnitAttack/attack()/
+  // lordAttack ya saben leer y consumir `marked`).
+  function lordMark(target) {
+    const victim = units.find((u) => u.id === target.id)
+    setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, marked: true } : u)))
+    pushLog(`Lord ${sideLabel(activeSide)} marca a ${labelOf(victim)}.`)
+    pushFloats([{ text: 'Marca', variant: 'cast', ...lords[activeSide] }, { text: 'Marcado', variant: 'buff', ...target.pos }])
+    setLordActed((a) => ({ ...a, [activeSide]: true }))
+    setSelected(null)
+  }
+
+  // Cura (rediseño 2026-09-10, sustituye a una de las 2 caras de Invocacion):
+  // 15 de vida a un aliado propio a alcance 3, sin pasar de su vida maxima.
+  function lordHeal(target) {
+    const ally = units.find((u) => u.id === target.id)
+    setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, hp: Math.min(u.maxHp, u.hp + 15) } : u)))
+    pushLog(`Lord ${sideLabel(activeSide)} cura a ${labelOf(ally)} (+15 de vida).`)
+    pushFloats([{ text: 'Cura', variant: 'cast', ...lords[activeSide] }, { text: '+15 vida', variant: 'heal', ...target.pos }])
+    setLordActed((a) => ({ ...a, [activeSide]: true }))
+    setSelected(null)
+  }
+
+  // Templanza (rediseño 2026-09-10, sustituye a la otra cara de Invocacion):
+  // bendice a un aliado propio a alcance 3 -su PROXIMO ataque este turno (o
+  // el que sea, no caduca solo por pasar de turno) hace +15. Se consume al
+  // atacar (attack()/computeUnitAttack ya saben leer y limpiar `buffed`).
+  function lordBuff(target) {
+    const ally = units.find((u) => u.id === target.id)
+    setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, buffed: true } : u)))
+    pushLog(`Lord ${sideLabel(activeSide)} bendice a ${labelOf(ally)} con Templanza.`)
+    pushFloats([{ text: 'Templanza', variant: 'cast', ...lords[activeSide] }, { text: '+15 dano', variant: 'buff', ...target.pos }])
+    setLordActed((a) => ({ ...a, [activeSide]: true }))
+    setSelected(null)
+  }
+
+  // Duplicar (rediseño 2026-09-10, "el que haya invocacion solo sea en la de
+  // duplicar"): clona a un aliado propio vivo a alcance 3 -el clon aparece
+  // junto al LORD (regla 16, misma logica que la invocacion), a vida llena,
+  // no comparte HP/escudo/acted con el original. Es una unidad nueva. La
+  // reserva sigue entrando por esta MISMA cara: si el jugador toca una
+  // casilla libre junto al Lord en vez de a un aliado, cellClick llama a
+  // lordSummon() en su lugar (ver mas abajo) -asi la reserva de 3 no se
+  // queda sin forma de entrar en juego pese a que ya no hay caras de
+  // Invocacion dedicadas.
+  function lordClone(target) {
+    const original = units.find((u) => u.id === target.id)
+    const cells = lordSummonTargets(activeSide, units, lords, original.klass)
+    if (cells.length === 0) {
+      pushLog(`Lord ${sideLabel(activeSide)} no tiene hueco junto a el para duplicar a ${labelOf(original)}.`)
+    } else {
+      const clone = makeUnit(activeSide, original.klass, nextCloneId(activeSide, units), cells[0])
+      setUnits((us) => [...us, clone])
+      pushLog(`Lord ${sideLabel(activeSide)} duplica a ${labelOf(original)}.`)
+      pushFloats([{ text: 'Duplicar', variant: 'cast', ...lords[activeSide] }, { text: 'Clon', variant: 'info', ...cells[0] }])
+    }
+    setLordActed((a) => ({ ...a, [activeSide]: true }))
     setSelected(null)
   }
 
   function cellClick(r, c) {
-    if (status !== 'playing') return
+    if (status !== 'playing' || enemyTurnRunning) return
+    if (isBonusPhase) {
+      const target = bonusTargets.find((t) => t.pos.r === r && t.pos.c === c)
+      if (target) {
+        attack(target)
+        return
+      }
+      declineBonus()
+      const otherOwn = units.find(
+        (u) => u.alive && u.side === activeSide && u.pos && u.pos.r === r && u.pos.c === c && u.id !== selectedUnit.id && !u.acted && rolls[u.id]
+      )
+      if (otherOwn) {
+        setSelected(otherOwn.id)
+        return
+      }
+      const myLord = lords[activeSide]
+      if (r === myLord.r && c === myLord.c && lordRoll[activeSide] && !lordActed[activeSide]) {
+        setSelected('lord')
+        return
+      }
+      setSelected(null)
+      return
+    }
     if (selectedUnit) {
+      if (isReposition) {
+        const ally = allyChoices.find((a) => a.pos.r === r && a.pos.c === c)
+        if (ally) {
+          repositionAlly(ally)
+          return
+        }
+      }
       const target = targets.find((t) => t.pos.r === r && t.pos.c === c)
       if (target) {
         attack(target)
@@ -249,179 +1852,363 @@ export default function App() {
         return
       }
       const otherOwn = units.find(
-        (u) => u.alive && u.side === activeSide && u.pos && u.pos.r === r && u.pos.c === c && !u.acted
+        (u) => u.alive && u.side === activeSide && u.pos && u.pos.r === r && u.pos.c === c && !u.acted && rolls[u.id]
       )
       if (otherOwn) {
         setSelected(otherOwn.id)
         return
       }
+      const myLord = lords[activeSide]
+      if (r === myLord.r && c === myLord.c && lordRoll[activeSide] && !lordActed[activeSide]) {
+        setSelected('lord')
+        return
+      }
       moveTo(r, c)
       return
     }
+    if (lordSelected) {
+      const target = targets.find((t) => t.pos.r === r && t.pos.c === c)
+      if (target) {
+        if (lordMarkable) {
+          lordMark(target)
+        } else {
+          lordAttack(target)
+        }
+        return
+      }
+      // Muro/Cura/Templanza/Duplicar (rediseño 2026-09-10): mismo `allyChoices`
+      // que Pigeon Post, solo activo cuando el Lord esta seleccionado con esa
+      // cara.
+      const ally = allyChoices.find((a) => a.pos.r === r && a.pos.c === c)
+      if (ally) {
+        if (lordShieldable) {
+          lordShield(ally)
+        } else if (lordHealable) {
+          lordHeal(ally)
+        } else if (lordBuffable) {
+          lordBuff(ally)
+        } else if (lordCloneable) {
+          lordClone(ally)
+        }
+        return
+      }
+      const summonCell = lordSummonCells.find((cell) => cell.r === r && cell.c === c)
+      if (summonCell) {
+        lordSummon(summonCell)
+        return
+      }
+      const myLord = lords[activeSide]
+      if (r === myLord.r && c === myLord.c) {
+        setSelected(null)
+        return
+      }
+      const otherOwn = units.find(
+        (u) => u.alive && u.side === activeSide && u.pos && u.pos.r === r && u.pos.c === c && !u.acted && rolls[u.id]
+      )
+      if (otherOwn) setSelected(otherOwn.id)
+      return
+    }
     const own = units.find((u) => u.alive && u.side === activeSide && u.pos && u.pos.r === r && u.pos.c === c)
-    if (own) selectUnit(own)
+    if (own) {
+      selectUnit(own)
+      return
+    }
+    const myLord = lords[activeSide]
+    if (r === myLord.r && c === myLord.c && lordRoll[activeSide] && !lordActed[activeSide]) {
+      setSelected('lord')
+    }
   }
 
-  function passTurn() {
-    const nextSide = activeSide === 'player' ? 'enemy' : 'player'
-    const nextTurn = turnCount + 1
-    setUnits((us) => us.map((u) => (u.side === nextSide ? { ...u, acted: false } : u)))
-    setActiveSide(nextSide)
-    setSelected(null)
-    pushLog(`Turno ${nextTurn}. Le toca a ${nextSide === 'player' ? 'Player' : 'Enemy'}.`)
+  // Regla 5: empate exacto en el reloj lo gana el defensor (aqui, Enemy).
+  function clockTiebreak(pHp, eHp) {
+    return pHp / LORD_STATS.hp > eHp / LORD_STATS.hp ? 'player-won' : 'enemy-won'
+  }
+
+  // Cierra el turno de Player y resuelve el turno de Enemy paso a paso (paso
+  // 10: la IA ya no se juega a mano). Cada paso (tirada, y luego cada accion de
+  // cada unidad y del Lord) se aplica a React con su pausa, para que se vea la
+  // secuencia en vez de confirmar todo de un tiron -pedido explicito del
+  // usuario. Al terminar, vuelve al turno de Player.
+  const ENEMY_ROLL_MS = 750
+  const ENEMY_STEP_MS = 420
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+  async function passTurn() {
+    if (status !== 'playing' || enemyTurnRunning) return
+    const token = enemyTurnTokenRef.current
+    let nextTurn = turnCount + 1
     if (nextTurn > TURN_CLOCK) {
-      const playerPct = playerLordHp / LORD_STATS.hp
-      const enemyPct = enemyLordHp / LORD_STATS.hp
-      // Regla 5: empate exacto lo gana el defensor (aqui, Enemy).
-      setStatus(playerPct > enemyPct ? 'player-won' : 'enemy-won')
+      setStatus(clockTiebreak(playerLordHp, enemyLordHp))
+      setTurnCount(nextTurn)
       pushLog('Se acaba el reloj de 12 turnos.')
       return
     }
+
+    const resetEnemyActed = units.map((u) => (u.side === 'enemy' ? { ...u, acted: false } : u))
+    const result = runEnemyTurn(resetEnemyActed, reserve, playerLordHp, enemyLordHp, rolls)
+
+    setEnemyTurnRunning(true)
+    try {
+      // Paso 0: tirada del rival. Se ve el barajado un instante y luego encaja.
+      setRolling(true)
+      await sleep(ENEMY_ROLL_MS)
+      if (token !== enemyTurnTokenRef.current) return
+      setRolling(false)
+      setUnits(result.steps[0].units)
+      setLordRoll((r) => ({ ...r, enemy: result.lordFace }))
+      // Importante: reemplaza `rolls` entero (no mezcla) para que Die3D del
+      // rival aterrice en su cara correcta (ver comentario largo en la version
+      // anterior de esta funcion).
+      setRolls(result.rolls)
+      pushLog(result.steps[0].lines.join(' · '))
+      if (result.steps[0].floatEvents.length) pushFloats(result.steps[0].floatEvents)
+
+      // Pasos 1..n: cada accion de cada unidad y el Lord, de uno en uno.
+      for (const step of result.steps.slice(1)) {
+        if (token !== enemyTurnTokenRef.current) return
+        await sleep(ENEMY_STEP_MS)
+        if (token !== enemyTurnTokenRef.current) return
+        setUnits(step.units)
+        setPlayerLordHp(step.playerLordHp)
+        setEnemyLordHp(step.enemyLordHp)
+        setReserve(step.reserve)
+        if (step.lines.length) pushLog(step.lines.join(' · '))
+        if (step.fx.length) pushFx(step.fx)
+        if (step.floatEvents.length) pushFloats(step.floatEvents)
+      }
+    } finally {
+      setEnemyTurnRunning(false)
+    }
+    if (token !== enemyTurnTokenRef.current) return
+    setSelected(null)
+
+    if (result.victory) {
+      setStatus(result.victory)
+      setTurnCount(nextTurn)
+      return
+    }
+
+    nextTurn += 1
+    if (nextTurn > TURN_CLOCK) {
+      setStatus(clockTiebreak(result.playerLordHp, result.enemyLordHp))
+      setTurnCount(nextTurn)
+      pushLog('Se acaba el reloj de 12 turnos.')
+      return
+    }
+    setUnits((us) => us.map((u) => (u.side === 'player' ? { ...u, acted: false } : u)))
+    setLordRoll({ player: null, enemy: null })
+    setLordActed({ player: false, enemy: false })
+    // A3: la banca de Energia se vacia al empezar el turno propio (no se
+    // acumula entre turnos, seccion 6.4.2).
+    setEnergyBank(0)
+    setBoostArmed(false)
+    setMoveBoostArmed(false)
     setTurnCount(nextTurn)
+    pushLog(`Turno ${nextTurn}. Tira los dados, Player.`)
   }
 
-  function labelOf(u) {
-    return `${CLASS_STATS[u.klass].label} ${u.side === 'player' ? 'propio' : 'rival'}`
+  // Igual que en rollDice: `rolls` ya no se vacia entre turnos (la tirada del
+  // rival se queda ahi para que Die3D pueda aterrizar en su cara), asi que
+  // "ya ha tirado" es solo sobre el bando activo.
+  const rolled = units.some((u) => u.side === activeSide && u.alive && rolls[u.id])
+
+  // Nueva partida desde cero (boton "Reiniciar partida"): resetea todo el estado
+  // de combate. Board3D se resincroniza solo porque todas las piezas se derivan
+  // de units/lords/reserve via useMemo, y los retratos 3D ni siquiera se enteran
+  // (Portrait3D no depende del estado de partida, solo del descriptor/clase).
+  function resetMatch() {
+    if (rollPendingRef.current) {
+      clearTimeout(rollPendingRef.current)
+      rollPendingRef.current = null
+    }
+    // Aborta una secuencia del rival en curso (si la hay) y descongela la UI.
+    enemyTurnTokenRef.current += 1
+    setEnemyTurnRunning(false)
+    setRolling(false)
+    setUnits(initialUnits())
+    setPlayerLordHp(LORD_STATS.hp)
+    setEnemyLordHp(LORD_STATS.hp)
+    setReserve({ player: initialReserve('player'), enemy: initialReserve('enemy') })
+    setLordRoll({ player: null, enemy: null })
+    setLordActed({ player: false, enemy: false })
+    setRollTick((t) => t + 1)
+    setTurnCount(1)
+    setRolls({})
+    setSelected(null)
+    setPendingBonus(null)
+    // A3: la banca se vacia en cada partida nueva (igual que pasa al empezar
+    // cada turno propio).
+    setEnergyBank(0)
+    setBoostArmed(false)
+    setMoveBoostArmed(false)
+    setStatus('playing')
+    setLog(['Empieza el asedio. Tira los dados, Player.'])
+    setFloats([])
   }
+
+  // renderLordCard/renderUnitCard se movieron a components/LordCard.jsx y
+  // components/UnitCard.jsx (via components/Roster.jsx, que compone ambos
+  // por bando). La logica de estado se queda aqui; las cartas solo reciben
+  // props ya resueltas.
 
   return (
     <div className="app">
       <LunaciaBackdrop />
+      <LoadingCurtain visible={!boardReady} />
+      {SHOW_DASHBOARD && (
+      <>
       <header>
         <h1>Vinculo de Lunacia</h1>
-        <p className="subtitle">MVP1: asedio a una torre. Lord fijo + 3 Axies moviles por bando.</p>
+        <p className="subtitle">MVP1: asedio a un mando fijo. Lord fijo + 3 Axies moviles por bando.</p>
+        <MetaNav route={route} />
       </header>
 
-      <div className="hud">
-        <div className="lord">Tu Lord: {playerLordHp}/{LORD_STATS.hp}</div>
-        <div className="turn">Turno {Math.min(turnCount, TURN_CLOCK)}/{TURN_CLOCK} · {activeSide === 'player' ? 'Player' : 'Enemy'}</div>
-        <div className="lord">Lord rival: {enemyLordHp}/{LORD_STATS.hp}</div>
-      </div>
+      {!isMeta && <>
+      <Hud
+        playerLordHp={playerLordHp}
+        enemyLordHp={enemyLordHp}
+        lordMaxHp={LORD_STATS.hp}
+        reservePlayerCount={reserve.player.length}
+        reserveEnemyCount={reserve.enemy.length}
+        turnCount={turnCount}
+        turnClock={TURN_CLOCK}
+        activeSide={activeSide}
+      />
 
-      {status !== 'playing' && (
-        <div className={`banner ${status === 'player-won' ? 'won' : 'lost'}`}>
-          {status === 'player-won' ? 'Player gana el asedio.' : 'Enemy gana el asedio.'}
-        </div>
+      <VictoryBanner status={status} onReset={resetMatch} />
+
+      <ActionBar
+        selectedUnitLabel={selectedUnit ? labelOf(selectedUnit) : null}
+        selectedRoll={selectedRoll ? { slotLabel: SLOT_LABEL_MVP1[selectedRoll.slot], name: selectedRoll.name, text: selectedRoll.text } : null}
+        isReposition={isReposition}
+        isBonusPhase={isBonusPhase}
+        bonusTargetsCount={bonusTargets.length}
+        lordSelected={lordSelected}
+        lordLabel={sideLabel(activeSide)}
+        activeLordRoll={activeLordRoll}
+        nextReserveLabel={nextReserveKlass ? CLASS_STATS[nextReserveKlass].label : null}
+        exchangeInfo={exchangeInfo}
+        energyBank={energyBank}
+        energyCap={ENERGY_CAP}
+        boostArmed={boostArmed}
+        canBoost={status === 'playing' && energyBank >= ENERGY_BOOST_COST && !!selectedUnit && !!selectedRoll && selectedUnit.side === activeSide && !selectedUnit.acted}
+        onToggleBoost={() => setBoostArmed((a) => !a)}
+        moveBoostArmed={moveBoostArmed}
+        canMoveBoost={status === 'playing' && energyBank >= ENERGY_MOVE_COST && !!selectedUnit && !!selectedRoll && !isReposition && !isBonusPhase && selectedUnit.side === activeSide && !selectedUnit.acted}
+        onToggleMoveBoost={() => setMoveBoostArmed((a) => !a)}
+      />
+      </>}
+      </>
       )}
 
-      {selectedUnit && (
-        <div className="action-bar">
-          <b>{labelOf(selectedUnit)}</b> seleccionado · movimiento {CLASS_STATS[selectedUnit.klass].move} · alcance{' '}
-          {CLASS_STATS[selectedUnit.klass].range} · ataque {CLASS_STATS[selectedUnit.klass].atk}
-        </div>
+      <div className={isMeta ? 'meta-view' : 'layout'}>
+      {isMeta ? (
+        META_SCREENS[route]
+      ) : (
+        <>
+      {SHOW_DASHBOARD && (
+      <Roster
+        side="player"
+        title="Tu mando"
+        titleClassName="ally"
+        units={units}
+        rolls={rolls}
+        rolling={rolling}
+        activeSide={activeSide}
+        enemyTurn={enemyTurnRunning}
+        rollTick={rollTick}
+        selected={selected}
+        status={status}
+        playerLordHp={playerLordHp}
+        enemyLordHp={enemyLordHp}
+        reservePlayerCount={reserve.player.length}
+        reserveEnemyCount={reserve.enemy.length}
+        lordRoll={lordRoll}
+        lordActed={lordActed}
+        onSelectUnit={selectUnit}
+        onSelectLord={() => setSelected(selected === 'lord' ? null : 'lord')}
+      />
+      )}
+      {SHOW_BOARD && (
+      <div className="board-col" ref={boardColRef}>
+      <BoardRegion
+        showDashboard={SHOW_DASHBOARD}
+        board3d={{
+          blockUrl: BOARD3D_BLOCK_URL,
+          terrainAt,
+          terrainBlockUrls: TERRAIN_BLOCK_URLS,
+          decorUrls: TERRAIN_DECOR_URLS,
+          axieUnits,
+          fx: fxQueue,
+          onTransform: onBoard3DTransform,
+          onReady: () => setBoardReady(true),
+        }}
+        overlay={{
+          visible: SHOW_OVERLAY,
+          matrix: board3dMatrix,
+          units,
+          lords,
+          activeSide,
+          selected,
+          lordSelected,
+          moveCells,
+          targets,
+          allyChoices,
+          lordSummonCells,
+          lordRoll,
+          lordActed,
+          playerLordHp,
+          enemyLordHp,
+          rollTick,
+          floats,
+          energyBank,
+          energyCap: ENERGY_CAP,
+          exchangeInfo: exchangeInfo && hoverCell ? { cell: hoverCell, lines: exchangeInfo } : null,
+          onCellClick: cellClick,
+          onCellHover: setHoverCell,
+        }}
+      />
+
+      <Controls
+        status={status}
+        rolled={rolled}
+        rolling={rolling}
+        busy={enemyTurnRunning}
+        activeSide={activeSide}
+        onRoll={rollDice}
+        onPass={passTurn}
+        onReset={resetMatch}
+      />
+
+      <BattleLog log={log} />
+      </div>
       )}
 
-      <div className="terrain-legend">
-        <span><i className="terrain-swatch terrain-grass" /> Abierto</span>
-        <span><i className="terrain-swatch terrain-stone" /> Piedra: bloquea todo</span>
-        <span><i className="terrain-swatch terrain-earth" /> Zona lenta: cuesta 2</span>
-        <span><i className="terrain-swatch terrain-water" /> Agua: solo Aqua</span>
-        <span><i className="terrain-swatch terrain-grass terrain-obstacle-swatch" /> Obstaculo: bloquea mover, no disparar</span>
+      {SHOW_DASHBOARD && (
+      <Roster
+        side="enemy"
+        title="Asediantes"
+        titleClassName="enemy"
+        units={units}
+        rolls={rolls}
+        rolling={rolling}
+        activeSide={activeSide}
+        enemyTurn={enemyTurnRunning}
+        rollTick={rollTick}
+        selected={selected}
+        status={status}
+        playerLordHp={playerLordHp}
+        enemyLordHp={enemyLordHp}
+        reservePlayerCount={reserve.player.length}
+        reserveEnemyCount={reserve.enemy.length}
+        lordRoll={lordRoll}
+        lordActed={lordActed}
+        onSelectUnit={selectUnit}
+        onSelectLord={() => setSelected(selected === 'lord' ? null : 'lord')}
+      />
+      )}
+      </>
+      )}
       </div>
-
-      <div className="board" style={{ gridTemplateColumns: `repeat(${COLS}, 1fr)` }}>
-        {Array.from({ length: ROWS }).map((_, r) =>
-          Array.from({ length: COLS }).map((_, c) => {
-            const isPLord = r === PLAYER_LORD.r && c === PLAYER_LORD.c
-            const isELord = r === ENEMY_LORD.r && c === ENEMY_LORD.c
-            const unit = units.find((u) => u.alive && u.pos && u.pos.r === r && u.pos.c === c)
-            const canMoveHere = moveCells.some((cell) => cell.r === r && cell.c === c)
-            const canAttackHere = targets.some((t) => t.pos.r === r && t.pos.c === c)
-            const isSelected = unit && selected === unit.id
-            return (
-              <div
-                key={`${r}-${c}`}
-                data-r={r}
-                data-c={c}
-                className={[
-                  'cell',
-                  TERRAIN_CLASS[terrainAt(r, c)],
-                  canMoveHere ? 'summon-zone' : '',
-                  canAttackHere ? 'in-range' : '',
-                  isSelected ? 'selected' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                onClick={() => cellClick(r, c)}
-              >
-                {terrainAt(r, c) === 'obstacle' && <span className="terrain-obstacle-icon" />}
-                {isPLord && (
-                  <div className="lord-unit own-lord">
-                    <AxieSprite genome={PLAYER_LORD_GENOME} dominantClass={dominantClass(PLAYER_LORD_GENOME)} size={52} />
-                    <small>{playerLordHp}</small>
-                  </div>
-                )}
-                {isELord && (
-                  <div className="lord-unit enemy-lord">
-                    <AxieSprite genome={ENEMY_LORD_GENOME} dominantClass={dominantClass(ENEMY_LORD_GENOME)} size={52} />
-                    <small>{enemyLordHp}</small>
-                  </div>
-                )}
-                {unit && (
-                  <div
-                    className={`unit ${unit.side === 'player' ? 'own' : 'enemy'} ${unit.acted ? 'spent' : ''}`}
-                    style={{ borderColor: CLASS_STATS[unit.klass].color, background: `${CLASS_STATS[unit.klass].color}30` }}
-                  >
-                    <span>{CLASS_STATS[unit.klass].label.slice(0, 2)}</span>
-                    <small>{unit.hp}</small>
-                  </div>
-                )}
-              </div>
-            )
-          })
-        )}
-      </div>
-
-      <section className="roster">
-        {units.map((u) => {
-          const stats = CLASS_STATS[u.klass]
-          return (
-            <div
-              key={u.id}
-              className={`card ${!u.alive ? 'down' : ''} ${selected === u.id ? 'selected' : ''}`}
-              style={{ borderColor: stats.color }}
-            >
-              <div className="card-head">
-                <div className="card-title">
-                  <strong>
-                    {stats.label} ({stats.role}) · {u.side === 'player' ? 'Player' : 'Enemy'}
-                  </strong>
-                  <span className="klass" style={{ background: stats.color }}>
-                    {u.side}
-                  </span>
-                </div>
-              </div>
-              <div className="stat-row">
-                <span>HP {Math.max(u.hp, 0)}/{u.maxHp}</span>
-                <span>Mov {stats.move}</span>
-                <span>Alc {stats.range}</span>
-                <span>Atq {stats.atk}</span>
-              </div>
-              {u.alive && u.side === activeSide && !u.acted && status === 'playing' && (
-                <button className="small" onClick={() => selectUnit(u)}>
-                  {selected === u.id ? 'Deseleccionar' : 'Seleccionar'}
-                </button>
-              )}
-              {!u.alive && <div className="hint">Caida. Perdida definitiva.</div>}
-              {u.alive && u.acted && <div className="done">Ya ha actuado</div>}
-            </div>
-          )
-        })}
-      </section>
-
-      <div className="controls">
-        <button onClick={passTurn} disabled={status !== 'playing'}>
-          Pasar turno ({activeSide === 'player' ? 'Player' : 'Enemy'})
-        </button>
-      </div>
-
-      <section className="log">
-        {log.map((l, i) => (
-          <div key={i} className="log-line">
-            {l}
-          </div>
-        ))}
-      </section>
     </div>
   )
 }

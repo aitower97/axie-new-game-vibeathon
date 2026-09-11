@@ -10,9 +10,70 @@
   --mint: #7fe7c4;
   --amber: #e3a857;
   --rose: #c25b6b;
+  --ally: #5fa0ff;
+  --enemy: #e0544f;
+  /* Tinte de los emblemas de ranura (slotIcons.js): el PNG oficial del
+     marketplace es gris metalico -pedido explicito del usuario: "un color
+     generico bonito distinto al del marketplace, que no se pierdan las
+     formas". Un filtro (no una mascara rellena de un color plano, que
+     aplanaba el relieve del PNG y borraba la forma) para conservar el
+     claroscuro original y solo virar el tono a un dorado calido. Mismo
+     resultado en Die3D.jsx (ICON_FILTER, canvas ctx.filter admite la misma
+     sintaxis), a mano: ese recoloreo es en un canvas, no hay CSS que valga. */
+  --icon-filter: sepia(1) saturate(2.6) hue-rotate(-8deg) brightness(0.92);
 }
 
 * { box-sizing: border-box; }
+
+/* Cortina de carga (T4): cubre toda la app mientras Board3D carga el terreno y
+   los axies (onReady -> boardReady en App.jsx). Un dado hecho de las 6 partes
+   (6 ranuras) que hace roll y se queda quieto: mismo lenguaje que el juego. */
+.loading-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: radial-gradient(circle at 50% 30%, #1c332e, #0d1a18 70%);
+}
+.loading-die {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  gap: 10px;
+  animation: loading-die-roll 0.9s ease-out;
+}
+.loading-die-cell {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #2b4a43, #1b322d);
+  border: 1px solid #3b5c54;
+  box-shadow: inset 0 0 0 1px rgba(127, 231, 196, 0.14);
+  animation: loading-die-pop 0.5s ease calc(0.05s * var(--i)) both;
+}
+@keyframes loading-die-roll {
+  from { transform: rotateZ(-16deg) translateY(30px); opacity: 0; }
+  to { transform: rotateZ(0) translateY(0); opacity: 1; }
+}
+@keyframes loading-die-pop {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.loading-title {
+  margin: 0;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+.loading-sub {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
 
 body {
   margin: 0;
@@ -27,9 +88,19 @@ body {
 .app {
   position: relative;
   z-index: 0;
-  max-width: 880px;
+  width: 100%;
+  max-width: 1680px;
+  /* dvh en vez de vh (sesion refactor responsive): mismo criterio que el
+     100svh de #root en index.css -evita el salto de tamano en navegadores
+     que muestran/ocultan la barra de UI segun el scroll (no aplica aqui
+     porque .app nunca hace scroll, pero mantiene el mismo criterio en toda
+     la app en vez de mezclar unidades de viewport distintas). */
+  height: 100dvh;
   margin: 0 auto;
-  padding: 28px 20px 60px;
+  padding: 14px 20px 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 /* Fondo 3D ambiental de Lunacia, fijo y decorativo: nunca intercepta clics. */
@@ -38,128 +109,399 @@ body {
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  overflow: hidden;
+  background: var(--panel);
 }
-.lunacia-backdrop canvas { display: block; }
+.lunacia-grass {
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-size: 48px 48px;
+  image-rendering: pixelated;
+  opacity: 0.5;
+}
+.lunacia-grass-detail {
+  background-size: 144px 144px;
+  background-position: 24px 12px;
+  opacity: 0.22;
+}
+.lunacia-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at center, transparent 35%, var(--panel) 92%);
+}
+.lunacia-decor {
+  position: absolute;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+}
 
+header { flex: none; position: relative; z-index: 1; }
 header h1 {
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 700;
-  font-size: 2rem;
-  margin: 0 0 4px;
+  font-size: 1.7rem;
+  margin: 0 0 2px;
   letter-spacing: -0.01em;
+  /* Estetica de titulo (pedido "estetica Axie en titulos"): dorado degradado
+     con clip de texto, mismo tono que el Lord/LORD_ACCENT, mas una pequena
+     tirada de 6 ranuras como ornamento antes del nombre. */
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: linear-gradient(180deg, #ffe9a8 0%, #ffc233 48%, #d99a2b 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+header h1::before {
+  content: '⋮';
+  font-size: 1.1rem;
+  color: var(--amber);
+  opacity: 0.9;
+  text-shadow: 0 0 10px rgba(227, 168, 87, 0.6);
+  -webkit-text-fill-color: var(--amber);
+  transform: rotate(90deg);
 }
 
 .subtitle {
   color: var(--muted);
-  margin: 0 0 20px;
-  font-size: 0.95rem;
+  margin: 0 0 8px;
+  text-shadow: 0 1px 6px var(--bg);
+  font-size: 0.78rem;
 }
 
 .hud {
+  flex: none;
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  padding: 10px 16px;
-  margin-bottom: 14px;
-  font-size: 0.95rem;
+  padding: 6px 14px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
 }
 
 .lord { color: var(--amber); letter-spacing: 2px; }
 .turn { color: var(--muted); }
 
 .banner {
+  flex: none;
   text-align: center;
-  padding: 10px;
+  padding: 8px;
   border-radius: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 8px;
   font-weight: 600;
 }
+
+/* Tres columnas: tu roster a la izquierda, el tablero en medio (domina la
+   pantalla), el roster rival a la derecha -pedido explicito del usuario
+   ("a la izquierda lo mio, a la derecha del canvas el rival"). Los controles
+   y el log viven ahora DENTRO de board-col, debajo del tablero (antes en una
+   sola barra lateral que ya no existe). La pagina en si no hace scroll nunca
+   (pedido de antes); cada roster tiene su propio scroll interno si hace falta. */
+.layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+.board-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+}
+
+/* Campo de batalla en 3D real: Board3D.jsx (Three.js vanilla + bloques GLB de
+   Kenney, Platformer Kit CC0) renderiza la escena dentro de .board3d-host, que
+   ocupa todo el hueco disponible (.board-scene reparte el espacio, Board3D mide
+   su propio contenedor con un ResizeObserver interno -no hace falta boardScale
+   ni medir rectangulos a mano como con el intento anterior en CSS puro).
+
+   Alineacion del grid interactivo: la camara de Board3D es ORTOGRAFICA (sin
+   escorzo de perspectiva), asi que 3D->pantalla es una transformacion afin.
+   Board3D nos pasa una matriz CSS (`onTransform`, ver App.jsx) que se aplica tal
+   cual a .board-overlay-3d; sus hijos (.cell3d) se quedan con la matematica de
+   pixeles simple de siempre (CELL_SIZE), la matriz los coloca a todos de golpe. */
+.board-scene {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+}
+.board3d-host {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.board3d-host:active { cursor: grabbing; }
+.board-view-hint {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(16, 32, 29, 0.72);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.68rem;
+  pointer-events: none;
+  user-select: none;
+}
+.board-overlay-3d {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+.cell3d {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.cell3d::after {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  border-radius: 4px;
+  border: 2px solid transparent;
+  pointer-events: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+}
+.cell3d.summon-zone { box-shadow: inset 0 0 0 3px rgba(127, 231, 196, 0.75); }
+.cell3d.in-range { background-color: rgba(227, 168, 87, 0.22); box-shadow: inset 0 0 0 3px rgba(227, 168, 87, 0.7); }
+.cell3d.selected::after { border-width: 3px; border-color: var(--amber); box-shadow: 0 0 14px rgba(227, 168, 87, 0.55); }
+/* Floats de combate (feedback visual): numeros de dano/escudo/cura y el nombre
+   de la habilidad que se esta usando, flotando sobre su casilla para fundirse
+   con la escena 3D. Viven dentro del overlay alineado por la matriz CSS del
+   tablero, asi que heredan la proyeccion completa sin ninguna otra
+   matematica. `translate` (propiedad CSS aparte de transform) hace el recorrido
+   vertical sin romper el centrado translate(-50%). */
+.combat-float {
+  position: absolute;
+  left: 50%;
+  top: 4%;
+  transform: translate(-50%, 0);
+  pointer-events: none;
+  z-index: 4;
+  font-weight: 800;
+  font-size: 1.05rem;
+  line-height: 1;
+  white-space: nowrap;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.5);
+  animation: combat-float-rise 1.5s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+}
+.combat-float.variant-damage { color: #ff7566; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 70, 50, 0.65); }
+.combat-float.variant-heal { color: #6fe3a0; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(60, 200, 120, 0.55); }
+.combat-float.variant-shield { color: #72ccff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(70, 170, 255, 0.55); }
+.combat-float.variant-buff { color: #cda2ff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(160, 90, 255, 0.55); }
+.combat-float.variant-info { color: #ffe9a3; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.5); }
+.combat-float.variant-cast {
+  top: -14%;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(18, 30, 26, 0.88);
+  border: 1px solid rgba(255, 194, 51, 0.6);
+  color: #ffd97a;
+  text-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+/* Rotura (Fase A): el escudo volcado se anuncia en rojo anaranjado, mas
+   calido que el rojo de dano y mas apagado que un golpe. */
+.combat-float.variant-break {
+  color: #ffb34d;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 150, 60, 0.55);
+}
+@keyframes combat-float-rise {
+  0% { opacity: 0; translate: 0 8px; }
+  14% { opacity: 1; translate: 0 0; }
+  72% { opacity: 1; }
+  100% { opacity: 0; translate: 0 -26px; }
+}
+/* El recuadro permanente de aliado/rival por celda se quito de aqui (era un
+   rectangulo DOM plano que se pintaba SIEMPRE por encima del canvas 3D entero
+   -cortaba el cuerpo del Axie donde este sobresale del borde matematico de su
+   celda). Ahora es un anillo 3D real en el suelo (Board3D.jsx, makeSideRing),
+   que respeta el test de profundidad de WebGL: el Axie que esta de pie sobre
+   el anillo lo tapa el solo, como toca. */
+.roster-col {
+  /* clamp en vez de px fijo (sesion refactor responsive): se encoge hacia
+     260px en portatiles pequenos (~1152px de ancho) y crece hacia 380px en
+     pantallas ultrawide, sin salto de breakpoint. En 1366px/1920px cae cerca
+     del 340px fijo que ya estaba verificado sin overflow. */
+  flex: 0 0 clamp(260px, 22vw, 380px);
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  /* overflow-x explicito (no solo overflow-y): sin esto, el redondeo de
+     subpixel entre el ancho clamp() de esta columna y el de .roster-squad
+     (flex con gap) puede quedar 1px por encima y el navegador fuerza una
+     barra horizontal fantasma (overflow-y:auto vuelve "auto" tambien a
+     overflow-x si no se fija explicitamente) -medido real a 1152px. */
+  overflow-x: hidden;
+  padding: 2px 4px 2px 2px;
+}
+.roster-col.enemy-col { padding: 2px 2px 2px 4px; }
+/* Las 4 cartas de cada columna (Lord + 3 Axies) en la misma altura que el
+   canvas, releidas (pedido explicito 2026-09-10): el Lord vuelve a ser una
+   carta ancha arriba a su altura natural y los 3 Axies van en una FILA
+   horizontal debajo (`.roster-squad` -> flex row) en lugar de 4 cartas
+   apiladas. Asi el alto total de la columna es "titulo + Lord + una sola
+   fila de Axies" y sobra altura de sobra: cada carta vuelve a contener
+   holgadamente sus elementos en su propio marco sin compactar textos ni
+   retratos (antes habia que recortar padding/fuentes/portraits para que
+   cupieran 4 apiladas). Los tres Axies ahora no compiten por alto sino por
+   ancho (~96px cada uno), asi que su dado pasa a formato vertical: cubo
+   arriba y la lista de 6 caras apilada debajo (`.mini-die-unit` column). */
+.roster-col > .card {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Red de seguridad: si el contenido de una carta no cabe del todo en su
+     franja, que se recorte DENTRO de su propio marco en vez de pintarse
+     encima de la carta de abajo (bug real visto: "Nut Throw" de una carta
+     superpuesto al "#P1" de la siguiente). */
+  overflow: hidden;
+}
+.roster-col > .card.lord-card { flex: 0 0 auto; }
+.roster-col > .roster-title { flex: none; }
+/* Fila de 3 Axies bajo el Lord (sesion 2026-09-10, cartas compactas): ya NO
+   reparte el alto que sobra -se queda a su alto natural (solo cubo, sin
+   lista de 6 caras) y el resto de la columna pasa al panel de detalle
+   compartido (.unit-detail-panel, debajo). Cada mini carta sigue repartiendo
+   el ancho de la columna a partes iguales. */
+.roster-squad {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 5px;
+}
+.roster-squad > .card {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+/* --- Mini cartas de Axie (fila de 3 bajo el Lord) ---
+   Cabecera en fila (retrato a la izquierda, nombre y clase a la derecha):
+   bug real medido con chrome-devtools-mcp a 1366x768 (portatil comun), la
+   cabecera apilada en columna (retrato ENCIMA del texto) media 104px de alto
+   ella sola y desbordaba la carta. Ya NO llevan el detalle de las 6 ranuras
+   (se despliega en UnitDetailPanel.jsx al pasar el cursor o seleccionar), asi
+   que la carta entera se queda en su alto natural: retrato+stats+HP+cubo. */
+.card.mini .card-head { gap: 5px; margin-bottom: 3px; }
+.card.mini .card-title { gap: 1px; }
+.card.mini .card-id-line strong { font-size: 0.72rem; }
+.card.mini .card-insignia { width: 14px; height: 14px; }
+.card.mini .card-insignia .class-emblem { width: 9px; height: 9px; }
+.card.mini .class-line {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  font-size: 0.58rem;
+}
+/* Los dos stats (mov/alc) tienen que caber en el mismo ancho que el nombre
+   de la clase encima (pedido explicito 2026-09-10: "el numero de alc no se
+   ve porque ocupan mucho ancho") -medido real: con el tamano base del emoji
+   (1.05rem) los dos stat-ico sumaban 72.8px pero su columna solo tenia
+   65.8px, el segundo (alcance) se salia por el borde de la carta. Emoji e
+   iconos mas chicos y menos gap para que quepan los dos en una fila. */
+.card.mini .class-stats { margin-left: 0; gap: 3px; }
+.card.mini .stat-ico { font-size: 0.6rem; gap: 1px; }
+.card.mini .flat-emoji { font-size: 0.6rem; height: 10px; line-height: 10px; }
+.card.mini .card-vitals { gap: 2px; margin-bottom: 2px; }
+/* Solo el cubo (ya no hay lista al lado): centrado, alto natural. */
+.card.mini .die-unit.compact {
+  justify-content: center;
+  margin-bottom: 0;
+  padding: 9px 5px;
+}
+/* Pie de carta en flujo normal, NO absoluto (pedido explicito 2026-09-10: se
+   superponia con el cubo -.card-foot base es position:absolute, pensado
+   para la carta grande de antes con la lista de 6 caras debajo). Aqui
+   empuja el alto de la carta en vez de flotar encima de nada. */
+.card.mini .card-foot {
+  position: static;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 3px;
+  margin-top: 4px;
+  padding: 0;
+}
+/* La cara tirada como FaceRow (icono+nombre+efecto), NO como texto suelto
+   -pedido explicito: "una representacion de la parte... igual que sale
+   debajo pero solo la que ha tocado". Mismo .face-card que el panel de
+   detalle, recortado aqui al ancho real de la carta mini. */
+.card.mini .card-foot-face .face-card { padding: 3px 4px; gap: 5px; border-bottom: none; }
+.card.mini .card-foot-face .face-logo { width: 14px; height: 11px; }
+.card.mini .card-foot-face .face-part { font-size: 0.56rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 12px; }
+.card.mini .card-foot-face .face-glyph { min-width: 12px; font-size: 0.58rem; }
+.card.mini .card-foot-face .face-effect { width: auto; font-size: 0.52rem; flex: none; }
+.card.mini .card-foot-face .done { display: block; font-size: 0.52rem; padding-left: 4px; }
+.card.mini .card-foot button.small { padding: 1px 5px; font-size: 0.56rem; }
+
+/* --- Panel de detalle compartido (sesion 2026-09-10) ---
+   Debajo de la fila de 3 cartas compactas: muestra el detalle en texto de
+   las 6 ranuras de la unidad sobre la que esta el cursor (hover) o, si no
+   hay hover, la que este seleccionada (Roster.jsx). Absorbe el alto que
+   antes repartia .roster-squad -mismas clases base .die-list/.face-card que
+   ya usaba la carta del Lord (lord-die-list), con todo el ancho de la
+   columna disponible en vez de los 66px apretados de la carta mini. */
+.unit-detail-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--line) 35%, rgba(0, 0, 0, 0.2));
+  border: 1px solid var(--line);
+  overflow-y: auto;
+}
+.unit-detail-panel.empty {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.unit-detail-panel .detail-panel-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.unit-detail-panel .die-list { flex: 1 1 0; min-height: 0; }
+/* Las 6 filas reparten TODO el alto del panel a partes iguales -pedido
+   explicito 2026-09-10: "que no sobre espacio... que se vea mas grande y
+   ocupe todo el espacio, no dejes espacios vacios". Sin esto cada fila se
+   queda en su alto natural y sobra hueco vacio debajo de la sexta. */
+.unit-detail-panel .face-card { flex: 1 1 0; min-height: 26px; }
 .banner.won { background: rgba(127, 231, 196, 0.15); color: var(--mint); }
 .banner.lost { background: rgba(194, 91, 107, 0.18); color: var(--rose); }
-
-.board {
-  position: relative;
-  display: grid;
-  gap: 3px;
-  background: #0a120f;
-  border: 1px solid #122019;
-  border-radius: 12px;
-  padding: 14px 10px 18px;
-  margin-bottom: 18px;
-  transform: perspective(1000px) rotateX(20deg);
-  transform-origin: center bottom;
-  transform-style: preserve-3d;
-}
-
-/* VFX additive de combate (Axie Origins Battle Kit): cubre el tablero sin clics.
-   Vive dentro de .board, asi que el rotateX del tablero le aplica la misma perspectiva.
-   mix-blend plus-lighter suma luz a lo que esta debajo, como en Origins. */
-.vfx-overlay {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  mix-blend-mode: plus-lighter;
-  z-index: 9;
-  transform: translateZ(1px);
-}
-
-/* --- Celdas: bloques de tierra pixel-art isometricos --- */
-.cell {
-  aspect-ratio: 1;
-  background: var(--board);
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  padding-top: 3px;
-  position: relative;
-  cursor: pointer;
-  overflow: visible;
-  transform-style: preserve-3d;
-  transition: filter 0.12s ease, transform 0.12s ease;
-}
-/* Cara frontal (abajo) del cubo — grosor del bloque */
-.cell::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #543d22;
-  border-radius: 2px;
-  transform-origin: center bottom;
-  transform: rotateX(70deg);
-  pointer-events: none;
-  z-index: -2;
-}
-/* Cara derecha del cubo — grosor lateral */
-.cell::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #4a371f;
-  border-radius: 2px;
-  transform-origin: center right;
-  transform: rotateY(70deg);
-  pointer-events: none;
-  z-index: -3;
-}
-.cell:hover {
-  transform: translateZ(6px);
-  filter: brightness(1.1);
-}
-.cell:active {
-  transform: translateZ(0);
-  filter: brightness(0.95);
-}
 
 /* --- Terreno: tres texturas, cada una con su propio color base ---
    Misma textura de rayado (luz/sombra) para las tres, solo cambia el color de base,
@@ -205,21 +547,6 @@ header h1 {
     #2c6f8c;
 }
 
-/* Obstaculo bajo: bloquea el movimiento pero no la linea de tiro, asi que se dibuja
-   como una roca sobre cesped normal en vez de un color de suelo distinto. */
-.terrain-obstacle-icon {
-  position: absolute;
-  bottom: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 42%;
-  height: 32%;
-  background: #5b5f66;
-  border-radius: 45% 45% 50% 50%;
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.4);
-  pointer-events: none;
-  z-index: 1;
-}
 .terrain-obstacle-swatch { position: relative; }
 .terrain-obstacle-swatch::after {
   content: '';
@@ -230,12 +557,14 @@ header h1 {
 }
 
 .terrain-legend {
+  flex: none;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 14px;
-  font-size: 0.72rem;
+  gap: 4px 14px;
+  font-size: 0.68rem;
   color: var(--muted);
-  margin-bottom: 10px;
+  margin-bottom: 6px;
+  width: 100%;
 }
 .terrain-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .terrain-swatch {
@@ -246,52 +575,77 @@ header h1 {
   font-style: normal;
 }
 
-/* --- Estados de juego --- */
-.cell.summon-zone {
-  box-shadow: 0 0 0 2px rgba(127, 231, 196, 0.65);
-}
-.cell.in-range {
-  background-color: rgba(227, 168, 87, 0.3);
-  box-shadow: 0 0 0 2px rgba(227, 168, 87, 0.55);
-}
-.cell.selected {
-  box-shadow: 0 0 0 2px var(--amber), 0 0 12px rgba(227, 168, 87, 0.4);
-}
-
-/* Lord unidad: Axie coleccionable/mistico con glow */
+/* Lord unidad: sello real sobre su celda. La corona 3D real ya flota sobre la
+   cabeza del Axie (Board3D.jsx), asi que este marcador NO la duplica: es un
+   medallon-sello a la altura del cuerpo con la coronita como identidad, la
+   barra de vida colgando mas abajo y el glifo de la cara del dado como sello
+   de canton. */
 .lord-unit {
   position: relative;
   z-index: 2;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
-  padding: 2px;
   animation: lord-pulse 2.5s ease-in-out infinite;
 }
-.lord-unit .axie-sprite {
-  border-radius: 50%;
-  overflow: hidden;
-}
-.lord-unit small {
-  font-size: 0.7rem;
-  font-weight: 800;
+/* Bisel interior de sello (anillo grabado, como moneda). */
+.lord-unit::before {
+  content: '';
   position: absolute;
-  bottom: -3px;
+  inset: 2px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  pointer-events: none;
+}
+/* La fila de vida cuelga POR DEBAJO del medallon (top:100%), nunca sobre el:
+   se neutraliza aqui el sangrado de la regla .stat-row de las cartas (gap 10px,
+   margin-bottom 8px) que tambien aplicaria a este hp-row del overlay. */
+.lord-unit .hp-row {
+  position: absolute;
+  top: calc(100% + 5px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(10, 20, 18, 0.85);
-  color: #fff;
-  padding: 1px 6px;
-  border-radius: 8px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
   white-space: nowrap;
 }
+.lord-unit .hp-bar { width: 36px; }
+.lord-unit .crown-emblem {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  fill: var(--amber);
+}
+.lord-unit.spent { opacity: 0.5; animation: none; }
+.lord-glyph {
+  position: absolute;
+  top: -5px;
+  right: -6px;
+  font-style: normal;
+  font-size: 0.72rem;
+  background: rgba(10, 20, 18, 0.85);
+  color: var(--mint);
+  border-radius: 50%;
+  border: 1px solid rgba(127, 231, 196, 0.35);
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: lord-land 0.5s ease-out;
+}
 .own-lord {
-  background: radial-gradient(circle, rgba(255, 245, 200, 0.35) 0%, rgba(227, 168, 87, 0.15) 55%, transparent 75%);
-  border: 1px solid rgba(227, 168, 87, 0.6);
-  box-shadow: 0 0 12px rgba(227, 168, 87, 0.55), 0 0 24px rgba(227, 168, 87, 0.25);
+  background: radial-gradient(circle, rgba(255, 245, 200, 0.4) 0%, rgba(227, 168, 87, 0.18) 55%, transparent 78%);
+  border: 1px solid rgba(227, 168, 87, 0.8);
+  box-shadow: 0 0 12px rgba(227, 168, 87, 0.55), 0 0 24px rgba(227, 168, 87, 0.25), inset 0 0 5px rgba(255, 235, 170, 0.3);
 }
 .enemy-lord {
-  background: radial-gradient(circle, rgba(255, 210, 215, 0.35) 0%, rgba(194, 91, 107, 0.15) 55%, transparent 75%);
-  border: 1px solid rgba(194, 91, 107, 0.6);
-  box-shadow: 0 0 12px rgba(194, 91, 107, 0.55), 0 0 24px rgba(194, 91, 107, 0.25);
+  background: radial-gradient(circle, rgba(255, 210, 215, 0.4) 0%, rgba(194, 91, 107, 0.18) 55%, transparent 78%);
+  border: 1px solid rgba(194, 91, 107, 0.8);
+  box-shadow: 0 0 12px rgba(194, 91, 107, 0.55), 0 0 24px rgba(194, 91, 107, 0.25), inset 0 0 5px rgba(255, 200, 205, 0.3);
 }
 @keyframes lord-pulse {
   0%, 100% { box-shadow: 0 0 12px rgba(227, 168, 87, 0.55), 0 0 24px rgba(227, 168, 87, 0.25); }
@@ -303,84 +657,356 @@ header h1 {
   50% { box-shadow: 0 0 18px rgba(194, 91, 107, 0.85), 0 0 32px rgba(194, 91, 107, 0.45); }
 }
 
-/* Unidades: paradas encima del bloque */
+/* Unidades: marcador flotante SIN caja en el borde inferior de la celda -el
+   bando y el calce con la casilla los pone el anillo 3D real del suelo
+   (Board3D.jsx, makeSideRing), que respeta el test de profundidad de WebGL.
+   Aqui solo cuelgan, por debajo y delante del Axie, el emblema de clase y las
+   barras de vida/escudo. */
 .unit {
-  width: 80%;
-  height: auto;
-  min-height: 44px;
-  border-radius: 6px;
+  position: absolute;
+  left: 50%;
+  top: 60%;
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 2px;
   font-weight: 700;
   font-size: 0.85rem;
-  position: relative;
-}
-.unit.own { background: rgba(127, 231, 196, 0.18); color: var(--mint); border: 1px solid var(--mint); }
-.unit.own.ascended { border: 1px solid var(--amber); box-shadow: 0 0 8px rgba(227, 168, 87, 0.5); }
-.unit.enemy { background: rgba(194, 91, 107, 0.18); color: var(--rose); border: 1px solid var(--rose); }
-.unit small {
-  font-size: 0.65rem;
-  font-weight: 700;
-  position: absolute;
-  bottom: 1px;
-  left: 2px;
-  background: rgba(10, 20, 18, 0.72);
-  padding: 0 3px;
-  border-radius: 3px;
-  z-index: 2;
-}
-/* El sprite real se dibuja encima; la letra de abajo solo se ve si el mixer no carga. */
-.unit-fallback { position: absolute; z-index: 0; }
-.unit .axie-sprite {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
   pointer-events: none;
+}
+.unit.own { color: #a9c8ff; }
+.unit.own.ascended { filter: drop-shadow(0 0 5px rgba(227, 168, 87, 0.75)); }
+.unit.enemy { color: #ff9b94; }
+/* Marca del Lord (rediseño 2026-09-10): brillo rosa/rojizo -mismo --rose que
+   ya usa la app para "peligro" (banner.lost)- para que se note en el tablero
+   que el proximo golpe que reciba esta unidad hace +20. Se apaga solo al
+   consumirse (marked vuelve a false tras el impacto). */
+.unit.marked { filter: drop-shadow(0 0 6px rgba(194, 91, 107, 0.9)); }
+/* Templanza del Lord (rediseño 2026-09-10): brillo menta -mismo --mint que ya
+   usa la app para "aliado/positivo" (.roster-title.ally)- para distinguirlo
+   claramente del rosa/rojizo de Marca (peligro). */
+.unit.buffed { filter: drop-shadow(0 0 6px rgba(127, 231, 196, 0.9)); }
+/* Rotura (Fase A): tono ambar rojizo intermedio entre el rose de Marca y el
+   rojo de dano -anuncia "va a recibir un golpe ventajoso y se queda sin vuelta". */
+.unit.broken { filter: drop-shadow(0 0 6px rgba(255, 150, 60, 0.95)); }
+.unit .hp-bar { width: 30px; }
+
+/* Etiqueta de Rotura bajo el medallon: escudo volcado en ambar. */
+.unit-broken {
+  font-size: 0.55rem;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(64, 36, 10, 0.88);
+  border: 1px solid rgba(255, 150, 60, 0.7);
+  color: #ffb34d;
+  letter-spacing: 0.04em;
+}
+/* Contador de Energia sobre la unidad seleccionada (seccion 6.9.4): el azul
+   del chip repite el --sky de escudo para no sumar un color nuevo. */
+.unit-energy {
+  font-size: 0.55rem;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 999px;
+  background: rgba(10, 40, 62, 0.88);
+  border: 1px solid rgba(114, 204, 255, 0.7);
+  color: #72ccff;
+  letter-spacing: 0.04em;
+}
+
+/* Medallon circular de la unidad: mismo lenguaje de medalla que el Lord pero
+   tintado del color del bando. El ClassEmblem cuelga DENTRO del circulo. */
+.unit-medallion {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  font-weight: 700;
+}
+.unit-medallion .class-emblem { width: 12px; height: 12px; }
+.unit.own .unit-medallion {
+  background: radial-gradient(circle, rgba(95, 160, 255, 0.32) 0%, rgba(95, 160, 255, 0.06) 62%, transparent 78%);
+  border: 1px solid rgba(95, 160, 255, 0.7);
+  box-shadow: 0 0 7px rgba(95, 160, 255, 0.45);
+}
+.unit.enemy .unit-medallion {
+  background: radial-gradient(circle, rgba(224, 84, 79, 0.32) 0%, rgba(224, 84, 79, 0.06) 62%, transparent 78%);
+  border: 1px solid rgba(224, 84, 79, 0.7);
+  box-shadow: 0 0 7px rgba(224, 84, 79, 0.45);
+}
+
+.class-emblem { fill: currentColor; display: block; }
+.stat-row { display: flex; align-items: center; gap: 3px; }
+.stat-emblem { flex: none; }
+.heart-emblem { fill: #ff5f6d; }
+
+/* Cabecera de cada columna de roster (pedido explicito: roster propio a la
+   izquierda del tablero, roster rival a la derecha) -sticky para que no se
+   pierda de vista al hacer scroll dentro de la columna. */
+.roster-title {
+  position: sticky;
+  top: 0;
   z-index: 1;
-}
-
-.roster {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.card {
-  background: var(--panel);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, var(--panel), var(--bg));
   border: 1px solid var(--line);
+}
+.roster-title::before {
+  content: '';
+  width: 3px;
+  height: 10px;
+  border-radius: 2px;
+}
+.roster-title.ally { color: var(--mint); }
+.roster-title.ally::before { background: var(--mint); }
+.roster-title.enemy { color: var(--rose); }
+.roster-title.enemy::before { background: var(--rose); }
+
+/* Restyle explicito del usuario ("los estilos de las tarjetas es muy claude"):
+   antes era un panel plano de un solo color con un borde de 1px -aqui hay una
+   franja lateral gruesa del color de la clase (como el filo de una carta de
+   coleccionable), fondo con un ligero degradado para dar algo de profundidad,
+   y sombra propia en vez de vivir pegada al fondo. El color de la clase tinta
+   ademas el fondo y el borde de TODA la carta (pedido posterior: "cada una
+   sea del color del tipo de clase"): border-left en el color de la clase y un
+   degradado suave mezclando ese color con el panel para no ensuciar la lectura. */
+/* Compacto a proposito (pedido explicito: "que se vea todo de una, sin
+   scroll") -las 3 cartas de un bando tienen que caber en el alto disponible
+   de la columna sin scroll interno, asi que cada pieza (retrato, cubo,
+   paddings) se recorto para que la carta entera pese menos en vertical. */
+.card {
+  position: relative;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--card-accent, var(--line)) 22%, var(--panel)), color-mix(in srgb, var(--card-accent, var(--line)) 5%, var(--bg)) 130%);
+  border: 1px solid color-mix(in srgb, var(--card-accent, var(--line)) 48%, var(--line));
+  border-left: 4px solid var(--card-accent, var(--line));
   border-radius: 10px;
-  padding: 12px;
+  padding: 4px 10px 4px 11px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
+  /* Sin esto, el line-height por defecto del navegador (bastante mas alto
+     que cualquier font-size de aqui) inflaba CADA fila de texto -medido con
+     JS: card-id-line/class-line/card-vitals salian a 26px de alto con texto
+     de 11-15px, lo bastante para que la carta entera no cupiera en su 1/4 de
+     columna. Se hereda a todo lo de dentro salvo que algo lo pise. */
+  line-height: 1.25;
 }
 .card.down { opacity: 0.4; }
-.card.selected { border-color: var(--amber); }
+.card.selected { border-color: var(--amber); border-left-color: var(--amber); box-shadow: 0 0 0 1px var(--amber), 0 6px 16px rgba(0, 0, 0, 0.28); }
+/* Marca del Lord (rediseño 2026-09-10): mismo criterio que .unit.marked en el
+   tablero, aplicado a la carta del dashboard. */
+.card.marked { box-shadow: 0 0 0 1px var(--rose), 0 6px 16px rgba(0, 0, 0, 0.28); }
+.card.buffed { box-shadow: 0 0 0 1px var(--mint), 0 6px 16px rgba(0, 0, 0, 0.28); }
+
+/* Carta del Lord (pedido explicito: "el Lord tambien tiene funcionalidades y
+   un dado, necesita su propia carta"): misma familia visual que la de los
+   Axies, pero con corona (CrownEmblem) en la insignia, tinte dorado y su dado
+   de 6 caras (LORD_DIE, rediseñado 2026-09-10: 1 ataque + Muro/Marca/Cura/
+   Templanza/Duplicar) en formato lista, sin el cubo de ranuras de cuerpo
+   -segun el Lord no son partes. */
+.card.lord-card { --card-accent: var(--amber); padding: 6px 12px; }
+/* Pie de la carta del Lord en flujo normal, NO absoluto -mismo bug que ya se
+   arreglo en .card.mini .card-foot (pedido explicito 2026-09-10, "el boton
+   de seleccionar tiene el mismo bug de antes, se solapa con las
+   habilidades"): .card-foot base es position:absolute y flotaba encima de
+   la lista de caras del dado del Lord. */
+.card.lord-card .card-foot {
+  position: static;
+  margin-top: 4px;
+}
+/* El Lord vuelve a tener aire: retrato grande, filas del dado comodas ya que
+   ya no tiene que compartir el alto con 3 cartas apiladas. */
+.card.lord-card .card-title strong { font-size: 1.05rem; }
+.card.lord-card .card-head { margin-bottom: 3px; }
+.card.lord-card .card-vitals { margin-bottom: 4px; }
+.card.lord-card .class-line { font-size: 0.72rem; }
+.lord-die-list .face-card {
+  padding: 3.5px 6px;
+  line-height: 1.3;
+}
+.lord-die-list .face-part { font-size: 0.68rem; }
+/* El Lord tambien es un Axie real (LORD_DESCRIPTORS, cuerpo 'sumo') -pedido
+   explicito: le faltaba la integracion del modelo 3D que ya tienen las
+   cartas de Axie (Portrait3D). La corona se queda como insignia pequeña en
+   la esquina, mismo lenguaje que la corona 3D que flota sobre su cabeza en
+   el tablero, en vez de ser todo el retrato. */
+.lord-portrait-wrap { position: relative; flex: none; line-height: 0; }
+.lord-crown-badge {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--panel);
+  border: 1px solid var(--amber);
+  border-radius: 50%;
+  color: var(--amber);
+  box-shadow: 0 0 6px rgba(227, 168, 87, 0.55);
+}
+.lord-crown-badge svg { width: 11px; height: 11px; }
+.lord-reserve {
+  font-size: 0.6rem;
+  color: var(--muted);
+}
+.lord-face-glyph {
+  min-width: 18px;
+  text-align: center;
+  font-size: 0.72rem;
+}
+.lord-die-list { flex: 1; min-width: 0; }
+/* Dado de mando 3D del Lord (pedido "dado del Lord"): mismo cubo que el de
+   unidades pero con las 6 ordenes en las caras. Se monta a la izquierda de la
+   leyenda plana (que sigue debajo/abajo con sus tooltips) y se distingue del
+   dado blanco de los axies con un halo dorado sutil, el color del Lord. */
+.lord-die-3d-wrap {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 35%, rgba(255, 194, 51, 0.18), transparent 70%);
+}
+.lord-die-3d-wrap .lord-die-3d {
+  filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 6px rgba(255, 194, 51, 0.35));
+}
 
 .card-head {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  gap: 10px;
+  margin-bottom: 1px;
 }
-.card-head .axie-sprite { flex: none; background: var(--board); border-radius: 8px; }
+.card-head .axie-sprite {
+  flex: none;
+  background: color-mix(in srgb, var(--card-accent, var(--board)) 14%, var(--board));
+  border-radius: 12px;
+  overflow: hidden;
+  line-height: 0;
+}
+.card-head .axie-sprite canvas { display: block; }
 .card-title {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
-.card-title strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card-title strong { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Nombre del Axie = su ID (pedido explicito, aqui un ID ficticio #P0/#E1...):
+   el nombre ya no es la clase, la clase pasa a una linea secundaria. Junto al
+   ID va el emblema de clase como insignia, mismo lenguaje que el medallon que
+   cuelga de la unidad en el tablero (ClassEmblem coloreado por clase). */
+.card-id-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.card-id-line strong { font-size: 0.95rem; letter-spacing: 0.02em; }
+.card-insignia {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 50% 35%, color-mix(in srgb, currentColor 26%, transparent) 0%, transparent 68%);
+  border: 1px solid currentColor;
+  box-shadow: 0 0 7px color-mix(in srgb, currentColor 45%, transparent);
+}
+.card-insignia .class-emblem { width: 13px; height: 13px; }
+.class-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.68rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+/* Movimiento y alcance junto al tipo de clase (pedido explicito: "al lado del
+   tipo de clase, encima de la barra y un poco mas grandes"): iconos planos SVG
+   (StepIcon/MeleeIcon/RangedIcon, un solo color) + su numero, en ambar para
+   distinguirlos del texto de la clase. */
+.class-stats {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-left: auto;
+  flex: none;
+}
+.stat-ico {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--amber);
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+/* Emoji de stats con color PLANO (pedido: "los emojis siempre con colores
+   planos no con colores y forma reales"): el emoji de siempre (👣/🤜/🏹) pero
+   aplanado a un GRIS plano y uniforme (grayscale + contrast(0) + brightness),
+   como el de los pies. */
+/* El glifo emoji tiene metricas de fuente mucho mas altas que su font-size
+   (ascenso/descenso generosos del emoji font del sistema) -line-height:1 solo
+   afecta a su PROPIA caja de linea interna, no evita que la fila que lo
+   contiene (card-id-line/class-line, flex con align-items:center) crezca al
+   tamano real del glifo. Bug real encontrado midiendo con JS: cada fila con
+   un emoji media 26px de alto por esto, aunque su texto fuera de ~11-15px
+   -eso desbordaba la carta entera por debajo del cubo del dado. Una altura
+   FIJA en el span (no solo font-size) sí limita su caja por completo. */
+.flat-emoji {
+  font-size: 1.05rem;
+  height: 14px;
+  line-height: 14px;
+  overflow: hidden;
+  filter: grayscale(1) contrast(0) brightness(1.05);
+  display: inline-block;
+}
 .klass { align-self: flex-start; }
 .asc { font-size: 0.75rem; color: var(--amber); }
 
-.stat-row {
+/* Barras de vida y de escudo en la carta (pedido explicito): mismas barras
+   que el overlay del tablero (HpBar semaforo + ShieldBar azul) pero a ancho
+   completo de la carta y con los numeros del momento de la batalla al lado. */
+.card-vitals {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 1px;
+}
+.card-vitals .hp-bar { flex: 1; width: auto; }
+.stat-value {
+  flex: none;
+  font-size: 0.62rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.card-stats {
   display: flex;
   gap: 10px;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .axp-bar {
@@ -392,53 +1018,266 @@ header h1 {
 }
 .axp-fill { height: 100%; background: var(--amber); }
 
-/* El dado del genoma: seis caras, una por parte del cuerpo.
-   Es la pieza de interfaz que explica el juego sin leer nada. */
-.die-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  margin-bottom: 8px;
+/* El dado del genoma: un cubo fisico real (Die3D.jsx) a la izquierda + una
+   lista compacta de sus 6 ranuras a la derecha -pedido explicito del usuario
+   ("el dado lo veo mas fisico, no tan virtual, y si unir las caras"): antes
+   eran 6 tarjetas sueltas en rejilla con el cubo flotando encima (dos lecturas
+   compitiendo); ahora el cubo ES el dado y la lista es solo su referencia de
+   texto -filas finas sin aspecto de tarjeta propia, unidas visualmente por un
+   borde compartido en vez de 6 cajas separadas. */
+.die-unit {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+  padding: 3px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--card-accent, var(--line)) 18%, rgba(0, 0, 0, 0.25));
+  border: 1px solid color-mix(in srgb, var(--card-accent, var(--line)) 55%, var(--line));
 }
-.face-card {
-  background: var(--board);
-  border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 5px 4px;
+.die-3d { flex: none; pointer-events: none; filter: drop-shadow(0 8px 14px rgba(0, 0, 0, 0.5)); line-height: 0; }
+.die-3d canvas { display: block; }
+
+.die-list {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+.face-card {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  /* Filas compactas a proposito (pedido: "ver las 4 cartas en la misma altura
+     y tamano que el canvas"): 6 ranuras + el cubo tienen que caber dentro de
+     1/4 de la columna sin scroll ni recorte. */
+  padding: 0.5px 4px;
+  display: flex;
   align-items: center;
-  gap: 1px;
-  text-align: center;
-  line-height: 1.15;
+  gap: 5px;
+  line-height: 1;
+  min-width: 0;
+  position: relative;
+}
+.face-card:last-child { border-bottom: none; }
+/* Caja de ayuda de cada ranura (pedido explicito: "una box explicando que
+   hace cada parte cada vez que me pongo encima de ella"): sustituye al
+   tooltip nativo del navegador. Aparece por encima de la fila al hacer hover,
+   con el nombre de la parte, la ranura, el efecto y su afinidad de clase. */
+.part-tip {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 4px);
+  z-index: 6;
+  display: none;
+  flex-direction: column;
+  gap: 3px;
+  padding: 6px 8px;
+  background: rgba(9, 20, 18, 0.97);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45);
+  font-size: 0.68rem;
+  color: var(--ink);
+  pointer-events: none;
+}
+.face-card:hover .part-tip { display: flex; }
+.part-tip b {
+  color: var(--amber);
+  font-size: 0.7rem;
+  white-space: normal;
+}
+.tip-affinity { color: var(--mint); font-style: normal; font-weight: 600; }
+/* El emblema (slotIcons.js) es un PNG gris del marketplace CON relieve real
+   (borde oscuro, relieve claro) -pedido explicito: "un color generico bonito
+   distinto al del marketplace" pero SIN perder ese relieve. Un intento
+   anterior lo usaba como mascara rellena de un color plano: aplanaba borde y
+   relieve al mismo tono y la forma se perdia. Aqui es un filtro CSS
+   (--icon-filter) que solo cambia el tono, conservando el claroscuro
+   original -mismo filtro en Die3D.jsx (ICON_FILTER, canvas ctx.filter) para
+   que las caras del dado y las cartas usen el mismo color. */
+.face-logo {
+  flex: none;
+/* Logo compacto (13px de alto) a proposito: las 6 filas + el cubo tienen
+       que caber dentro de 1/4 de la columna (pedido: las 4 cartas al mismo alto
+       que el canvas). Con 16/14px la fila hacia 18/16px y la carta se recortaba.
+       El cubo 3D sigue dando el tamano: es solo la referencia de pie pequena. */
+  width: 16px;
+  height: 13px;
+  display: block;
+  object-fit: contain;
+  filter: var(--icon-filter);
+}
+.face-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 .face-slot {
-  font-size: 0.58rem;
+  flex: none;
+  width: 40px;
+  font-size: 0.52rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   color: var(--muted);
 }
-.face-glyph { font-size: 0.95rem; color: var(--mint); }
-.face-part { font-size: 0.62rem; color: var(--ink); font-weight: 600; }
-.face-effect { font-size: 0.58rem; color: var(--muted); }
-.face-card.evolved {
-  border-color: var(--amber);
-  background: rgba(227, 168, 87, 0.12);
+.face-part { flex: 1; min-width: 0; font-size: 0.6rem; color: var(--ink); font-weight: 600; white-space: normal; }
+.face-glyph { font-size: 0.7rem; color: #fff; line-height: 1; min-width: 18px; }
+.face-effect {
+  flex: none;
+  /* Ancho FIJO para que el glifo de efecto (el icono que va al lado del
+     numero: >/X/~/) arranque siempre en la misma columna vertical. Sin el
+     ancho fijo, el bloque se alineaba a la derecha y su ancho variaba por
+     fila ("Not Throw 2" -> "26", "Pigeon Post 2" -> "20" y similares) y el
+     glifo caia en una x distinta en cada fila (reportado: "el emejo de
+     pigeon post no esta en la vertical que los otros 2"). */
+  width: 54px;
+  font-size: 0.58rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 3px;
 }
+.face-card.empty { opacity: 0.55; }
+.face-card.empty .face-logo { opacity: 0.35; }
+.face-card.empty .face-part { color: var(--muted); font-weight: 500; }
+.face-card.empty .face-effect { color: var(--muted); }
+.face-affinity {
+  font-style: normal;
+  font-size: 0.52rem;
+  font-weight: 700;
+  color: var(--mint);
+}
+.face-card.evolved .face-part { color: var(--amber); }
 .face-card.evolved .face-glyph { color: var(--amber); }
 .face-card.active {
-  border-color: var(--mint);
-  box-shadow: 0 0 0 2px rgba(127, 231, 196, 0.35);
+  background: rgba(127, 231, 196, 0.1);
+  border-radius: 6px;
+  animation: dice-land-row 0.6s cubic-bezier(0.2, 0.8, 0.3, 1.1);
+}
+@keyframes dice-land-row {
+  0% { background: rgba(127, 231, 196, 0.55); }
+  100% { background: rgba(127, 231, 196, 0.1); }
+}
+
+/* Recreacion visual del lanzamiento de dados (pedido explicito): durante la
+   tirada el cubo (Die3D) hace tumble por su cuenta y la lista de texto
+   "baraja" con un leve retardo en cascada (--i) y un brillo barre la franja;
+   al hacer commit el cubo aterriza y la fila ganadora se resalta (dice-land-row). */
+.die-list.rolling .face-card:not(.active) {
+  animation: face-slot-shuffle 0.28s linear infinite;
+  animation-delay: calc(var(--i, 0) * -0.06s);
+}
+.die-list.rolling::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: 6px;
+  background-image: linear-gradient(110deg, transparent 32%, rgba(190, 250, 220, 0.3) 50%, transparent 68%);
+  background-size: 320% 100%;
+  animation: dice-sweep 0.7s linear infinite;
+}
+@keyframes face-slot-shuffle {
+  0% { transform: translateY(0) rotate(0deg); filter: brightness(1); }
+  25% { transform: translateY(-3px) rotate(-2deg); filter: brightness(1.5); }
+  50% { transform: translateY(1px) rotate(1deg); filter: brightness(1.05); }
+  75% { transform: translateY(-2px) rotate(2deg); filter: brightness(1.25); }
+  100% { transform: translateY(0) rotate(0deg); filter: brightness(1); }
+}
+@keyframes dice-sweep {
+  from { background-position: 140% 0; }
+  to { background-position: -60% 0; }
+}
+@keyframes lord-land {
+  0% { transform: rotate(0deg) scale(0.4); opacity: 0; }
+  60% { transform: rotate(300deg) scale(1.25); opacity: 1; }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
 }
 
 .action-bar {
+  flex: none;
   background: rgba(127, 231, 196, 0.1);
   border: 1px solid rgba(127, 231, 196, 0.35);
   border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  font-size: 0.82rem;
+  padding: 6px 12px;
+  margin-bottom: 6px;
+  font-size: 0.78rem;
 }
+.action-bar-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* Banca de Energia (A3): el azul del chip repite el --sky de escudo. */
+.energy-chip {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(10, 40, 62, 0.75);
+  border: 1px solid rgba(114, 204, 255, 0.4);
+  color: #72ccff;
+  letter-spacing: 0.03em;
+}
+.energy-chip.has-energy { border-color: rgba(114, 204, 255, 0.85); box-shadow: 0 0 8px rgba(114, 204, 255, 0.35); }
+.boost-btn {
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(114, 204, 255, 0.5);
+  background: rgba(10, 40, 62, 0.6);
+  color: #bfe3ff;
+  cursor: pointer;
+}
+.boost-btn:disabled { opacity: 0.35; cursor: default; }
+.boost-btn.armed {
+  border-color: rgba(109, 227, 160, 0.9);
+  background: rgba(20, 60, 45, 0.8);
+  color: #9ff0c1;
+  box-shadow: 0 0 8px rgba(109, 227, 160, 0.4);
+}
+.exchange-preview {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px dashed rgba(127, 231, 196, 0.25);
+  font-size: 0.7rem;
+  line-height: 1.25;
+  color: #cfe6e0;
+}
+.exchange-preview div::first-line { color: #9ff0c1; }
+
+/* Chip flotante de la preview del intercambio (seccion 6.9.1): desglose del
+   golpe sobre la casilla objetivo mientras el cursor esta encima. */
+.exchange-preview-chip {
+  position: absolute;
+  left: 50%;
+  top: 108%;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: max-content;
+  max-width: 180px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(10, 20, 18, 0.94);
+  border: 1px solid rgba(159, 240, 193, 0.4);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  font-size: 0.6rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #cfe6e0;
+  pointer-events: none;
+  text-align: left;
+}
+.exchange-preview-chip div:first-child { color: #9ff0c1; }
+.exchange-preview-chip div:nth-child(2) { color: #ffb34d; }
 
 .klass {
   font-size: 0.62rem;
@@ -451,18 +1290,52 @@ header h1 {
 }
 
 .shield-tag { color: var(--mint); }
-.shield {
-  position: absolute;
-  top: 2px;
-  right: 4px;
-  font-style: normal;
-  font-size: 0.6rem;
-  color: var(--mint);
-  z-index: 2;
-}
+.shield-emblem { fill: #5fa0ff; }
 .unit.spent { opacity: 0.45; }
 
-.roll-result { font-size: 0.8rem; color: var(--ink); }
+/* Barra de HP con semaforo: verde entera, naranja por debajo de la mitad,
+   roja por debajo del 25%. */
+.hp-bar {
+  width: 34px;
+  height: 6px;
+  border-radius: 4px;
+  background: rgba(10, 20, 18, 0.65);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+.hp-bar-fill { height: 100%; border-radius: 4px; }
+.hp-bar-fill.good { background: #5fd88a; }
+.hp-bar-fill.mid { background: var(--amber); }
+.hp-bar-fill.low { background: #e0544f; }
+/* Barra de escudo: azul, debajo de la de HP (pedido explicito). */
+.shield-bar { width: 34px; }
+.shield-fill { background: #5fa0ff; }
+
+/* Pie de carta FLOTANTE (pedido: las 4 cartas siempre al mismo alto que el
+   canvas): el resultado + boton de seleccion van en una pildora superpuesta
+   sobre la ultima fila del dado (que en los Axies es el hueco vacio de ojos/
+   orejas), en vez de empujar el contenido y desbordar la carta a mitad de
+   partida. Absolute = no cuenta en el flujo y no produce scroll. */
+.card-foot {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 5px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 22px;
+  padding: 1px 7px;
+  background: color-mix(in srgb, var(--card-accent, var(--line)) 12%, rgba(0, 0, 0, 0.42));
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  pointer-events: auto;
+}
+.card-foot .roll-result { flex: 1; min-width: 0; font-size: 0.6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-foot button.small { margin-top: 0; flex: none; }
+
+.roll-result { font-size: 0.7rem; color: var(--ink); }
 .done { color: var(--muted); }
 .hint { color: var(--mint); font-size: 0.75rem; margin-top: 2px; }
 
@@ -470,17 +1343,41 @@ button {
   font-family: inherit;
   font-weight: 600;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0) 40%),
+    var(--panel);
   color: var(--ink);
   padding: 10px 16px;
   border-radius: 8px;
   cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.08s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
-button:hover:not(:disabled) { border-color: var(--mint); }
+/* Boton "pintado" con luz de arriba (idioma visual de los botones de Axie):
+   brillo dorado en hover y el boton "se hunde" 1px al pulsar, como un boton
+   fisico de juego. */
+button:hover:not(:disabled) {
+  border-color: var(--mint);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -2px 0 rgba(0, 0, 0, 0.22), 0 0 10px rgba(127, 231, 196, 0.22), 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+button:active:not(:disabled) { transform: translateY(1px); }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
-button.small { font-size: 0.75rem; padding: 5px 10px; margin-top: 4px; }
+button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 
-.controls { display: flex; gap: 10px; margin-bottom: 16px; }
+/* Acciones principales del turno (Tirar dados / Pasar turno): degradado dorado
+   y tinta oscura, el "boton de oro" del HUD. Reiniciar se queda como ghost. */
+.controls button:not(.ghost) {
+  background: linear-gradient(180deg, #ffd97a 0%, #f0a04b 55%, #d98a2a 100%);
+  border-color: #b97a20;
+  color: #241606;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), inset 0 -2px 0 rgba(120, 70, 10, 0.55), 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.controls button:not(.ghost):hover:not(:disabled) {
+  border-color: #e3a857;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -2px 0 rgba(120, 70, 10, 0.55), 0 0 12px rgba(227, 168, 87, 0.4), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.controls { flex: none; display: flex; gap: 10px; }
 
 .toast {
   position: fixed;
@@ -502,8 +1399,195 @@ button.small { font-size: 0.75rem; padding: 5px 10px; margin-top: 4px; }
 
 .log {
   border-top: 1px solid var(--line);
-  padding-top: 10px;
+  padding: 10px 4px;
   font-size: 0.82rem;
   color: var(--muted);
+  /* Ventana fija con scroll propio: el array ya llega recortado a 7 entradas,
+     asi que caben todas, pero si el hueco vertical mengua la ventana se
+     encoge antes de pisar el tablero. */
+  height: 132px;
+  max-height: 30vh;
+  overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
-.log-line { padding: 2px 0; }
+.log-line { padding: 2px 0; display: flex; gap: 6px; line-height: 1.35; }
+.log-ico { flex: none; font-size: 0.9rem; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6)); }
+
+/* ---------------------------------------------------------------------------
+   Capa meta (sesion 2026-09-10): navegacion por hash (routes.js) + pantallas
+   Base/Recursos/Investigacion/PVE/PVP. First-approach: presentacion y acciones
+   de sesion reales (curar/investigar/recolectar/emparejar) sobre el mismo
+   sistema visual bespoke. Vive aparte del layout de combate: cuando la ruta no
+   es "partida", el contenedor cambia a .meta-view y ocupa todo el ancho.
+--------------------------------------------------------------------------- */
+.meta-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.meta-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  letter-spacing: 0.02em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.meta-tab:hover { color: var(--ink); border-color: var(--mint); }
+.meta-tab.active {
+  color: #241606;
+  background: linear-gradient(180deg, #ffd97a, #f0a04b 70%, #d98a2a);
+  border-color: #e3a857;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.meta-view {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 4px 24px;
+}
+
+.meta-screen { max-width: 1100px; margin: 0 auto; }
+.meta-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
+.meta-icon {
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+.meta-title { margin: 0 0 4px; font-size: 1.3rem; color: var(--ink); }
+.meta-blurb { margin: 0; color: var(--muted); font-size: 0.86rem; line-height: 1.5; max-width: 70ch; }
+
+.meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.meta-panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.meta-panel + .meta-panel { margin-top: 14px; }
+.meta-grid .meta-panel + .meta-panel { margin-top: 0; }
+.meta-panel-muted {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.02);
+}
+.meta-panel-title {
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.meta-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+.meta-action { width: auto; }
+.meta-action:disabled { opacity: 0.45; cursor: not-allowed; }
+.meta-note { color: var(--muted); font-size: 0.8rem; line-height: 1.5; margin: 12px 0 0; }
+
+.stat-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  font-size: 0.78rem;
+}
+.stat-chip > span { color: var(--muted); letter-spacing: 0.04em; }
+.stat-chip > b { color: var(--ink); }
+
+.meta-big-number {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--mint);
+  line-height: 1.1;
+}
+.meta-big-cap { font-size: 0.72rem; color: var(--muted); font-weight: 600; letter-spacing: 0.06em; }
+
+.meta-lord-panel { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.meta-lord-portrait {
+  flex: none;
+  width: 112px;
+  height: 112px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: radial-gradient(circle at 50% 30%, rgba(255, 194, 51, 0.18), transparent 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.meta-lord-info { flex: 1; min-width: 200px; }
+.meta-lord-title { color: var(--ink); font-size: 0.9rem; margin-bottom: 10px; letter-spacing: 0.03em; }
+.meta-lord-title b { color: #ffc233; }
+.meta-lord-stats { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 14px; }
+
+.meta-unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.meta-unit-row:first-of-type { border-top: 0; }
+.meta-unit-emb { font-weight: 800; font-size: 0.82rem; }
+.meta-unit-hp { flex: 1; min-width: 90px; }
+.meta-unit-klass { color: var(--muted); font-size: 0.76rem; }
+
+.meta-research-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 10px;
+}
+.meta-node {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.meta-node.upgraded {
+  border-color: var(--mint);
+  box-shadow: 0 0 12px rgba(127, 231, 196, 0.18);
+}
+.meta-node-head { display: flex; justify-content: space-between; align-items: baseline; color: var(--ink); }
+.meta-node-level { font-size: 0.72rem; color: var(--mint); font-weight: 700; }
+.meta-node-face { color: var(--muted); font-size: 0.78rem; }
+.meta-node-value { color: var(--ink); font-weight: 700; font-size: 0.86rem; }
+
+.meta-difficulty { margin-left: auto; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.04em; }
+
+.meta-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.meta-table th { text-align: left; color: var(--muted); font-weight: 600; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.meta-table td { padding: 6px 8px; color: var(--ink); border-bottom: 1px solid rgba(46, 74, 68, 0.5); }
+.meta-table tr:last-child td { border-bottom: 0; }
+.meta-table td:nth-child(3), .meta-table th:nth-child(3) { text-align: right; }
+
+.meta-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.82rem; line-height: 1.6; }
+.meta-list li { margin-bottom: 6px; }

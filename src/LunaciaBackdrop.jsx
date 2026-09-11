@@ -1,150 +1,72 @@
-// LunaciaBackdrop.jsx — fondo 3D ambiental, puramente decorativo, detras del tablero.
+// LunaciaBackdrop.jsx — fondo ambiental, puramente decorativo, detras del tablero.
 //
-// Decision del usuario: quiere el tablero "en 3D, en el mundo de Lunacia". El tablero y
-// las piezas siguen siendo el sistema 2D real (mixer + animaciones de Origins) que ya
-// esta verificado — reescribirlo en 3D tiraria ese trabajo y dependeria del Three.js Axie
-// Mixer, que el estudio de mercado del proyecto marca como beta inestable. Esto es la
-// alternativa de bajo riesgo: una escena Three.js de fondo (islas flotantes, una luna,
-// motas de luz a la deriva) con la paleta del juego. No hay assets de entorno de Lunacia
-// publicados por Sky Mavis, asi que es deliberadamente abstracta en vez de inventar
-// lugares del lore que no se han verificado.
-import { useEffect, useRef } from 'react'
-import * as THREE from 'three'
+// Reemplaza la escena Three.js (islas flotantes/luna) por un fondo 2D de pueblo/
+// naturaleza: a peticion del usuario, que enseno una referencia real de Terrariums
+// y un boceto del campo de batalla. Assets reales de Kenney (paquete "Tiny Town",
+// kenney.nl/assets/tiny-town, licencia CC0) recoloreados hacia la paleta del juego
+// (verde-menta en vez del verde saturado original) con un script de un solo uso -no
+// quedan en package.json, son PNGs ya procesados en src/assets/backdrop/. Ya no hace
+// falta `three`: se quita del proyecto.
+import grassPlain from './assets/backdrop/grass-plain.png'
+import grassFlower from './assets/backdrop/grass-flower.png'
+import treePine from './assets/backdrop/tree-pine.png'
+import treeRound from './assets/backdrop/tree-round.png'
+import treeShort from './assets/backdrop/tree-short.png'
+import mushrooms from './assets/backdrop/mushrooms.png'
+import fenceH from './assets/backdrop/fence-h.png'
+import fencePost from './assets/backdrop/fence-post.png'
 
-const BG = 0x10201d
-const MINT = 0x7fe7c4
-const ISLAND_COLORS = [0x2d5c50, 0x336655, 0x28503f]
-
-function buildScene(width, height) {
-  const scene = new THREE.Scene()
-  scene.fog = new THREE.FogExp2(BG, 0.045)
-
-  const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 100)
-  camera.position.set(0, 1.5, 11)
-
-  // Luz ambiental + hemisferica: no dependen de la distancia, asi que no hace falta
-  // adivinar intensidades fisicamente correctas para que algo se vea. Point lights con
-  // decay real se quedan practicamente invisibles a estas distancias en Three.js
-  // moderno (luces "physically correct" desde r155), por eso no se usan aqui.
-  const ambient = new THREE.AmbientLight(0x9fd8c8, 1.6)
-  const hemi = new THREE.HemisphereLight(MINT, BG, 1.4)
-  scene.add(ambient, hemi)
-
-  // La luna es autoluminosa: MeshBasicMaterial no depende de ninguna luz.
-  const moon = new THREE.Mesh(
-    new THREE.SphereGeometry(1.6, 24, 24),
-    new THREE.MeshBasicMaterial({ color: 0xffe9b8 })
-  )
-  moon.position.set(5, 6, -10)
-  scene.add(moon)
-
-  const islands = []
-  for (let i = 0; i < 6; i++) {
-    const radius = 0.5 + Math.random() * 0.9
-    const geo = new THREE.IcosahedronGeometry(radius, 0)
-    const mat = new THREE.MeshStandardMaterial({
-      color: ISLAND_COLORS[i % ISLAND_COLORS.length],
-      emissive: MINT,
-      emissiveIntensity: 0.18,
-      roughness: 0.85,
-      flatShading: true,
-    })
-    const mesh = new THREE.Mesh(geo, mat)
-    mesh.position.set((Math.random() - 0.5) * 16, (Math.random() - 0.5) * 6 - 1, -4 - Math.random() * 10)
-    mesh.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, 0)
-    scene.add(mesh)
-    islands.push({ mesh, spin: (Math.random() - 0.5) * 0.15, bobSpeed: 0.3 + Math.random() * 0.4, bobPhase: Math.random() * Math.PI * 2, baseY: mesh.position.y })
-  }
-
-  const particleCount = 260
-  const positions = new Float32Array(particleCount * 3)
-  for (let i = 0; i < particleCount; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 20
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 12
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 18
-  }
-  const particleGeo = new THREE.BufferGeometry()
-  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  const particleMat = new THREE.PointsMaterial({
-    color: MINT,
-    size: 0.05,
-    transparent: true,
-    opacity: 0.75,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-  })
-  const particles = new THREE.Points(particleGeo, particleMat)
-  scene.add(particles)
-
-  return { scene, camera, islands, particles }
-}
+// Posiciones fijas (no aleatorias en cada render). El layout de dos columnas deja
+// visible sobre todo la franja izquierda del tablero y una tira arriba -la derecha
+// la tapa la barra lateral-, asi que la densidad se concentra ahi, con tamanos y
+// opacidades variadas para dar sensacion de profundidad (mas grande y opaco = mas
+// cerca). grass-flower.png solo se usa como textura tileada (ver lunacia-grass-detail
+// en App.css): suelta como sprite se ve como un cuadrado con bordes duros, asi que no
+// entra en esta lista.
+const DECOR = [
+  // Franja izquierda, de arriba a abajo, dos "columnas" de profundidad
+  { img: treePine, left: '10%', top: '3%', size: 92, opacity: 0.95 },
+  { img: treeRound, left: '2%', top: '6%', size: 70, opacity: 0.9 },
+  { img: treeShort, left: '17%', top: '2%', size: 54, opacity: 0.85 },
+  { img: treeRound, left: '6%', top: '17%', size: 60, opacity: 0.88 },
+  { img: mushrooms, left: '15%', top: '19%', size: 38, opacity: 0.85 },
+  { img: treePine, left: '1%', top: '27%', size: 84, opacity: 0.92 },
+  { img: treeShort, left: '11%', top: '30%', size: 46, opacity: 0.8 },
+  { img: mushrooms, left: '4%', top: '40%', size: 34, opacity: 0.8 },
+  { img: treeRound, left: '16%', top: '42%', size: 58, opacity: 0.85 },
+  { img: treePine, left: '3%', top: '50%', size: 78, opacity: 0.9 },
+  { img: treeShort, left: '13%', top: '54%', size: 50, opacity: 0.82 },
+  { img: mushrooms, left: '8%', top: '63%', size: 36, opacity: 0.8 },
+  { img: treeRound, left: '18%', top: '65%', size: 64, opacity: 0.87 },
+  { img: treePine, left: '2%', top: '72%', size: 86, opacity: 0.93 },
+  { img: treeShort, left: '10%', top: '80%', size: 52, opacity: 0.83 },
+  { img: fencePost, left: '5%', top: '90%', size: 38, opacity: 0.75 },
+  { img: fenceH, left: '8%', top: '91%', size: 54, opacity: 0.75 },
+  { img: fenceH, left: '14%', top: '90%', size: 54, opacity: 0.75 },
+  { img: treeRound, left: '20%', top: '89%', size: 56, opacity: 0.82 },
+  // Tira de arriba, encima del header
+  { img: treeShort, left: '35%', top: '1%', size: 40, opacity: 0.7 },
+  { img: treeRound, left: '55%', top: '1%', size: 44, opacity: 0.7 },
+  // Derecha: pequeno detalle por si el panel lateral deja algun borde visible
+  { img: treePine, left: '97%', top: '3%', size: 60, opacity: 0.7 },
+  { img: mushrooms, left: '96%', top: '20%', size: 30, opacity: 0.65 },
+]
 
 export default function LunaciaBackdrop() {
-  const hostRef = useRef(null)
-
-  useEffect(() => {
-    const host = hostRef.current
-    if (!host) return
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.setClearColor(BG, 1)
-    host.appendChild(renderer.domElement)
-
-    const { scene, camera, islands, particles } = buildScene(window.innerWidth, window.innerHeight)
-    const clock = new THREE.Clock()
-    let frame = null
-
-    function animate() {
-      const t = clock.getElapsedTime()
-
-      islands.forEach((it) => {
-        it.mesh.rotation.y += it.spin * 0.01
-        it.mesh.rotation.x += it.spin * 0.006
-        it.mesh.position.y = it.baseY + Math.sin(t * it.bobSpeed + it.bobPhase) * 0.25
-      })
-
-      const pos = particles.geometry.attributes.position
-      for (let i = 0; i < pos.count; i++) {
-        let y = pos.getY(i) + 0.006
-        if (y > 6) y = -6
-        pos.setY(i, y)
-      }
-      pos.needsUpdate = true
-
-      camera.position.x = Math.sin(t * 0.05) * 1.2
-      camera.position.y = 1.5 + Math.sin(t * 0.08) * 0.3
-      camera.lookAt(0, 0, -6)
-
-      renderer.render(scene, camera)
-      frame = requestAnimationFrame(animate)
-    }
-    animate()
-
-    function onResize() {
-      const w = window.innerWidth
-      const h = window.innerHeight
-      camera.aspect = w / h
-      camera.updateProjectionMatrix()
-      renderer.setSize(w, h)
-    }
-    window.addEventListener('resize', onResize)
-
-    return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('resize', onResize)
-      scene.traverse((obj) => {
-        if (obj.geometry) obj.geometry.dispose()
-        if (obj.material) {
-          if (Array.isArray(obj.material)) obj.material.forEach((m) => m.dispose())
-          else obj.material.dispose()
-        }
-      })
-      renderer.dispose()
-      if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement)
-    }
-  }, [])
-
-  return <div className="lunacia-backdrop" ref={hostRef} aria-hidden="true" />
+  return (
+    <div className="lunacia-backdrop" aria-hidden="true">
+      <div className="lunacia-grass" style={{ backgroundImage: `url(${grassPlain})` }} />
+      <div className="lunacia-grass lunacia-grass-detail" style={{ backgroundImage: `url(${grassFlower})` }} />
+      <div className="lunacia-vignette" />
+      {DECOR.map((d, i) => (
+        <img
+          key={i}
+          src={d.img}
+          alt=""
+          className="lunacia-decor"
+          style={{ left: d.left, top: d.top, width: d.size, height: d.size, opacity: d.opacity }}
+        />
+      ))}
+    </div>
+  )
 }
