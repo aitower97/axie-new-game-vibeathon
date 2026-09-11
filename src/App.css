@@ -136,16 +136,32 @@ body {
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
 }
 
-header { flex: none; position: relative; z-index: 1; }
-header h1 {
+/* Barra superior moderna (sesion "ganar espacio al tablero"): titulo, HUD de
+   chips, nav y botonera en UNA fila compacta. Elasticidad pura: si el hueco
+   mengua, la botonera (derecha) y la nav son lo que mas se comprimen antes de
+   que nada se desborde. */
+.topbar {
+  flex: none;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 14px 8px;
+}
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+  margin-right: 6px;
+}
+.topbar h1 {
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 700;
-  font-size: 1.7rem;
-  margin: 0 0 2px;
+  font-size: 1.18rem;
+  margin: 0;
   letter-spacing: -0.01em;
-  /* Estetica de titulo (pedido "estetica Axie en titulos"): dorado degradado
-     con clip de texto, mismo tono que el Lord/LORD_ACCENT, mas una pequena
-     tirada de 6 ranuras como ornamento antes del nombre. */
   display: flex;
   align-items: center;
   gap: 9px;
@@ -154,55 +170,127 @@ header h1 {
   background-clip: text;
   -webkit-text-fill-color: transparent;
   color: transparent;
+  white-space: nowrap;
 }
-header h1::before {
+.topbar h1::before {
   content: '⋮';
-  font-size: 1.1rem;
+  font-size: 1rem;
   color: var(--amber);
   opacity: 0.9;
   text-shadow: 0 0 10px rgba(227, 168, 87, 0.6);
   -webkit-text-fill-color: var(--amber);
   transform: rotate(90deg);
 }
-
-.subtitle {
+.brand-sub {
+  margin-top: 3px;
   color: var(--muted);
-  margin: 0 0 8px;
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
   text-shadow: 0 1px 6px var(--bg);
-  font-size: 0.78rem;
+  white-space: nowrap;
 }
 
-.hud {
+/* Pastillas del HUD: cada una vida+reserva de un Lord o el reloj de turnos.
+   El bando activo brilla para que sepamos de quien es el turno sin mirar
+   la linea de log. */
+.topbar .hud {
   flex: none;
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  background: var(--panel);
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: none;
+}
+.hud-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
   border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 6px 14px;
-  margin-bottom: 8px;
-  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.hud-chip strong { font-size: 0.9rem; line-height: 1; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)); }
+.hud-chip em {
+  font-style: normal;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0;
+  padding-left: 6px;
+  border-left: 1px solid var(--line);
+}
+.hud-chip.ally strong { color: #7fe7c4; }
+.hud-chip.enemy strong { color: #ff8a7a; }
+.hud-chip.turn { flex: none; }
+.hud-chip.active {
+  border-color: var(--amber);
+  box-shadow: 0 0 0 1px rgba(227, 168, 87, 0.35), 0 0 12px rgba(227, 168, 87, 0.28);
 }
 
-.lord { color: var(--amber); letter-spacing: 2px; }
-.turn { color: var(--muted); }
+/* Botonera dentro de la barra: botones algo mas apretados que fuera. */
+.topbar-actions { flex: none; margin-left: auto; }
+.topbar .controls { gap: 8px; }
+.topbar .controls button { padding: 6px 12px; font-size: 0.78rem; }
+
+/* Navegacion comprimida en la barra: solo iconos, con tooltip. */
+.meta-nav.compressed {
+  margin-top: 0;
+  gap: 4px;
+  flex: none;
+}
+.meta-nav.compressed .meta-tab {
+  padding: 5px 9px;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+.meta-nav.compressed .meta-tab-icon { font-size: 0.95rem; }
 
 .banner {
-  flex: none;
   text-align: center;
   padding: 8px;
   border-radius: 10px;
-  margin-bottom: 8px;
   font-weight: 600;
+}
+/* Banner de victoria flotando sobre el tablero (no consume espacio de layout). */
+.victory-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  pointer-events: none;
+}
+.victory-overlay .banner {
+  pointer-events: auto;
+  background: rgba(16, 32, 29, 0.92);
+  border: 2px solid var(--amber);
+  box-shadow: 0 0 40px rgba(227, 168, 87, 0.5);
+  padding: 16px 28px;
+  font-size: 1.1rem;
+}
+.victory-overlay .banner button {
+  margin-top: 10px;
+  margin-left: 0;
 }
 
 /* Tres columnas: tu roster a la izquierda, el tablero en medio (domina la
    pantalla), el roster rival a la derecha -pedido explicito del usuario
-   ("a la izquierda lo mio, a la derecha del canvas el rival"). Los controles
-   y el log viven ahora DENTRO de board-col, debajo del tablero (antes en una
-   sola barra lateral que ya no existe). La pagina en si no hace scroll nunca
-   (pedido de antes); cada roster tiene su propio scroll interno si hace falta. */
+   ("a la izquierda lo mio, a la derecha del canvas el rival"). La botonera
+   y el log viven ahora arriba en la topbar, fuera del layout, para que el
+   canvas gane toda la altura que antes consumian. La pagina en si no hace
+   scroll nunca (pedido de antes); cada roster tiene su propio scroll interno
+   si hace falta. */
 .layout {
   flex: 1;
   min-height: 0;
@@ -236,6 +324,7 @@ header h1::before {
   min-height: 0;
   width: 100%;
   display: flex;
+  position: relative;
 }
 .board3d-host {
   position: relative;
@@ -556,15 +645,27 @@ header h1::before {
   border-radius: 45% 45% 50% 50%;
 }
 
+/* Overley del terreno: flota sobre la esquina superior derecha del tablero en
+   vez de ocupar una fila arriba (sesion "ganar espacio al tablero"). position
+   relativo respecto a .board-scene (que necesita position:relative para esto). */
 .terrain-legend {
-  flex: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  margin: 0;
+  width: auto;
   display: flex;
   flex-wrap: wrap;
   gap: 4px 14px;
   font-size: 0.68rem;
   color: var(--muted);
-  margin-bottom: 6px;
-  width: 100%;
+  pointer-events: none;
+  user-select: none;
+  background: rgba(16, 32, 29, 0.68);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
 }
 .terrain-legend span { display: inline-flex; align-items: center; gap: 5px; }
 .terrain-swatch {
@@ -1201,6 +1302,8 @@ header h1::before {
 
 .action-bar {
   flex: none;
+  width: 100%;
+  box-sizing: border-box;
   background: rgba(127, 231, 196, 0.1);
   border: 1px solid rgba(127, 231, 196, 0.35);
   border-radius: 8px;
@@ -1421,6 +1524,24 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
   overflow-y: auto;
   width: 100%;
   box-sizing: border-box;
+}
+/* Variante compacta en una sola linea (sesion "chat arriba"): muestra la
+   ultima linea con icono; el tooltip (.title) contiene las 7 anteriores. */
+.log.slim {
+  height: auto;
+  max-height: none;
+  padding: 5px 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.log-slim-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.76rem;
 }
 .log-line { padding: 2px 0; display: flex; gap: 6px; line-height: 1.35; }
 .log-ico { flex: none; font-size: 0.9rem; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6)); }

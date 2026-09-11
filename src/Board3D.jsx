@@ -248,17 +248,40 @@ export default function Board3D({
     camera.position.copy(camTarget).add(camOffset)
     camera.lookAt(camTarget)
     let zoom = 1
+    // Zoom con suavizado: la rueda fija ZOOM objetivo y el bucle lo persigue con
+    // interpolacion exponencial (en vez de saltar a golpe de evento), para que la
+    // vista "respire" en vez de cortarse. Se sella a zoom cuando la diferencia es
+    // despreciable para dejar de animar el frustum en cada frame.
+    let zoomTarget = 1
     // Ultima vista conocida para no necesitar host.clientWidth cada vez que se
     // mueve la camara (resize() mantiene estas variables al dia).
     let viewW = 0
     let viewH = 0
 
-    function applyView() {
+    function reposCamera(render = true) {
       camera.position.copy(camTarget).add(camOffset)
       camera.lookAt(camTarget)
       camera.updateMatrixWorld()
-      renderOnce()
-      publishTransform(viewW, viewH)
+      if (render) {
+        renderOnce()
+        publishTransform(viewW, viewH)
+      }
+    }
+    function applyView() {
+      reposCamera(true)
+    }
+    // Frustum del zoom. Separado de resize() para poder animar el zoom frame a
+    // frame sin tocar el tamano del canvas (renderer.setSize solo hace falta en
+    // resize real, no al encuadrar).
+    function applyZoom() {
+      const aspect = (viewW || 800) / (viewH || 600)
+      const baseFrustumH = Math.max(cols, rows * Math.sin(elevRad) + 2) * 1.9
+      const frustumH = baseFrustumH / zoom
+      camera.left = (-frustumH * aspect) / 2
+      camera.right = (frustumH * aspect) / 2
+      camera.top = frustumH / 2
+      camera.bottom = -frustumH / 2
+      camera.updateProjectionMatrix()
     }
 
     const boardGroup = new THREE.Group()
@@ -286,18 +309,9 @@ export default function Board3D({
     function resize() {
       const width = host.clientWidth || 800
       const height = host.clientHeight || 600
-      const aspect = width / height
       viewW = width
       viewH = height
-      // frfustumH se divide por zoom: el zoom del usuario es un factor sobre el
-      // encuadre por defecto, no un cambio de posicion (camara ortografica).
-      const baseFrustumH = Math.max(cols, rows * Math.sin(elevRad) + 2) * 1.9
-      const frustumH = baseFrustumH / zoom
-      camera.left = (-frustumH * aspect) / 2
-      camera.right = (frustumH * aspect) / 2
-      camera.top = frustumH / 2
-      camera.bottom = -frustumH / 2
-      camera.updateProjectionMatrix()
+      applyZoom()
       renderer.setSize(width, height)
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       renderOnce()
@@ -1552,7 +1566,7 @@ export default function Board3D({
       camera.updateMatrixWorld()
       return new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1)
     }
-    function panWorldPixels(dx, dy) {
+    function panWorldPixels(dx, dy, render = true) {
       // Cuantos unidades de mundo representa un pixel en cada eje de la vista
       // (camara ortografica: uniforme en todo el frustum).
       const xScale = (camera.right - camera.left) / (viewW || 1)
@@ -1566,13 +1580,20 @@ export default function Board3D({
       const limit = (cols + rows) * 1.2
       const len = camTarget.length()
       if (len > limit) camTarget.multiplyScalar(limit / len)
-      applyView()
+      if (render) applyView()
     }
+    // Inercia del pan (sesion "vista isometrica mas fluida"): al soltar el
+    // arrastre, la vista sigue deslizandose con la velocidad que llevaba y
+    // frena poco a poco en vez de pararse en seco. vx/vy en px por segundo.
+    const momentum = { vx: 0, vy: 0 }
+    const MOMENTUM_DECAY = 3.2
     function onPointerDown(e) {
       dragState.active = true
       dragState.px = e.clientX
       dragState.py = e.clientY
       dragState.moved = false
+      momentum.vx = 0
+      momentum.vy = 0
       host.setPointerCapture(e.pointerId)
     }
     function onPointerMove(e) {
@@ -1584,6 +1605,8 @@ export default function Board3D({
       if (Math.abs(dx) + Math.abs(dy) < PAN_START_PX && !dragState.moved) return
       dragState.moved = true
       panWorldPixels(dx, dy)
+      momentum.vx = dx * 60
+      momentum.vy = dy * 60
     }
     function onPointerUp(e) {
       if (!dragState.active) return
@@ -1593,6 +1616,10 @@ export default function Board3D({
       // igualmente va a llegar a la celda que quedó bajo el cursor -si no, panear
       // volveria a provocar un onClick de celda inesperado.
       if (dragState.moved) suppressClickUntil = performance.now() + 350
+      else {
+        momentum.vx = 0
+        momentum.vy = 0
+      }
     }
     function onCaptureClick(e) {
       if (performance.now() < suppressClickUntil) {
@@ -1603,21 +1630,24 @@ export default function Board3D({
     function onWheel(e) {
       e.preventDefault()
       const factor = e.deltaY > 0 ? 1.12 : 1 / 1.12
-      zoom = Math.min(4.5, Math.max(0.35, zoom * factor))
-      resize()
+      zoomTarget = Math.min(4.5, Math.max(0.35, zoomTarget * factor))
+      if (zoomTarget === zoom) publishTransform(viewW, viewH)
     }
     const onKeyDown = (e) => {
       const step = 18
       const zoomKeys = { '=': 1 / 1.2, '+': 1 / 1.2, '-': 1.2, _: 1.2 }
       if (e.key === 'r' || e.key === 'R') {
         camTarget.set(0, 0, 0)
+        momentum.vx = 0
+        momentum.vy = 0
+        zoomTarget = 1
         zoom = 1
-        resize()
+        applyZoom()
+        applyView()
         return
       }
       if (e.key in zoomKeys) {
-        zoom = Math.min(4.5, Math.max(0.35, zoom * zoomKeys[e.key]))
-        resize()
+        zoomTarget = Math.min(4.5, Math.max(0.35, zoomTarget * zoomKeys[e.key]))
         return
       }
       let dx = 0
@@ -1678,6 +1708,29 @@ const ISLAND_BOB_SPEED = 0.5
       const dt = clock.getDelta()
       elapsedTime += dt
       islandGroup.position.y = Math.sin(elapsedTime * ISLAND_BOB_SPEED) * (spacing * 0.06)
+      // Vista fluida: perseguir el zoom objetivo y dejar que la inercia del pan
+      // se desvanezca. Si algo de la camara ha cambiado este frame, hay que
+      // volver a publicar la matriz CSS del overlay (antes del render de abajo).
+      let camAnimated = false
+      if (zoomTarget !== zoom) {
+        const diff = zoomTarget - zoom
+        zoom += diff * (1 - Math.exp(-10 * dt))
+        if (Math.abs(zoomTarget - zoom) < 0.002) zoom = zoomTarget
+        applyZoom()
+        camAnimated = true
+      }
+      const speed = Math.hypot(momentum.vx, momentum.vy)
+      if (!dragState.active && speed > 0.01) {
+        const factor = Math.exp(-MOMENTUM_DECAY * dt)
+        panWorldPixels(momentum.vx * dt, momentum.vy * dt, false)
+        momentum.vx *= factor
+        momentum.vy *= factor
+        camAnimated = true
+      } else if (!dragState.active) {
+        momentum.vx = 0
+        momentum.vy = 0
+      }
+      if (camAnimated) reposCamera(false)
       for (const handle of handles.values()) {
         handle.axie.update(dt)
         if (handle.crown) {
@@ -1728,6 +1781,7 @@ const ISLAND_BOB_SPEED = 0.5
           }
         }
       }
+      if (camAnimated) publishTransform(viewW, viewH)
       renderOnce()
       frameId = requestAnimationFrame(loop)
     }

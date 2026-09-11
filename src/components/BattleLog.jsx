@@ -39,7 +39,17 @@ function logIco(line) {
   return '\u273D'
 }
 
-export default function BattleLog({ log }) {
+export default function BattleLog({ log, slim }) {
+  if (slim) {
+    const last = log[log.length - 1]
+    if (!last) return null
+    return (
+      <section className="log slim" title={log.join('\n')}>
+        <span className="log-ico" aria-hidden="true">{logIco(last)}</span>
+        <span className="log-slim-text">{last}</span>
+      </section>
+    )
+  }
   return (
     <section className="log">
       {log.map((l, i) => (

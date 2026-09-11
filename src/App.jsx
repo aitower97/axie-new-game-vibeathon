@@ -2056,46 +2056,47 @@ export default function App() {
       <LoadingCurtain visible={!boardReady} />
       {SHOW_DASHBOARD && (
       <>
-      <header>
-        <h1>Vinculo de Lunacia</h1>
-        <p className="subtitle">MVP1: asedio a un mando fijo. Lord fijo + 3 Axies moviles por bando.</p>
-        <MetaNav route={route} />
+      <header className="topbar">
+        <div className="brand">
+          <h1 title="Vinculo de Lunacia">Vinculo de Lunacia</h1>
+          {!isMeta && <span className="brand-sub">Asedio al mando</span>}
+        </div>
+
+        {!isMeta && (
+        <Hud
+          playerLordHp={playerLordHp}
+          enemyLordHp={enemyLordHp}
+          lordMaxHp={LORD_STATS.hp}
+          reservePlayerCount={reserve.player.length}
+          reserveEnemyCount={reserve.enemy.length}
+          turnCount={turnCount}
+          turnClock={TURN_CLOCK}
+          activeSide={activeSide}
+        />
+        )}
+
+        <MetaNav route={route} compressed />
+
+        {!isMeta && (
+        <div className="topbar-actions">
+          <Controls
+            status={status}
+            rolled={rolled}
+            rolling={rolling}
+            busy={enemyTurnRunning}
+            activeSide={activeSide}
+            onRoll={rollDice}
+            onPass={passTurn}
+            onReset={resetMatch}
+          />
+        </div>
+        )}
       </header>
 
       {!isMeta && <>
-      <Hud
-        playerLordHp={playerLordHp}
-        enemyLordHp={enemyLordHp}
-        lordMaxHp={LORD_STATS.hp}
-        reservePlayerCount={reserve.player.length}
-        reserveEnemyCount={reserve.enemy.length}
-        turnCount={turnCount}
-        turnClock={TURN_CLOCK}
-        activeSide={activeSide}
-      />
+      <BattleLog log={log} slim />
 
       <VictoryBanner status={status} onReset={resetMatch} />
-
-      <ActionBar
-        selectedUnitLabel={selectedUnit ? labelOf(selectedUnit) : null}
-        selectedRoll={selectedRoll ? { slotLabel: SLOT_LABEL_MVP1[selectedRoll.slot], name: selectedRoll.name, text: selectedRoll.text } : null}
-        isReposition={isReposition}
-        isBonusPhase={isBonusPhase}
-        bonusTargetsCount={bonusTargets.length}
-        lordSelected={lordSelected}
-        lordLabel={sideLabel(activeSide)}
-        activeLordRoll={activeLordRoll}
-        nextReserveLabel={nextReserveKlass ? CLASS_STATS[nextReserveKlass].label : null}
-        exchangeInfo={exchangeInfo}
-        energyBank={energyBank}
-        energyCap={ENERGY_CAP}
-        boostArmed={boostArmed}
-        canBoost={status === 'playing' && energyBank >= ENERGY_BOOST_COST && !!selectedUnit && !!selectedRoll && selectedUnit.side === activeSide && !selectedUnit.acted}
-        onToggleBoost={() => setBoostArmed((a) => !a)}
-        moveBoostArmed={moveBoostArmed}
-        canMoveBoost={status === 'playing' && energyBank >= ENERGY_MOVE_COST && !!selectedUnit && !!selectedRoll && !isReposition && !isBonusPhase && selectedUnit.side === activeSide && !selectedUnit.acted}
-        onToggleMoveBoost={() => setMoveBoostArmed((a) => !a)}
-      />
       </>}
       </>
       )}
@@ -2168,18 +2169,26 @@ export default function App() {
         }}
       />
 
-      <Controls
-        status={status}
-        rolled={rolled}
-        rolling={rolling}
-        busy={enemyTurnRunning}
-        activeSide={activeSide}
-        onRoll={rollDice}
-        onPass={passTurn}
-        onReset={resetMatch}
+      <ActionBar
+        selectedUnitLabel={selectedUnit ? labelOf(selectedUnit) : null}
+        selectedRoll={selectedRoll ? { slotLabel: SLOT_LABEL_MVP1[selectedRoll.slot], name: selectedRoll.name, text: selectedRoll.text } : null}
+        isReposition={isReposition}
+        isBonusPhase={isBonusPhase}
+        bonusTargetsCount={bonusTargets.length}
+        lordSelected={lordSelected}
+        lordLabel={sideLabel(activeSide)}
+        activeLordRoll={activeLordRoll}
+        nextReserveLabel={nextReserveKlass ? CLASS_STATS[nextReserveKlass].label : null}
+        exchangeInfo={exchangeInfo}
+        energyBank={energyBank}
+        energyCap={ENERGY_CAP}
+        boostArmed={boostArmed}
+        canBoost={status === 'playing' && energyBank >= ENERGY_BOOST_COST && !!selectedUnit && !!selectedRoll && selectedUnit.side === activeSide && !selectedUnit.acted}
+        onToggleBoost={() => setBoostArmed((a) => !a)}
+        moveBoostArmed={moveBoostArmed}
+        canMoveBoost={status === 'playing' && energyBank >= ENERGY_MOVE_COST && !!selectedUnit && !!selectedRoll && !isReposition && !isBonusPhase && selectedUnit.side === activeSide && !selectedUnit.acted}
+        onToggleMoveBoost={() => setMoveBoostArmed((a) => !a)}
       />
-
-      <BattleLog log={log} />
       </div>
       )}
 

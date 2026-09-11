@@ -39,9 +39,8 @@ export default function BoardRegion({ showDashboard, board3d, overlay }) {
 
   return (
     <>
-      {showDashboard && <TerrainLegend />}
-
       <div className="board-scene">
+        {showDashboard && <TerrainLegend />}
         <div className="board3d-host">
           <Board3D
             rows={ROWS}

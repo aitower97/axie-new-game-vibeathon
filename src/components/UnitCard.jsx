@@ -20,7 +20,10 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
   // explicito del usuario: "cuando es mi turno los dados del rival no
   // deberian tirarse". Con la excepcion de la secuencia animada del rival
   // (enemyTurn), donde es el rival quien tira y sus dados deben barajarse.
-  const isRollingNow = diceTumbling(rolling, activeSide, enemyTurn, u.side)
+  // Caido: el dado ya no se baraja (bug: los dados de los muertos se giraban
+  // cada turno del bando aunque rollDice los excluye; la animacion se guiaba
+  // solo por el lado y el flag global de tirada).
+  const isRollingNow = u.alive && diceTumbling(rolling, activeSide, enemyTurn, u.side)
   return (
     <div
       className={`card mini ${!u.alive ? 'down' : ''} ${selected === u.id ? 'selected' : ''} ${u.marked ? 'marked' : ''} ${u.buffed ? 'buffed' : ''}`}

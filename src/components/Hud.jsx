@@ -1,4 +1,7 @@
-// Hud.jsx — franja superior con HP/reserva de ambos Lords y el reloj de turnos.
+// Hud.jsx — chips compactos de la barra superior (sesion "ganar espacio al
+// tablero"): vida de ambos Lords, su reserva y el reloj de turnos, todo en tres
+// pastillas de una sola fila para que el canvas gane altura. El lado activo
+// queda resaltado con un borde que brilla.
 export default function Hud({
   playerLordHp,
   enemyLordHp,
@@ -11,9 +14,18 @@ export default function Hud({
 }) {
   return (
     <div className="hud">
-      <div className="lord">Tu Lord: {playerLordHp}/{lordMaxHp} · Reserva {reservePlayerCount}</div>
-      <div className="turn">Turno {Math.min(turnCount, turnClock)}/{turnClock} · {activeSide === 'player' ? 'Player' : 'Enemy'}</div>
-      <div className="lord">Lord rival: {enemyLordHp}/{lordMaxHp} · Reserva {reserveEnemyCount}</div>
+      <span className={`hud-chip ally ${activeSide === 'player' ? 'active' : ''}`} title="Tu Lord">
+        <strong>👑</strong> {playerLordHp}/{lordMaxHp}
+        <em>Res. {reservePlayerCount}</em>
+      </span>
+      <span className="hud-chip turn">
+        <strong>⏳</strong> {Math.min(turnCount, turnClock)}/{turnClock}
+        <em>{activeSide === 'player' ? 'Player' : 'Enemy'}</em>
+      </span>
+      <span className={`hud-chip enemy ${activeSide === 'enemy' ? 'active' : ''}`} title="Lord rival">
+        <strong>👑</strong> {enemyLordHp}/{lordMaxHp}
+        <em>Res. {reserveEnemyCount}</em>
+      </span>
     </div>
   )
 }

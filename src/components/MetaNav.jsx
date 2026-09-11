@@ -12,20 +12,21 @@ const TABS = [
   { key: 'pvp', label: 'PVP', icon: '🏆' },
 ]
 
-export default function MetaNav({ route }) {
+export default function MetaNav({ route, compressed }) {
   return (
-    <nav className="meta-nav" aria-label="Navegacion">
+    <nav className={`meta-nav ${compressed ? 'compressed' : ''}`} aria-label="Navegacion">
       {TABS.map((t) => (
         <a
           key={t.key}
           href={`#/${t.key}`}
           className={route === t.key ? 'meta-tab active' : 'meta-tab'}
           title={t.label}
+          aria-label={t.label}
         >
           <span className="meta-tab-icon" aria-hidden="true">
             {t.icon}
           </span>
-          {t.label}
+          {!compressed && t.label}
         </a>
       ))}
     </nav>
