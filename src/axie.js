@@ -293,8 +293,8 @@ export const PARTS_MVP1 = {
     id: 'pumpkin', name: 'Pumpkin', slot: 'back', class: 'plant',
     effect: 'guard', value: 30, text: 'Guardia. Se aplica al tirar y no gasta la accion.',
   },
-  'clam-shell': {
-    id: 'clam-shell', name: 'Clam Shell', slot: 'back', class: 'aqua',
+  hermit: {
+    id: 'hermit', name: 'Hermit', slot: 'back', class: 'aqua',
     effect: 'guard-heal', value: 20, heal: 10,
     text: 'Guardia y cura 10 de vida. Se aplica al tirar, no gasta la accion.',
   },
@@ -313,8 +313,8 @@ export const PARTS_MVP1 = {
     effect: 'dash-attack', value: 20, moveRange: 2,
     text: 'Impulso: mueve hasta 2 y ataca al final. El movimiento sigue sujeto a zona de control.',
   },
-  'pigeon-post': {
-    id: 'pigeon-post', name: 'Pigeon Post', slot: 'tail', class: 'bird',
+  swallow: {
+    id: 'swallow', name: 'Swallow', slot: 'tail', class: 'bird',
     effect: 'reposition-ally', value: null, moveAlly: 1,
     text: 'Reposiciona: mueve 1 casilla a un aliado adyacente. No ataca.',
   },
@@ -332,7 +332,7 @@ export function rollFace(die) {
 }
 
 // Valor efectivo de una cara: +10 si hay afinidad (regla 3.6, en la escala x10 de
-// vida/dano). Pigeon Post no tiene valor numerico (no ataca), asi que no hay nada
+// vida/dano). Swallow no tiene valor numerico (no ataca), asi que no hay nada
 // que subir.
 export function faceValue(face) {
   if (face.value == null) return null

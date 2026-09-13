@@ -156,6 +156,15 @@ body {
   line-height: 1;
   margin-right: 6px;
 }
+.brand-kicker {
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--mint);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--mint) 45%, transparent);
+  margin-bottom: 2px;
+}
 .topbar h1 {
   font-family: 'Fraunces', Georgia, serif;
   font-weight: 700;
@@ -299,6 +308,7 @@ body {
   align-items: stretch;
 }
 .board-col {
+  position: relative;
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
@@ -335,19 +345,77 @@ body {
   cursor: grab;
 }
 .board3d-host:active { cursor: grabbing; }
+/* Reducido a icono (pedido 2026-09-11): antes era una franja de texto ancha
+   arriba a la izquierda, justo donde ahora va el medidor de Energia propio.
+   Centrado arriba (no a un lado, para no chocar con ningun medidor) y con
+   `pointer-events:auto` -al contrario que el resto del overlay del tablero,
+   este SI necesita recibir el hover y el clic. `cursor:pointer` a proposito:
+   desde el pedido 2026-09-12 el clic ABRE el panel de ayuda (HelpOverlay),
+   asi que hay interaccion real detras de la mano -el cursor de `help` (flecha
+   con interrogacion) se descarto en su dia porque el icono NO hacia nada y
+   el usuario lo leyo como un boton roto. */
 .board-view-hint {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
+  left: 50%;
+  top: 8px;
+  transform: translateX(-50%);
   z-index: 2;
-  padding: 4px 8px;
-  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
   background: rgba(16, 32, 29, 0.72);
+  border: 1px solid var(--line);
+  font-size: 0.9rem;
+  line-height: 1;
+  pointer-events: auto;
+  user-select: none;
+  /* Clicable (pedido 2026-09-12, "pinchas la mano y no pasa nada"): abre el
+     panel HelpOverlay. cursor:pointer + leve brillo al pasar para que se vea
+     que hay interaccion real. */
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.board-view-hint:hover {
+  border-color: rgba(127, 231, 196, 0.55);
+  box-shadow: 0 0 10px rgba(127, 231, 196, 0.25);
+  background: rgba(20, 40, 36, 0.85);
+}
+.board-view-hint:active {
+  transform: translateX(-50%) scale(0.94);
+}
+/* Burbuja propia en vez de `title` (bug real reportado, "pinchas la mano o
+   te pones encima y no pasa nada"): el tooltip nativo del navegador tarda
+   1-1.5s en aparecer y solo si el raton se queda quieto del todo -en la
+   practica parecia que el icono no hacia nada. Esta aparece al instante con
+   :hover, sin depender de ningun temporizador del sistema operativo. */
+.board-view-hint .tip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 260px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(16, 32, 29, 0.95);
   border: 1px solid var(--line);
   color: var(--muted);
   font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.3;
+  text-align: center;
+  white-space: normal;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.12s ease;
   pointer-events: none;
-  user-select: none;
+}
+.board-view-hint:hover .tip {
+  opacity: 1;
+  visibility: visible;
 }
 .board-overlay-3d {
   position: absolute;
@@ -419,11 +487,52 @@ body {
   color: #ffb34d;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 150, 60, 0.55);
 }
+/* Ventaja/Desventaja (Fase A, triangulo Perforar > Guardar > Golpear): annade
+   la relacion sobre el atacante en el intercambio -la pieza que hace visible el
+   PORQUE del bonus/malus, no solo el numero del desglose. */
+.combat-float.variant-relation {
+  color: #ffe9a3;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 210, 90, 0.5);
+}
 @keyframes combat-float-rise {
   0% { opacity: 0; translate: 0 8px; }
   14% { opacity: 1; translate: 0 0; }
   72% { opacity: 1; }
   100% { opacity: 0; translate: 0 -26px; }
+}
+
+/* Impacto de combate (REDISENO 2026-09-11, animaciones): anillo que nace en la
+   celda que recibe el golpe y se expande (golpe primario verde menta, vuelta
+   del contragolpe ambar, Ataque del Lord dorado). La sacudida la dispara la
+   propia existencia de impactos: .board-shake en .board-scene mientras hay
+   alguno activo, y BoardRegion lo quita a los 650 ms (IMPACT_MS). */
+.impact-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 3px solid var(--mint);
+  opacity: 0;
+  animation: impact-ping 0.62s cubic-bezier(0.16, 0.84, 0.44, 1) forwards;
+  pointer-events: none;
+  z-index: 4;
+}
+.impact-ring.kind-counter { border-color: var(--amber); }
+.impact-ring.kind-lord { border-color: #ffc233; }
+@keyframes impact-ping {
+  0% { transform: scale(0.3); opacity: 1; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+.board-shake {
+  animation: board-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  transform-origin: 50% 60%;
+}
+@keyframes board-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-5px, 4px); }
+  30% { transform: translate(6px, -3px); }
+  45% { transform: translate(-6px, 3px); }
+  60% { transform: translate(5px, -4px); }
+  75% { transform: translate(-2px, 1px); }
 }
 /* El recuadro permanente de aliado/rival por celda se quito de aqui (era un
    rectangulo DOM plano que se pintaba SIEMPRE por encima del canvas 3D entero
@@ -791,6 +900,17 @@ body {
 /* Rotura (Fase A): tono ambar rojizo intermedio entre el rose de Marca y el
    rojo de dano -anuncia "va a recibir un golpe ventajoso y se queda sin vuelta". */
 .unit.broken { filter: drop-shadow(0 0 6px rgba(255, 150, 60, 0.95)); }
+/* Quien esta actuando en el turno rival (secuencia enemiga): halo blanco que
+   pulsa, para que el jugador pueda seguir cada accion una a una en vez de que
+   todo ocurra a la vez. */
+.unit.acting,
+.lord-unit.acting {
+  animation: acting-pulse 0.9s ease-in-out infinite;
+}
+@keyframes acting-pulse {
+  0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.65)); }
+  50% { filter: drop-shadow(0 0 13px rgba(255, 255, 255, 1)); }
+}
 .unit .hp-bar { width: 30px; }
 
 /* Etiqueta de Rotura bajo el medallon: escudo volcado en ambar. */
@@ -1018,6 +1138,22 @@ body {
   min-width: 0;
 }
 .card-id-line strong { font-size: 0.95rem; letter-spacing: 0.02em; }
+.card.mini .starter-name {
+  flex: none;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 999px;
+  color: var(--rose);
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, var(--rose) 12%, transparent);
+}
+.card.mini .starter-name::before {
+  content: '★ ';
+  font-size: 0.55rem;
+}
 .card-insignia {
   flex: none;
   width: 20px;
@@ -1231,7 +1367,7 @@ body {
   /* Ancho FIJO para que el glifo de efecto (el icono que va al lado del
      numero: >/X/~/) arranque siempre en la misma columna vertical. Sin el
      ancho fijo, el bloque se alineaba a la derecha y su ancho variaba por
-     fila ("Not Throw 2" -> "26", "Pigeon Post 2" -> "20" y similares) y el
+     fila ("Not Throw 2" -> "26", "Swallow 2" -> "20" y similares) y el
      glifo caia en una x distinta en cada fila (reportado: "el emejo de
      pigeon post no esta en la vertical que los otros 2"). */
   width: 54px;
@@ -1300,30 +1436,76 @@ body {
   100% { transform: rotate(360deg) scale(1); opacity: 1; }
 }
 
-.action-bar {
-  flex: none;
-  width: 100%;
-  box-sizing: border-box;
-  background: rgba(127, 231, 196, 0.1);
-  border: 1px solid rgba(127, 231, 196, 0.35);
-  border-radius: 8px;
-  padding: 6px 12px;
-  margin-bottom: 6px;
-  font-size: 0.78rem;
-  /* Suelo de altura (bug real 2026-09-11): sin seleccion la linea queda a
-     18.7px y con texto/botones a 21.8px; esos ~3px de diferencia encogian
-     .board3d-host y la camara re-encuadraba -> el tablero hacia zoom al
-     pulsar un axie. Con min-height igual al estado mas alto, la altura del
-     ActionBar es identica en todos los estados y el tablero no se mueve. */
-  min-height: 87px;
+/* ActionPad (REDISENO 2026-09-11, "poder atacar eligiendo basico/especial"):
+   HUD flotante sobre la zona muerta bajo el tablero, sustituye a la card
+   estatica (ActionBar) que el usuario reporto ("no sirve, sobra espacio").
+   position:absolute -> NO consume layout, el .board3d-host no re-encuadra
+   nunca (fin del bug de zoom de la card) y el hueco deja de estar muerto.
+   pointer-events:none en el contenedor para que el fondo siga dejando pasar
+   clicks; solo los controles (filas de botones) interactuan. */
+.action-pad {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
 }
-.action-bar-line {
+.action-pad-line {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 12px;
+  max-width: min(92%, 760px);
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(16, 32, 29, 0.85);
+  border: 1px solid rgba(127, 231, 196, 0.3);
+  color: #cfe6e0;
+  font-size: 0.74rem;
+  backdrop-filter: blur(2px);
 }
-/* Banca de Energia (A3): el azul del chip repite el --sky de escudo. */
+.action-pad-context {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pad-moved-hint { color: #ffb34d; font-style: normal; }
+.action-pad-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(16, 32, 29, 0.8);
+  border: 1px solid rgba(127, 231, 196, 0.22);
+  backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+.pad-no-target { font-size: 0.68rem; color: var(--muted); }
+.attack-mode-btn {
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 3px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(127, 231, 196, 0.45);
+  background: rgba(16, 32, 29, 0.85);
+  color: #cfe6e0;
+  cursor: pointer;
+}
+.attack-mode-btn:disabled { opacity: 0.35; cursor: default; }
+.attack-mode-btn.on { box-shadow: 0 0 0 1px currentColor inset; }
+.attack-mode-btn.basic.on { border-color: var(--mint); color: var(--mint); }
+.attack-mode-btn.special.on { border-color: #ffd9a0; background: rgba(90, 60, 20, 0.85); color: #ffd9a0; }
+/* Banca de Energia (A3): el azul del chip repite el tono de escudo. */
 .energy-chip {
   margin-left: auto;
   font-size: 0.66rem;
@@ -1353,20 +1535,90 @@ body {
   color: #9ff0c1;
   box-shadow: 0 0 8px rgba(109, 227, 160, 0.4);
 }
-.exchange-preview {
-  margin-top: 4px;
-  padding-top: 4px;
-  border-top: 1px dashed rgba(127, 231, 196, 0.25);
-  font-size: 0.7rem;
-  line-height: 1.25;
-  color: #cfe6e0;
+
+/* Medidor de Energia, esquina SUPERIOR del tablero (pedido 2026-09-11, "mucho
+   mas visual" y luego reubicado: "abajo no puede estar porque esta lo de
+   seleccionar las habilidades especiales" -el ActionPad vive abajo, ver
+   App.css mas abajo- "y cuidado con ponerlo muy arriba que esta lo de la
+   vision" -el icono de .board-view-hint queda centrado arriba, este medidor
+   en la esquina, no chocan). Anillo de progreso SVG que se llena hasta
+   ENERGY_CAP, con el numero dentro y dos lineas de contexto (gastos y
+   pista). Solo presentacion; los gastos y el vaciado los decide App.jsx
+   (attack/moveTo/passTurn). Arriba a la IZQUIERDA por defecto (el propio,
+   lado de "TU MANDO"); `.energy-enemy` lo manda a la derecha (lado de
+   "ASEDIANTES", ver mas abajo). */
+.energy-gauge {
+  position: absolute;
+  left: 10px;
+  top: 10px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(10, 28, 44, 0.85);
+  border: 1px solid rgba(114, 204, 255, 0.35);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  user-select: none;
 }
-.exchange-preview div::first-line { color: #9ff0c1; }
-/* Cada renglon del desglose es SIEMPRE una linea (bug real 2026-09-11): si un
-   texto del desglose envolviera a 2 lineas, la caja del ActionBar creceria *
-   dentro del propio hover y el tablero volveria a saltar de zoom. */
-.exchange-preview div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.exchange-preview-empty div::first-line { color: inherit; }
+.energy-ring-wrap { position: relative; width: 56px; height: 56px; flex: none; }
+.energy-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+.energy-ring-track { fill: none; stroke: rgba(114, 204, 255, 0.16); stroke-width: 6; }
+.energy-ring-arc {
+  fill: none;
+  stroke: #72ccff;
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.35s ease, stroke 0.25s ease;
+}
+.energy-gauge.energy-some .energy-ring-arc { stroke: #a4d9ff; }
+.energy-gauge.energy-ready .energy-ring-arc {
+  stroke: #9ff0c1;
+  filter: drop-shadow(0 0 6px rgba(159, 240, 193, 0.7));
+}
+/* Medidor del rival (2026-09-11, reubicado: "la mia a mi lado y la suya al
+   suyo"): esquina opuesta (derecha, lado de "ASEDIANTES") + paleta
+   roja/rosa -mismo acento que el resto de la UI del bando enemigo
+   (.unit.enemy #ff9b94, .roster-title.enemy var(--rose)) en vez del azul del
+   jugador, para distinguirlos a simple vista sin leer la etiqueta. */
+.energy-gauge.energy-enemy {
+  left: auto;
+  right: 10px;
+  border-color: rgba(255, 139, 122, 0.35);
+}
+.energy-gauge.energy-enemy .energy-ring-track { stroke: rgba(255, 139, 122, 0.16); }
+.energy-gauge.energy-enemy .energy-ring-arc { stroke: #ff9b94; }
+.energy-gauge.energy-enemy.energy-some .energy-ring-arc { stroke: #ffb3a8; }
+.energy-gauge.energy-enemy.energy-ready .energy-ring-arc {
+  stroke: #ff8a7a;
+  filter: drop-shadow(0 0 6px rgba(255, 138, 122, 0.7));
+}
+.energy-gauge.energy-enemy .energy-ring-num,
+.energy-gauge.energy-enemy .energy-gauge-title { color: #ffb3a8; }
+.energy-gauge.energy-enemy.energy-ready .energy-ring-num,
+.energy-gauge.energy-enemy.energy-ready .energy-gauge-title { color: #ff8a7a; }
+.energy-ring-num {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #bfe3ff;
+}
+.energy-gauge.energy-ready .energy-ring-num { color: #9ff0c1; }
+.energy-gauge-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.energy-gauge-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #bfe3ff;
+}
+.energy-gauge.energy-ready .energy-gauge-title { color: #9ff0c1; }
+.energy-gauge-costs { font-size: 0.64rem; color: var(--muted); }
+.energy-gauge-tip { font-size: 0.62rem; color: #6f8f9c; }
 
 /* Chip flotante de la preview del intercambio (seccion 6.9.1): desglose del
    golpe sobre la casilla objetivo mientras el cursor esta encima. */
@@ -1534,14 +1786,19 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
   border-top: 1px solid var(--line);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.02);
 }
+.log.slim .log-ico { flex: none; }
 .log-slim-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+  text-align: center;
 }
 .log-line { padding: 2px 0; display: flex; gap: 6px; line-height: 1.35; }
 .log-ico { flex: none; font-size: 0.9rem; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6)); }
@@ -1723,3 +1980,414 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 
 .meta-list { margin: 0; padding-left: 18px; color: var(--muted); font-size: 0.82rem; line-height: 1.6; }
 .meta-list li { margin-bottom: 6px; }
+
+/* Panel "Como jugar" (HelpOverlay.jsx, abierto con el clic de la mano del
+   tablero -pedido 2026-09-12, "pinchas la mano y no pasa nada"). Overlay fijo
+   a pantalla completa con fondo oscuro translucido; el panel reusa el lenguaje
+   visual de .card (--panel, borde var(--line)) para que se lea como parte del
+   juego. */
+.help-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(9, 20, 18, 0.72);
+  backdrop-filter: blur(2px);
+  animation: help-fade-in 0.15s ease;
+}
+@keyframes help-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.help-panel {
+  position: relative;
+  width: min(520px, calc(100vw - 40px));
+  max-height: min(82vh, 640px);
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.help-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.help-close:hover { color: var(--ink); border-color: var(--muted); }
+.help-title {
+  margin: 0;
+  padding-right: 40px;
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.help-block h3 {
+  margin: 0 0 4px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--mint);
+}
+.help-block p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.help-block b { color: var(--ink); font-weight: 700; }
+
+/* ---------------------------------------------------------------------------
+   HUB ("Base", sesion 2026-09-12): equipo principal en el centro, accesos a
+   los lados (pedido explicito del usuario). Tres columnas simetricas.
+--------------------------------------------------------------------------- */
+.hub3 {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) 1fr minmax(200px, 260px);
+  gap: 14px;
+  align-items: start;
+}
+.hub3-rail { display: flex; flex-direction: column; gap: 10px; }
+.hub3-rail-right { gap: 12px; }
+.hub3-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+}
+.hub3-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--mint);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+.hub3-card-icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  font-size: 1.05rem;
+}
+.hub3-card-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.hub3-card-text b { font-size: 0.86rem; letter-spacing: 0.01em; }
+.hub3-card-text em { font-style: normal; font-size: 0.72rem; color: var(--muted); line-height: 1.3; }
+.hub3-play .hub3-card-icon { color: #ffc233; }
+.hub3-center { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.hub3-squad .meta-panel-title { justify-content: space-between; flex-wrap: wrap; gap: 6px; }
+.hub3-essence {
+  font-size: 0.74rem;
+  color: var(--mint);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.hub3-note {
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.hub3-note b { color: var(--amber); font-size: 0.76rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.hub3-note p { margin: 6px 0 0; color: var(--muted); font-size: 0.78rem; line-height: 1.5; }
+@media (max-width: 1100px) {
+  .hub3 { grid-template-columns: 1fr; }
+  .hub3-rail { flex-direction: row; flex-wrap: wrap; }
+  .hub3-card { flex: 1 1 220px; }
+}
+
+/* ---------------------------------------------------------------------------
+   Mapa PVE (LunaciaMap.jsx, sesion 2026-09-12): mundo navegable estilo NFS
+   Carbon con regiones como nodos sobre un panel, conexiones en SVG, y la ficha
+   de la region activa con sus zonas (cada una con su config de partida).
+--------------------------------------------------------------------------- */
+.map-scene {
+  position: relative;
+  height: 340px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background:
+    radial-gradient(ellipse 60% 50% at 25% 70%, rgba(121, 194, 106, 0.16), transparent 60%),
+    radial-gradient(ellipse 50% 45% at 55% 40%, rgba(163, 164, 154, 0.16), transparent 60%),
+    radial-gradient(ellipse 45% 40% at 80% 22%, rgba(201, 168, 106, 0.18), transparent 60%),
+    var(--panel);
+  overflow: hidden;
+}
+.map-links {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.map-link {
+  stroke: var(--line);
+  stroke-width: 0.35;
+  stroke-dasharray: 1.4 1;
+  opacity: 0.9;
+}
+.map-node {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+}
+.map-node:disabled { cursor: not-allowed; opacity: 0.38; filter: grayscale(0.7); }
+.map-node-dot {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 3px solid color-mix(in srgb, var(--node, var(--mint)) 75%, black);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--node, var(--mint)) 65%, white), var(--node, var(--mint)) 60%, color-mix(in srgb, var(--node, var(--mint)) 55%, black));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--node, var(--mint)) 12%, transparent), 0 6px 18px rgba(0, 0, 0, 0.5);
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+.map-node:hover:not(:disabled) .map-node-dot { transform: scale(1.12); }
+.map-node.active .map-node-dot {
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--node, var(--mint)) 28%, transparent), 0 0 18px color-mix(in srgb, var(--node, var(--mint)) 55%, transparent), 0 6px 18px rgba(0, 0, 0, 0.5);
+}
+.map-node.done .map-node-dot { border-color: var(--mint); }
+.map-node-check {
+  position: absolute;
+  bottom: 15px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--mint);
+  color: #0a1915;
+  font-size: 0.66rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+.map-node-name {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  background: rgba(9, 20, 18, 0.72);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 2px 9px;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.map-region-panel {
+  border: 1px solid color-mix(in srgb, var(--acc, var(--mint)) 45%, var(--line));
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 14px 16px 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.map-region-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.map-region-title {
+  font-family: 'Fraunces', Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+.map-region-actions { display: flex; align-items: center; gap: 10px; }
+.map-region-difficulty {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+.map-zone-list { display: flex; flex-direction: column; gap: 10px; }
+.map-zone {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+.map-zone-info { flex: 1; min-width: 0; }
+.map-zone-name { color: var(--ink); font-weight: 800; font-size: 0.9rem; }
+.map-zone-blurb { color: var(--muted); font-size: 0.78rem; line-height: 1.45; margin-top: 3px; }
+.map-zone-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.map-zone-play { flex: none; }
+
+/* ---------------------------------------------------------------------------
+   Laboratorio (LaboratoryScreen.jsx, sesion 2026-09-12): el dado de cada
+   clase con sus 4 ranuras de combate para EVOLUCIONAR (reescribe la cara,
+   +10 irreversible) o BLOQUEAR (saca la parte de la tirada, gratis).
+--------------------------------------------------------------------------- */
+.lab-hud { align-items: center; }
+.lab-grid { display: flex; flex-direction: column; gap: 16px; }
+.lab-class {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 14px 16px 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.lab-class-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.lab-die-odds {
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+.lab-die {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.lab-face {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  opacity: 1;
+  transition: opacity 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.lab-face.evolved {
+  border-color: var(--mint);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--mint) 22%, transparent);
+}
+.lab-face.blocked {
+  opacity: 0.5;
+}
+.lab-face.blocked::after {
+  content: '🔒';
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.8rem;
+  filter: grayscale(0.4);
+}
+.lab-face-logo {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+.lab-face-logo .face-logo { width: 30px; height: 30px; object-fit: contain; }
+.lab-face-name { color: var(--ink); font-weight: 800; font-size: 0.84rem; }
+.lab-face-value {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 800;
+  color: var(--amber);
+  font-size: 0.86rem;
+}
+.lab-evolved-badge {
+  font-style: normal;
+  font-size: 0.66rem;
+  font-weight: 900;
+  color: #0a1915;
+  background: var(--mint);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+.lab-face-slot { color: var(--muted); font-size: 0.7rem; letter-spacing: 0.04em; text-transform: uppercase; }
+.lab-face-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.lab-face-actions .meta-action { font-size: 0.76rem; padding: 5px 10px; }
+.lab-face-actions .meta-action.is-blocked {
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 45%, var(--line));
+}
+.lab-tooltip {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--mint);
+  background: rgba(127, 231, 196, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.lab-tooltip b { color: var(--ink); }
+
+/* ---------------------------------------------------------------------------
+   Arenas PVP (PvpScreen.jsx, sesion 2026-09-12): rivales de axies normales.
+--------------------------------------------------------------------------- */
+.arena-list { display: flex; flex-direction: column; gap: 12px; }
+.arena-card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  padding: 14px 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+.arena-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.arena-card-name { font-family: 'Fraunces', Georgia, serif; font-size: 1.05rem; font-weight: 700; color: var(--ink); }
+.arena-card-rival { font-size: 0.8rem; font-weight: 800; color: var(--rose); letter-spacing: 0.02em; }

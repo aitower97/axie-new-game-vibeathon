@@ -11,8 +11,8 @@ export default function LoadingCurtain({ visible }) {
           <span key={slot} className="loading-die-cell" style={{ '--i': i }} />
         ))}
       </div>
-      <p className="loading-title">Vinculo de Lunacia</p>
-      <p className="loading-sub">Forjando el vinculo entre los axies y el tablero…</p>
+      <p className="loading-title">Axie</p>
+      <p className="loading-sub">Forja de Lunacia · forjando el dado y el tablero…</p>
     </div>
   )
 }

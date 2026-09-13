@@ -140,6 +140,7 @@ export default function Board3D({
   blockUrl,
   cellSizePx,
   onTransform,
+  overlayElRef,
   onReady,
   terrainAt,
   terrainBlockUrls,
@@ -304,6 +305,13 @@ export default function Board3D({
     let spacing = 1
     let baseHeight = 0
     let terrainReady = false
+    // Superficie por celda (la altura de la tapa real de esa casilla tras
+    // apilar la decoracion de terreno encima del bloque de cesped): los Axies
+    // se asientan sobre ESTA altura, no sobre baseHeight a secas, o la tierra
+    // (patch-dirt) y otros props de terreno tapaban al Axie (la pieza tiene
+    // grosor real y su tapa quedaba por encima de los pies del modelo).
+    const cellTop = new Array(rows * cols).fill(0)
+    const topAt = (r, c) => cellTop[r * cols + c] || baseHeight
     const cellSize = cellSizePx || 90
 
     function resize() {
@@ -340,12 +348,20 @@ export default function Board3D({
     }
 
     function publishTransform(width, height) {
-      if (!onTransformRef.current) return
       const p0 = overlayToScreen(0, 0, width, height)
       const p1 = overlayToScreen(1, 0, width, height)
       const p2 = overlayToScreen(0, 1, width, height)
       const matrix = [p1.x - p0.x, p1.y - p0.y, p2.x - p0.x, p2.y - p0.y, p0.x, p0.y]
-      onTransformRef.current(`matrix(${matrix.join(',')})`, { width, height })
+      const matrixStr = `matrix(${matrix.join(',')})`
+      // REDISENO 2026-09-11: la matriz del overlay ya NO sube por props de
+      // React (Estado -> CSS -> re-render -> Board3D -> Estado+... bucle), se
+      // escribe DIRECTO sobre el nodo DOM del overlay (ref). Asi Board3D manda
+      // y el overlay obedece, sin re-render alguno y sin bucle matriz->App.
+      if (overlayElRef && overlayElRef.current) {
+        overlayElRef.current.style.transform = matrixStr
+        return
+      }
+      if (onTransformRef.current) onTransformRef.current(matrixStr, { width, height })
     }
 
     function worldXZ(r, c) {
@@ -1189,10 +1205,12 @@ export default function Board3D({
           islandGroup.add(block)
 
           const decorEntry = decorUrls && decorUrls[terrain]
+          let cellSurface = baseHeight
           if (decorEntry && decorEntry.type === 'pond') {
             const pond = makePond(r, c, spacing * (decorEntry.fit ?? 0.44))
             pond.position.set(x, baseHeight + 0.01, z)
             islandGroup.add(pond)
+            cellSurface = baseHeight + 0.01
           }
           const decorUrl = decorEntry && decorEntryUrl(decorEntry)
           if (decorUrl && templates.has(decorUrl)) {
@@ -1210,7 +1228,11 @@ export default function Board3D({
             // se tragaba a veces la pieza entera (T3). 0.015 de celda no se ve.
             decor.position.set(x, baseHeight + 0.015 * spacing - decorBox.min.y * fit, z)
             islandGroup.add(decor)
+            // La superficie REAL de la casilla, para asentar al Axie encima (su
+            // tapa = posicion base de la pieza + su altura escalada).
+            cellSurface = decor.position.y + decorSize.y * fit
           }
+          cellTop[r * cols + c] = cellSurface
         }
       }
       terrainReady = true
@@ -1328,7 +1350,8 @@ export default function Board3D({
     function positionHandle(handle, unit) {
       handle.id = unit.id
       const { x, z } = worldXZ(unit.r, unit.c)
-      const baseY = baseHeight - handle.boxMinY * handle.fit + spacing * 0.025
+      const topY = topAt(unit.r, unit.c)
+      const baseY = topY - handle.boxMinY * handle.fit + spacing * 0.025
 
       if (!handle.ring && unit.side) {
         handle.ring = makeSideRing(unit.side)
@@ -1349,7 +1372,7 @@ export default function Board3D({
         handle.cellR = unit.r
         handle.cellC = unit.c
         handle.wrapper.position.set(x, baseY, z)
-        if (handle.ring) handle.ring.position.set(x, baseHeight + 0.012, z)
+        if (handle.ring) handle.ring.position.set(x, topY + 0.012, z)
         applyCrown(handle, unit, x, z)
         applyFacing(handle, unit, x, z)
         return
@@ -1361,10 +1384,11 @@ export default function Board3D({
         // no existe). El color de la cara puede cambiar por seleccion/objetivo.
         applyCrown(handle, unit, x, z)
         applyFacing(handle, unit, x, z)
-        if (handle.ring) handle.ring.position.set(x, baseHeight + 0.012, z)
+        if (handle.ring) handle.ring.position.set(x, topY + 0.012, z)
         return
       }
 
+      const prevTopY = topAt(handle.cellR, handle.cellC)
       handle.cellR = unit.r
       handle.cellC = unit.c
       if (handle.tween) {
@@ -1372,12 +1396,26 @@ export default function Board3D({
         // vez de encadenar (syncUnits puede dispararse varias veces seguidas).
         handle.tween.toX = x
         handle.tween.toZ = z
+        handle.tween.toY = topY - handle.boxMinY * handle.fit + spacing * 0.025
+        handle.tween.toRingY = topY + 0.012
         handle.tween.pendingFacing = unit.facing
         return
       }
       const from = handle.wrapper.position
       const dur = 0.18 + 0.3 * (Math.hypot(x - from.x, z - from.z) / spacing)
-      handle.tween = { fromX: from.x, fromZ: from.z, toX: x, toZ: z, t: 0, dur, pendingFacing: unit.facing }
+      handle.tween = {
+        fromX: from.x,
+        fromZ: from.z,
+        fromY: from.y,
+        toX: x,
+        toZ: z,
+        toY: topY - handle.boxMinY * handle.fit + spacing * 0.025,
+        fromRingY: prevTopY + 0.012,
+        toRingY: topY + 0.012,
+        t: 0,
+        dur,
+        pendingFacing: unit.facing,
+      }
       handle.axie.setMoveSpeed(0.35, 0.2)
       handle.axie.setLocomotion('walk', 0.2)
       const dx = x - from.x
@@ -1592,6 +1630,8 @@ export default function Board3D({
       dragState.px = e.clientX
       dragState.py = e.clientY
       dragState.moved = false
+      dragState.pendingX = 0
+      dragState.pendingY = 0
       momentum.vx = 0
       momentum.vy = 0
       host.setPointerCapture(e.pointerId)
@@ -1604,7 +1644,13 @@ export default function Board3D({
       dragState.py = e.clientY
       if (Math.abs(dx) + Math.abs(dy) < PAN_START_PX && !dragState.moved) return
       dragState.moved = true
-      panWorldPixels(dx, dy)
+      // Coalescer el pan del drag: el raton puede emitir cientos de eventos por
+      // segundo, y aplicar cada desplazamiento con su render + reescritura de la
+      // matriz CSS era justo lo que causaba el lag al mover la vista isometrica.
+      // Se acumula el desplazamiento pendiente y el bucle rAF lo aplica UNA vez
+      // por frame (ver loop(), abajo). El momentum marca la velocidad del gesto.
+      dragState.pendingX = (dragState.pendingX ?? 0) + dx
+      dragState.pendingY = (dragState.pendingY ?? 0) + dy
       momentum.vx = dx * 60
       momentum.vy = dy * 60
     }
@@ -1720,6 +1766,14 @@ const ISLAND_BOB_SPEED = 0.5
         camAnimated = true
       }
       const speed = Math.hypot(momentum.vx, momentum.vy)
+      // Pan pendiente del drag (coalescido en onPointerMove): aplicar una vez
+      // por frame, no a la velocidad de eventos del raton.
+      if (dragState.active && (dragState.pendingX || dragState.pendingY)) {
+        panWorldPixels(dragState.pendingX, dragState.pendingY, false)
+        dragState.pendingX = 0
+        dragState.pendingY = 0
+        camAnimated = true
+      }
       if (!dragState.active && speed > 0.01) {
         const factor = Math.exp(-MOMENTUM_DECAY * dt)
         panWorldPixels(momentum.vx * dt, momentum.vy * dt, false)
@@ -1747,12 +1801,16 @@ const ISLAND_BOB_SPEED = 0.5
           const ease = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2
           const x = handle.tween.fromX + (handle.tween.toX - handle.tween.fromX) * ease
           const z = handle.tween.fromZ + (handle.tween.toZ - handle.tween.fromZ) * ease
+          const y = handle.tween.fromY + (handle.tween.toY - handle.tween.fromY) * ease
           handle.wrapper.position.x = x
           handle.wrapper.position.z = z
+          handle.wrapper.position.y = y
           publishUnitMove(handle, x, z)
           if (handle.ring) {
             handle.ring.position.x = x
             handle.ring.position.z = z
+            handle.ring.position.y =
+              handle.tween.fromRingY + (handle.tween.toRingY - handle.tween.fromRingY) * ease
           }
           if (handle.crown) {
             handle.crown.position.x = x
@@ -1786,6 +1844,29 @@ const ISLAND_BOB_SPEED = 0.5
       frameId = requestAnimationFrame(loop)
     }
     loop()
+
+    // Hook de debug minimo (verificacion en vivo via CDP): expone la superficie
+    // real de cada casilla y las posiciones mundo de las unidad/hess para
+    // comprobar que al asentarse sobre terreno (tierra/roca/agua) el Axie queda
+    // por ENCIMA de la tapa de la decoracion, no tapado por ella.
+    window.__boardDebug = {
+      rows,
+      cols,
+      baseHeight,
+      topAt,
+      handles: () => {
+        const out = {}
+        for (const [id, h] of handles) {
+          out[id] = {
+            r: h.cellR,
+            c: h.cellC,
+            y: h.wrapper.position.y,
+            topY: h.cellR != null && h.cellC != null ? topAt(h.cellR, h.cellC) : null,
+          }
+        }
+        return out
+      },
+    }
 
     return () => {
       disposed = true

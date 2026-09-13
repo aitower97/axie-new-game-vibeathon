@@ -164,7 +164,7 @@ Las partes van en 4 ranuras: **cuerno** (ofensivo penetrante), **boca** (sosteni
 | Parte | Clase | Habilidad | Valor | Efecto |
 |---|---|---|---|---|
 | **Pumpkin** | Plant | Guardia | 30 | Se aplica al tirar y no gasta la acción |
-| **Clam Shell** | Aqua | Guardia | 20 | Se aplica al tirar + cura 10 de vida. No gasta acción |
+| **Hermit** | Aqua | Guardia | 20 | Se aplica al tirar + cura 10 de vida. No gasta acción |
 | **Balloon** | Bird | Guardia | 20 | Se aplica al tirar + empuja 1 casilla a un enemigo adyacente en línea recta. No gasta acción |
 
 ### 5.4 Cola — movilidad y control
@@ -173,7 +173,7 @@ Las partes van en 4 ranuras: **cuerno** (ofensivo penetrante), **boca** (sosteni
 |---|---|---|---|---|
 | **Nut Throw** | Beast | Ataque a distancia | 20 | Alcance 2 (independiente del chasis). +20 si lleva también Nut Crack |
 | **Shrimp** | Aqua | Impulso | 20 | Mueve hasta 2 y ataca al final. Movimiento sujeto a zona de control |
-| **Pigeon Post** | Bird | Reposiciona | — | Mueve 1 casilla a un aliado adyacente. No ataca |
+| **Swallow** | Bird | Reposiciona | — | Mueve 1 casilla a un aliado adyacente. No ataca |
 
 ### 5.5 Ojos y orejas
 
@@ -390,7 +390,7 @@ Assets/
       PierceEffect.cs         — Perforante: ignorar escudo
       GuardEffect.cs          — Guardia: se aplica al tirar, no gasta acción
       PushEffect.cs           — Empuje de Balloon
-      HealEffect.cs           — Cura de Clam Shell
+      HealEffect.cs           — Cura de Hermit
       ComboEffect.cs          — +20 de Nut Crack/Nut Throw combo
     Terrain/
       TerrainType.cs          — Enum: None, Stone, Slow, Water, LowObstacle

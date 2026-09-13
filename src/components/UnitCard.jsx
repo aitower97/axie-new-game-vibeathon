@@ -44,6 +44,11 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
               <ClassEmblem klass={u.klass} />
             </span>
             <strong title={stats.label}>#{u.id.toUpperCase()}</strong>
+            {u.name && (
+              <span className="starter-name" title="Starter oficial de Axie">
+                {u.name}
+              </span>
+            )}
           </div>
           <span className="class-line">
             {stats.label}
@@ -83,7 +88,7 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
           rolling={isRollingNow}
           rollTick={rollTick}
           rolledSlot={rolledFace ? rolledFace.slot : null}
-          size={50}
+          size={64}
         />
       </div>
 

@@ -50,20 +50,121 @@ function pureClassDescriptor(resourceClass, variant, body = 'normal') {
   }
 }
 
-// side -> clase MVP1 (beast/bird/aqua) -> AxieDescriptor. variant 2 para
-// player y 4 para enemy -mismo individuo "de clase pura" pero un valor
-// distinto, para que el roster no se vea identico a los dos lados del
-// tablero (mismo espiritu que se intento con genomas reales).
+// Clase del pack (color del chasis) por clase del MVP1.
+const MVP1_PACK_CLASS = { plant: 'Plant', beast: 'Beast', bird: 'Bird', aqua: 'Aquatic' }
+
+// Las caras del dado (PARTS_MVP1 en axie.js) ponen el NOMBRE real de la parte
+// (Shrimp, Imp, Pumpkin...) pero los descriptores del roster usaban variantes
+// genericas 2/4 que NO se corresponden (la cola Aquatic v2 es Koi, v4 Nimo...)
+// -bug real reportado: "el agua de mi equipo lleva KOI y decimos shrimp en la
+// habilidad". Arreglo 2026-09-12: cada ranura del modelo pasa a usar la
+// variante = id real de la parte (decoder agp, github.com/ShaneMaglangit/agp,
+// cruzado con PART_GENE ya verificado en axieMixer.js: shrimp tail=12,
+// hermit back=2, balloon back=2, serious mouth=2, imp horn=4, little-branch
+// horn=2...). En el pack del mixer 3D las variantes por (clase, ranura) son
+// los pares (ojos/bocas solo 2/4/8/10, el resto ademas 6/12 - verificado en
+// public/assets/axie/manifest.json), asi que la variante ES la parte real: la
+// cola Aquatic v12 se ve como un Shrimp de verdad, el lomo Bird v2 como un
+// Balloon. Todas las ranuras estan mapeadas, tambien las que NO tienen carta
+// en el dado (ojo/oreja y el 4.º slot de combate de cada clase): llevan una
+// parte real coherente del chasis -Jaguar de lomo Beast, Hungry Bird de boca
+// Bird, Anemone de cuerno Aquatic, Carrot de cola Plant...
+const ROSTER_PARTS = {
+  plant: {
+    horn: { class: 'Beast', variant: 2 }, // Little Branch (real: cuerno de Beast)
+    mouth: { class: 'Plant', variant: 2 }, // Serious
+    back: { class: 'Plant', variant: 12 }, // Pumpkin
+    tail: { class: 'Plant', variant: 2 }, // Carrot (sin carta en el dado)
+  },
+  beast: {
+    horn: { class: 'Beast', variant: 4 }, // Imp
+    mouth: { class: 'Beast', variant: 2 }, // Nut Cracker
+    back: { class: 'Beast', variant: 6 }, // Jaguar (sin carta)
+    tail: { class: 'Beast', variant: 10 }, // Nut Throw (id 10 en agp)
+  },
+  bird: {
+    horn: { class: 'Bird', variant: 12 }, // Feather Spear
+    mouth: { class: 'Bird', variant: 8 }, // Hungry Bird (sin carta)
+    back: { class: 'Bird', variant: 2 }, // Balloon
+    tail: { class: 'Bird', variant: 2 }, // Swallow (renombrada desde Pigeon Post,
+    // cuyo modelo real es lomo id 8, no cola)
+  },
+  aqua: {
+    horn: { class: 'Aquatic', variant: 8 }, // Anemone (sin carta)
+    mouth: { class: 'Aquatic', variant: 8 }, // Risky Fish
+    back: { class: 'Aquatic', variant: 2 }, // Hermit (renombrada desde Clam Shell,
+    // cuyo modelo real es cuerno id 6, no lomo)
+    tail: { class: 'Aquatic', variant: 12 }, // Shrimp
+  },
+}
+
+// Descriptor del roster con TODAS las ranuras puestas a partes reales (ver
+// ROSTER_PARTS). Lo unico que distingue a los dos lados son los OJOS y las
+// OREJAS: `fallbackVariant` (2 jugador / 4 enemigo) elige una parte real de la
+// misma clase pero distinta por bando (Beast eyes 2 Zeal / 4 Little Peas,
+// Bird ears 2 Pink Cheek / 4 Early Bird...), como antes -cuerpo de clase pura
+// con un valor distinto para que no se vean identicos los dos lados.
+function rosterDescriptor(klassMvp1, fallbackVariant) {
+  const packClass = MVP1_PACK_CLASS[klassMvp1] || 'Beast'
+  const namedParts = ROSTER_PARTS[klassMvp1] || {}
+  return {
+    colorVariant: CLASS_COLOR_VARIANT[packClass] ?? 0,
+    body: 'normal',
+    parts: PART_TYPES.map((type) => {
+      if (type === 'eye' || type === 'ear') {
+        return { type, skin: 0, class: packClass, variant: fallbackVariant, level: 1 }
+      }
+      const named = namedParts[type]
+      return {
+        type,
+        skin: 0,
+        class: named ? named.class : packClass,
+        variant: named ? named.variant : fallbackVariant,
+        level: 1,
+      }
+    }),
+  }
+}
+
+// Starters oficiales de Axie como rivales del PvE (camino "reconstruir con
+// partes" elegido por el usuario 2026-09-12): el roster enemigo deja de ser
+// un clon generico del nuestro y pasa a ser la pandilla de starters con
+// nombre propio -Buba (Beast), Momo (Bird) y Puffy (Aquatic)-, las mismas
+// mascotas que el repos oficial 3D (axie-starter-3d-assets) trae como
+// modelos completos. NO se cargan como modelos enteros (romperia la premisa
+// del dado de 6 partes), se RE-CONSTRUYEN con las partes reales de su clase
+// (ROSTER_PARTS: mismas caras de dado ya verificadas) y se distinguen del
+// roster propio por su color real -cada starter usa un colorVariant que
+// existe de verdad en manifest.json y que ningun otro bando usa (antes TODOS
+// los colores de clase eran identicos en los dos lados y solo ojos/orejas
+// 2 vs 4 los separaban). Los spines 2D oficiales confirman que los starters
+// son mascotas con skeleton propio (slots genericos back/horn/mouth/tail,
+// sin nombres de parte reales), no criaturas modulares.
+export const STARTER_INFO = {
+  beast: { name: 'Buba', colorVariant: 3 }, // beast-03, fdb014 (naranja mas dorado)
+  bird: { name: 'Momo', colorVariant: 26 }, // bird-04, ff78b4 (rosa mas intenso)
+  aqua: { name: 'Puffy', colorVariant: 14 }, // aquatic-03, 00dff3 (cian)
+}
+
+function starterDescriptor(klassMvp1, fallbackVariant) {
+  const d = rosterDescriptor(klassMvp1, fallbackVariant)
+  const starter = STARTER_INFO[klassMvp1]
+  if (starter) d.colorVariant = starter.colorVariant
+  return d
+}
+
+// side -> clase MVP1 (beast/bird/aqua) -> AxieDescriptor con TODAS las partes
+// reales de esa clase (ver ROSTER_PARTS) + ojos/orejas por bando (2/4).
 export const ROSTER_DESCRIPTORS = {
   player: {
-    beast: pureClassDescriptor('Beast', 2),
-    bird: pureClassDescriptor('Bird', 2),
-    aqua: pureClassDescriptor('Aquatic', 2),
+    beast: rosterDescriptor('beast', 2),
+    bird: rosterDescriptor('bird', 2),
+    aqua: rosterDescriptor('aqua', 2),
   },
   enemy: {
-    beast: pureClassDescriptor('Beast', 4),
-    bird: pureClassDescriptor('Bird', 4),
-    aqua: pureClassDescriptor('Aquatic', 4),
+    beast: starterDescriptor('beast', 4),
+    bird: starterDescriptor('bird', 4),
+    aqua: starterDescriptor('aqua', 4),
   },
 }
 

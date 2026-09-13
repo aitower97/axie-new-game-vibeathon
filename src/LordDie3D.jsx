@@ -67,12 +67,21 @@ function makeFaceCanvas(face) {
   ctx.fillStyle = vg
   ctx.fillRect(0, 0, FACE_TEX, FACE_TEX)
 
-  // Glifo grande del mando, marron oscuro para leerse sobre el beis.
-  ctx.fillStyle = 'rgba(61,48,36,0.92)'
-  ctx.font = `600 ${K * 34}px system-ui, sans-serif`
+  // Glifo grande del mando (pedido 2026-09-11: que las partes/emojis ocupen
+  // lo maximo de la cara sin salirse y destaquen sobre la base): sube de K*34
+  // a K*52 y se centra en la mitad superior de la cara, con una sombra beis
+  // que lo despega del blanco. Linea media (middle), no alphabetic: los emojis
+  // se recortan si se miden desde la linea base.
+  ctx.save()
+  ctx.shadowColor = 'rgba(40,28,12,0.7)'
+  ctx.shadowBlur = K * 3.5
+  ctx.shadowOffsetY = K * 1.8
+  ctx.fillStyle = 'rgba(61,48,36,0.95)'
+  ctx.font = `600 ${K * 52}px system-ui, sans-serif`
   ctx.textAlign = 'center'
-  ctx.textBaseline = 'alphabetic'
-  ctx.fillText(face.glyph, FACE_TEX / 2, K * 58)
+  ctx.textBaseline = 'middle'
+  ctx.fillText(face.glyph, FACE_TEX / 2, FACE_TEX / 2 - K * 2)
+  ctx.restore()
 
   // Etiqueta del mando abajo, mismo idioma que la del dado de unidad.
   ctx.fillStyle = 'rgba(61,48,36,0.85)'

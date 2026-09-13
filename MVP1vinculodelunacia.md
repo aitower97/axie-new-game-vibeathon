@@ -82,7 +82,7 @@ En Axie las cartas de combate salen de **cuerno, boca, lomo y cola**. Ojos y ore
 | # | Parte | Clase | Habilidad | Valor |
 |---|---|---|---|---|
 | B1 | **Pumpkin** | Plant | Guardia. **Se aplica al tirar y no gasta la acción** | 30 |
-| B2 | **Clam Shell** | Aqua | Guardia **y cura 10** de vida. Se aplica al tirar, no gasta la acción | 20 |
+| B2 | **Hermit** | Aqua | Guardia **y cura 10** de vida. Se aplica al tirar, no gasta la acción | 20 |
 | B3 | **Balloon** | Bird | Guardia **y empuja 1 casilla** a un enemigo adyacente, en línea recta. Se aplica al tirar, no gasta la acción | 20 |
 
 ### 3.4 Cola — movilidad y control
@@ -91,7 +91,7 @@ En Axie las cartas de combate salen de **cuerno, boca, lomo y cola**. Ojos y ore
 |---|---|---|---|---|
 | T1 | **Nut Throw** | Beast | Ataque a **distancia 2** (independiente del alcance del chasis). **+20 si lleva también Nut Crack** | 20 |
 | T2 | **Shrimp** | Aqua | Impulso: **mueve hasta 2 y ataca al final**. El movimiento sigue sujeto a zona de control | 20 |
-| T3 | **Pigeon Post** | Bird | Reposiciona: **mueve 1 casilla a un aliado adyacente**. No ataca | — |
+| T3 | **Swallow** | Bird | Reposiciona: **mueve 1 casilla a un aliado adyacente**. No ataca | — |
 
 ### 3.5 Ojos y orejas
 

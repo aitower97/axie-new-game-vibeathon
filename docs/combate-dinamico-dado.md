@@ -369,8 +369,8 @@ utilidad en nuestro MVP2.)
 
 El MVP1 (paso 5) concreta 12 partes con sus valores (Little Branch 20, Imp 30, Feather
 Spear 20, Serious 20 (+20 escudo), Risky Fish 40 (−10 propio), Nut Crack 30 (+20 combo),
-Pumpkin 30, Clam Shell 20 (+10 cura), Balloon 20 (+push 1), Nut Throw 20 (rango fijo 2),
-Shrimp 20 (impulso), Pigeon Post (reposiciona aliado)).
+Pumpkin 30, Hermit 20 (+10 cura), Balloon 20 (+push 1), Nut Throw 20 (rango fijo 2),
+Shrimp 20 (impulso), Swallow (reposiciona aliado)).
 
 ### 5.3 Cómo se resuelve el combate hoy (flujo real en `App.jsx`)
 

@@ -72,14 +72,18 @@ const FACE_TEX = 512
 // tail -Z. Ojo: DIE_SLOTS va en otro orden, hay que colocar por indice.
 const SLOT_INDEX = { eyes: 2, ears: 3, horn: 4, mouth: 0, back: 1, tail: 5 }
 
-// BoxGeometry giraba la UV de la cara -Z (tail, ver SLOT_INDEX) al reves y
-// habia que compensarla dibujando esa cara reflejada 180 grados (bug historico
-// "cuando toca cola la parte queda boca abajo"). Con el dado ACTUAL de planos
-// (un plano por cara, RoundedBoxGeometry no alterna las UVs) ese reflejo ya NO
-// hace falta: si se aplicara, la textura de la cola apareceria girada 180 grados
-// y el icono de Pigeon Post se veria al reves/descolocado (reportado por el
-// usuario: "el de pigeon post esta desalineado").
-const FLIP_SLOT = {}
+// La cara -Z (tail, ver SLOT_INDEX) queda boca abajo al aterrizar: su plano
+// tiene rotation.y=PI DENTRO del grupo (para mirar hacia -Z, ver el loop de
+// faceMeshes mas abajo) y el grupo ENTERO vuelve a rotar y=PI para traerla a
+// camara (targetEulerFor('tail')) -dos giros de 180 grados alrededor del
+// mismo eje Y deberian cancelarse, pero en la practica la cara sale invertida
+// (bug reportado 2026-09-11, "la cara de la cola cae boca abajo", confirmado
+// con una captura real: la etiqueta de texto aparecia arriba en vez de abajo
+// de la cara). Se compensa dibujando ESA cara reflejada 180 grados en el
+// propio canvas 2D -mismo mecanismo que existia antes de pasar a planos
+// individuales por cara, que un comentario anterior daba por innecesario sin
+// haberlo verificado en vivo.
+const FLIP_SLOT = { tail: true }
 
 function makeFaceCanvas(slot) {
   const canvas = document.createElement('canvas')
@@ -90,8 +94,7 @@ function makeFaceCanvas(slot) {
   const K = FACE_TEX / 100
 
   if (FLIP_SLOT[slot]) {
-    // Se queda activo para TODO lo que se dibuje despues en este contexto,
-    // incluido el icono que stampIcon añade mas tarde de forma asincrona.
+    // Se queda activo para TODO lo que se dibuje despues en este contexto.
     ctx.translate(FACE_TEX, FACE_TEX)
     ctx.rotate(Math.PI)
   }
@@ -100,23 +103,26 @@ function makeFaceCanvas(slot) {
   ctx.fillStyle = `#${DIE_COLOR.toString(16).padStart(6, '0')}`
   ctx.fillRect(0, 0, FACE_TEX, FACE_TEX)
 
-  // Vinetas suave beis obscuro detras del icono (solo las ranuras de combate)
-  // para que la parte gane presencia sin pintar ningun marco de color.
+  // Vineta suave beis oscuro (solo ranuras de combate) detras del icono
+  // (stampIcon, mas abajo, la estampa encima despues de forma asincrona):
+  // le da a la cara algo de profundidad y ayuda a que el icono destaque un
+  // poco mas sobre el blanco del dado.
   if (!empty) {
-    const vg = ctx.createRadialGradient(FACE_TEX / 2, K * 40, 0, FACE_TEX / 2, K * 40, K * 48)
-    vg.addColorStop(0, 'rgba(78,60,40,0.20)')
+    const vg = ctx.createRadialGradient(FACE_TEX / 2, K * 42, 0, FACE_TEX / 2, K * 42, K * 54)
+    vg.addColorStop(0, 'rgba(78,60,40,0.42)')
     vg.addColorStop(1, 'rgba(78,60,40,0)')
     ctx.fillStyle = vg
     ctx.fillRect(0, 0, FACE_TEX, FACE_TEX)
   }
 
-  // Ojos/orejas: cavidad vacia, solo un marco punteado oscuro y tenue.
+  // Ojos/orejas: cavidad vacia, solo un marco punteado oscuro y tenue (mismo
+  // rectangulo ampliado que el hueco del icono de las ranuras de combate).
   if (empty) {
     ctx.beginPath()
-    ctx.roundRect(K * 12, K * 14, K * 76, K * 60, K * 10)
-    ctx.lineWidth = K * 2
-    ctx.strokeStyle = 'rgba(61,48,36,0.45)'
-    ctx.setLineDash([K * 5, K * 4])
+    ctx.roundRect(K * 8, K * 8, K * 84, K * 64, K * 10)
+    ctx.lineWidth = K * 2.2
+    ctx.strokeStyle = 'rgba(61,48,36,0.5)'
+    ctx.setLineDash([K * 6, K * 4])
     ctx.stroke()
     ctx.setLineDash([])
   }
@@ -131,46 +137,72 @@ function makeFaceCanvas(slot) {
   return { canvas, ctx, empty }
 }
 
-// YA NO es el mismo filtro que --icon-filter en App.css: alli el icono va
-// sobre un panel OSCURO (buen contraste con brightness casi 1), pero aqui el
-// dado es BLANCO PURO (DIE_COLOR) y ese mismo tono palido se volvia casi
-// invisible -bug real visto con el navegador headless: el icono estaba ahi
-// (no en blanco, se confirmo con un zoom real) pero demasiado claro para
-// leerse. brightness mucho mas bajo -> un bronce oscuro solido, buen
-// contraste sobre blanco, misma forma/relieve real del PNG (solo cambia el
-// tono, igual que antes).
-const ICON_FILTER = 'sepia(1) saturate(2.8) hue-rotate(-8deg) brightness(0.55)'
+// El icono vuelve a hornearse en la textura 3D del cubo, EN LAS 6 CARAS (no
+// solo la ganadora) -pedido 2026-09-11 ("como no se va a poder si lo
+// tenemos hecho arriba en el Lord, inserta tal cual las partes en el
+// modelo 3D del dado"): LordDie3D.jsx hace justo esto (`ctx.fillText` del
+// glifo, horneado en la propia textura, gira con el cubo de verdad sin
+// ningun apaño) y aqui es el mismo principio con una imagen en vez de un
+// caracter. El intento anterior (un <img> plano SUPERPUESTO al canvas 3D)
+// evitaba el lavado de contraste del pipeline 3D, pero a cambio el icono no
+// giraba con el cubo (un <img> no puede seguir una rotacion 3D arbitraria)
+// -approximarlo con CSS durante el balanceo funcionaba, pero seguia sin
+// estar REALMENTE pegado, y el usuario lo noto. Mismo color "tal cual" que
+// el panel de detalle (`ICON_FILTER`, igual que `--icon-filter` en
+// App.css), pero con un TRAZO real por debajo (silueta estampada en anillo,
+// recoloreada a negro solido via `source-atop`) para que el contorno
+// sobreviva al brillo emisivo plano del material de la cara (ver mas abajo,
+// `emissiveIntensity`) -sin el trazo, la imagen se lavaba demasiado contra
+// el blanco del dado (motivo real del primer intento de superponerla).
+const ICON_FILTER = 'sepia(1) saturate(2.6) hue-rotate(-8deg) brightness(0.92)'
+const ICON_OUTLINE_COLOR = '#000000'
 
 function stampIcon(ctx, canvas, url, dim) {
   const img = new Image()
   img.onload = () => {
     // Hueco donde debe caer el icono (mismo rectangulo que dibuja
     // makeFaceCanvas): se encaja DENTRO de el respetando su proporcion real
-    // (los PNG no son todos cuadrados: mouth 114x96, back 108x89...), no
-    // estirado a un cuadrado mas grande que el propio hueco -bug real
-    // reportado: "las partes en las caras del dado se salen y no estan
-    // centradas".
+    // (los PNG no son todos cuadrados: mouth 114x96, back 108x89...).
     const K = FACE_TEX / 100
-    const holeX = K * 6
-    const holeY = K * 11
-    const holeW = K * 88
-    const holeH = K * 64
-    const inset = 0.9
+    const holeX = K * 4
+    const holeY = K * 8
+    const holeW = K * 92
+    const holeH = K * 66
+    const inset = 0.97
     const scale = Math.min((holeW * inset) / img.naturalWidth, (holeH * inset) / img.naturalHeight)
     const dw = img.naturalWidth * scale
     const dh = img.naturalHeight * scale
     const dx = holeX + (holeW - dw) / 2
     const dy = holeY + (holeH - dh) / 2
 
+    // Trazo: la MISMA silueta estampada 12 veces en anillo, desplazada unos
+    // pixeles en cada direccion, en un lienzo aparte con margen -esa mancha
+    // dilatada, recoloreada a negro solido (source-atop), es el contorno.
+    const OUTLINE_PX = Math.max(2, K * 2.4)
+    const pad = Math.ceil(OUTLINE_PX) + 1
+    const iw = Math.max(1, Math.round(dw)) + pad * 2
+    const ih = Math.max(1, Math.round(dh)) + pad * 2
+    const outlineCanvas = document.createElement('canvas')
+    outlineCanvas.width = iw
+    outlineCanvas.height = ih
+    const octx = outlineCanvas.getContext('2d')
+    const RING_DIRS = 12
+    for (let i = 0; i < RING_DIRS; i++) {
+      const a = (i / RING_DIRS) * Math.PI * 2
+      octx.drawImage(img, pad + Math.cos(a) * OUTLINE_PX, pad + Math.sin(a) * OUTLINE_PX, dw, dh)
+    }
+    octx.globalCompositeOperation = 'source-atop'
+    octx.fillStyle = ICON_OUTLINE_COLOR
+    octx.fillRect(0, 0, iw, ih)
+
     ctx.save()
     if (dim) ctx.globalAlpha = 0.4
-    // Sombra suave justo detras de la parte (pedido: "que la imagen gane
-    // protagonismo"): un halo oscuro beis que la despega del fondo sin marco.
-    ctx.shadowColor = 'rgba(52,40,24,0.65)'
-    ctx.shadowBlur = K * 3
-    ctx.shadowOffsetY = K * 1.6
+    // Trazo primero (sin filtro, negro solido), la imagen real encima con
+    // el mismo color "tal cual" que el panel de detalle.
+    ctx.drawImage(outlineCanvas, dx - pad, dy - pad, iw, ih)
     ctx.filter = ICON_FILTER
     ctx.drawImage(img, dx, dy, dw, dh)
+    ctx.filter = 'none'
     ctx.restore()
     const tex = canvas._texture
     if (tex) tex.needsUpdate = true
@@ -243,6 +275,10 @@ export default function Die3D({ slots, rolling, rolledSlot, size = 120 }) {
       // mismo emisivo que el bisel (pedido: "vale pero a la cara tambien, es que
       // sino queda fatal") para que el brillo sea UNIFORME en todo el dado.
       materials[idx] = new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 0.85, emissive: 0xffffff, emissiveIntensity: 0.18 })
+      // Icono horneado en la propia textura de la cara (ver comentario largo
+      // de stampIcon, arriba): TODAS las caras lo llevan, no solo la
+      // ganadora -asi el dado ya se ve "vestido" con sus partes incluso
+      // antes de la primera tirada e idle mostrando cualquier cara.
       const iconUrl = SLOT_ICON_URL[s.slot]
       if (iconUrl) stampIcon(ctx, canvas, iconUrl, empty)
     }

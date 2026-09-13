@@ -4,12 +4,13 @@
 // arriba. Idioma visual: pestañas planas con acento ambar en la activa, en
 // linea con el HUD; sin romper el layout de la partida.
 const TABS = [
-  { key: 'partida', label: 'Partida', icon: '⚔' },
   { key: 'base', label: 'Base', icon: '🏰' },
-  { key: 'recursos', label: 'Recursos', icon: '⚖' },
-  { key: 'investigacion', label: 'Investigacion', icon: '🔬' },
   { key: 'pve', label: 'PVE', icon: '🤖' },
   { key: 'pvp', label: 'PVP', icon: '🏆' },
+  { key: 'evolucion', label: 'Laboratorio', icon: '🔧' },
+  { key: 'partida', label: 'Partida', icon: '⚔' },
+  { key: 'recursos', label: 'Recursos', icon: '⚖' },
+  { key: 'investigacion', label: 'Investigacion', icon: '🔬' },
 ]
 
 export default function MetaNav({ route, compressed }) {
