@@ -8,7 +8,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
+# node_modules anidado que npm crea al correr el "prepare" de un paquete vendido
+vendor/*/node_modules
 dist
+# el "dist" del paquete vendido SÍ se commitea (lo necesita el build remoto)
+!vendor/*/dist/
 dist-ssr
 *.local
 
