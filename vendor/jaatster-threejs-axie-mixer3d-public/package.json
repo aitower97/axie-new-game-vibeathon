@@ -56,7 +56,6 @@
     "build:types": "tsc -p tsconfig.build.json && node scripts/fix-declarations.mjs",
     "build:demo": "vite build --config vite.demo.config.ts",
     "build": "npm run clean && npm run build:lib && npm run build:types && npm run build:demo",
-    "prepare": "npm run build:lib && npm run build:types",
     "typecheck": "tsc --noEmit",
     "test:runtime": "npm run build:lib && node --test test/*.test.mjs",
     "test:content": "node scripts/validate-content.mjs",
@@ -70,13 +69,6 @@
   },
   "peerDependencies": {
     "three": ">=0.178.0 <0.179.0"
-  },
-  "devDependencies": {
-    "@types/node": "26.1.1",
-    "@types/three": "0.178.1",
-    "three": "0.178.0",
-    "typescript": "5.8.3",
-    "vite": "8.1.4"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
