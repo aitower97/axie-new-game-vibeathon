@@ -3,13 +3,45 @@
 // unica region que no se atomiza mas: toca casi todo el estado de partida
 // (unidades, Lords, seleccion, objetivos resaltados), asi que partirla en
 // piezas mas pequenas solo multiplicaria el prop-drilling sin beneficio real.
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Board3D from '../Board3D'
 import EnergyGauge from './EnergyGauge'
 import HelpOverlay from './HelpOverlay'
 import { HpBar, ShieldBar, ClassEmblem, CrownEmblem } from './Emblems'
 import { LORD_STATS } from '../axie'
 import { ROWS, COLS, PLAYER_LORD, ENEMY_LORD, CELL_SIZE, LORD_GLYPH } from '../gameConstants'
+import { getClip, playOnCanvas, preloadVfx, vfxIdFor } from '../originsVfx'
+
+// Reproduce el clip de skill del kit Origins de un impacto sobre el overlay 3D.
+// Defensivo a proposito: si el clip no carga, el golpe sigue igual -es feedback
+// cosmetico, nunca debe romper el combate. El canvas vive en el espacio de
+// layout del overlay (misma rejilla que las celdas) y se transforma con el
+// tablero; se auto-elimina al terminar el clip.
+async function spawnClipVfx(overlay, imp, canvases) {
+  try {
+    const { atlas } = await getClip(vfxIdFor(imp.klass, imp.effect))
+    if (!overlay.isConnected) return
+    const canvas = document.createElement('canvas')
+    canvas.width = COLS * CELL_SIZE
+    canvas.height = ROWS * CELL_SIZE
+    canvas.className = 'vfx-canvas'
+    overlay.appendChild(canvas)
+    canvases.current.push(canvas)
+    const ctx = canvas.getContext('2d')
+    playOnCanvas(
+      atlas,
+      ctx,
+      () => ({
+        attacker: { x: imp.atkC * CELL_SIZE + CELL_SIZE / 2, y: imp.atkR * CELL_SIZE + CELL_SIZE / 2 },
+        defender: { x: imp.c * CELL_SIZE + CELL_SIZE / 2, y: imp.r * CELL_SIZE + CELL_SIZE / 2 },
+        fieldWidth: COLS * CELL_SIZE,
+      }),
+      { onDone: () => canvas.remove() },
+    )
+  } catch (err) {
+    console.warn('VFX skip:', imp.kind, imp.klass, err?.message || err)
+  }
+}
 
 export default function BoardRegion({ board3d, overlay }) {
   const {
@@ -47,6 +79,35 @@ export default function BoardRegion({ board3d, overlay }) {
     const node = unitNodes.current.get(ev.id)
     if (!node) return
     node.style.transform = ev.done ? '' : `translate(${ev.dx}px, ${ev.dy}px) translateX(-50%)`
+  }, [])
+
+  // VFX del Axie Origins Battle Kit (recurso oficial del Vibeathon, 2026-09-14):
+  // cada impacto que llega en `impacts` reproduce el clip de skill del kit de la
+  // clase del golpeador (vfxIdFor) sobre un canvas superpuesto al overlay 3D, en
+  // el MISMO espacio de layout que las celdas (se transforma con el tablero).
+  // El clip trae los eventos OnAttack/OnHit con los nombres reales del mixer -
+  // no se duplican tablas, se consume el propio artwork del kit.
+  const spawnedVfxRef = useRef(new Set())
+  const vfxCanvasesRef = useRef([])
+
+  useEffect(() => { preloadVfx() }, [])
+
+  useEffect(() => {
+    if (!visible) return
+    const overlay = overlayElRef.current
+    if (!overlay) return
+    for (const imp of impacts) {
+      if (spawnedVfxRef.current.has(imp.id)) continue
+      spawnedVfxRef.current.add(imp.id)
+      spawnClipVfx(overlay, imp, vfxCanvasesRef)
+    }
+  }, [impacts, visible])
+
+  // Limpieza al desmontar: quita los canvas VFX vivos (los ya terminados se
+  // auto-eliminan en onDone de playOnCanvas).
+  useEffect(() => () => {
+    for (const canvas of vfxCanvasesRef.current) canvas.remove()
+    vfxCanvasesRef.current = []
   }, [])
 
   return (

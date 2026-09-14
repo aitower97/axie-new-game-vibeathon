@@ -989,9 +989,25 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
   // Impacto visual (REDISENO 2026-09-11, animaciones de combate): celdas que
   // reciben anillo de impacto + sacudida -el golpe primario sobre el objetivo y,
   // si hay contragolpe, el golpe de vuelta sobre el atacante. BoardRegion los
-  // consume como feedback (ring + shake), igual que lineas y floats.
-  const impacts = [{ r: victimPos.r, c: victimPos.c, kind: target.kind === 'lord' ? 'lord' : 'strike' }]
-  if (counterFx) impacts.push({ r: attacker.pos.r, c: attacker.pos.c, kind: 'counter' })
+  // consume como feedback (ring + shake), igual que lineas y floats. AFIADIDO
+  // 2026-09-14: cada impacto lleva ademas la class+efecto del golpeador y la
+  // casilla del atacante, para que el overlay de VFX del Axie Origins Battle
+  // Kit elija el clip y ancle el origen (ver originsVfx.js/vfxIdFor).
+  const strikeKlass = attacker.klass
+  const counterDefenderKlass = state.units.find((u) => u.id === target.id)?.klass
+  const impacts = [
+    {
+      r: victimPos.r, c: victimPos.c, kind: target.kind === 'lord' ? 'lord' : 'strike',
+      klass: strikeKlass, effect: rolled?.effect, atkR: attacker.pos.r, atkC: attacker.pos.c,
+    },
+  ]
+  if (counterFx) {
+    impacts.push({
+      r: attacker.pos.r, c: attacker.pos.c, kind: 'counter',
+      klass: counterDefenderKlass, effect: state.rolls?.[target.id]?.effect,
+      atkR: victimPos.r, atkC: victimPos.c,
+    })
+  }
 
   return { units, playerLordHp, enemyLordHp, lines, victory, floatEvents, counterFx, impacts }
 }
@@ -1205,7 +1221,7 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
             : u
         )
         fxEvents.push({ kind: 'attack', unitId: 'lord-enemy', slot: null })
-        impacts.push({ r: victimPos.r, c: victimPos.c, kind: 'lord' })
+        impacts.push({ r: victimPos.r, c: victimPos.c, kind: 'lord', klass: 'lord', effect: 'lord-attack', atkR: lordPos.r, atkC: lordPos.c })
       }
     }
   } else if (!victory && lordFace.effect === 'lord-shield') {
@@ -2068,7 +2084,7 @@ export default function App() {
       ...(terrainAbsorbed > 0 ? [{ text: `+${terrainAbsorbed} guardia terreno`, variant: 'shield', ...victimPos }] : []),
       ...(marked ? [{ text: '+20 marcado', variant: 'buff', ...victimPos }] : []),
     ])
-    pushImpacts([{ r: victimPos.r, c: victimPos.c, kind: 'lord' }])
+    pushImpacts([{ r: victimPos.r, c: victimPos.c, kind: 'lord', klass: 'lord', effect: 'lord-attack', atkR: lordPos.r, atkC: lordPos.c }])
   }
 
   // Paso 8, caras 2-6: invocacion. Saca la primera unidad de la reserva (regla 15) a

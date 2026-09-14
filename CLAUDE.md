@@ -1,5 +1,45 @@
 # Vínculo de Lunacia — contexto del proyecto
 
+> **VFX de combate reales del Axie Origins Battle Kit + auditoría de recursos
+> del Vibeathon (sesión 2026-09-14):**
+> - **Pedido: "¿y si hacemos que cuando golpeen se vean las habilidades"?** Los
+>   7 clips de skill del kit oficial de Origins (grabados del juego real como
+>   atlases additive en `public/vfx/`) se integran como overlay de combate real:
+>   cada impacto del juego (`applyUnitAttackLocal`, `lordAttack()` y el ataque
+>   enemigo del Lord en `runEnemyTurn` — los 4 puntos donde una unidad o un
+>   Lord golpea) lleva ahora `klass`+`effect` del golpeador y la casilla de
+>   origen (`atkR`/`atkC`); solo el golpe primario y el contragolpe mandan VFX
+>   (los floats/ring/sacudida previos se mantienen, el VFX se suma, no
+>   sustituye). `originsVfx.js` gana `vfxIdFor(class, effect)` (mapea la clase
+>   del Axie al skill del kit: aqua→aquatic_slash, beast→beast_slash, bird y
+>   Lord→beast_slash por no tener clip, plant→plant_bite; los buffs del dado
+>   del Lord ya quedan mapeados a shield/summon_on_cast para cuando los lleven
+>   los impactos) y `getClip`/`preloadVfx` (catálogo + atlas additive cacheados
+>   por id, precarga en silencio al montar el tablero). `BoardRegion.jsx` crea
+>   por impacto un `<canvas class="vfx-canvas">` hijo del overlay 3D —mismo
+>   espacio de layout que las celdas, se transforma con el tablero, con
+>   `plus-lighter`, sin clics— y `playOnCanvas` lo auto-elimina al terminar el
+>   clip. **Bug real encontrado y arreglado al integrarlo**: `getClip` tenía
+>   `.then((atlas) => ({ clip, atlas }))` leyendo `clip` fuera de su scope
+>   (ReferenceError "clip is not defined" en cada carga de clip). Se anidó el
+>   `.then` de atlas dentro del de clip: `loadClip(id).then((clip) =>
+>   AdditiveAtlas.load(clip).then((atlas) => ({ clip, atlas })))`.
+> - **Verificado en vivo** (CDP 9333 directo, hub→Partida libre): recarga con
+>   cero errores de consola; el pipeline aislado carga el atlas en ~740 ms y
+>   cada clip se reproduce entero (~1 s, su duración real); con turnos reales
+>   pasados por clics, un impacto del rival crea `.vfx-canvas` que pinta su
+>   contenido (9.275 px con alfa en el instante muestreado) y se auto-elimina
+>   (~1-1.5 s, traza 0 0 1 1 0). Captura `captura-vfx.png`. `npm run build`
+>   + `npm run lint` limpios (los 3 warnings de lint son de páginas demo
+>   pre-existentes: spine2d-viewer-main/spine-slime-2d-main).
+> - **Nuevo `docs/recursos-vibeathon.md`**: inventario verificado en disco de
+>   los recursos del kit oficial (pack 3D de 5.821 archivos con su
+>   `content-integrity.json`, slot-icons, starters-2d/chimeras-2d, VFX kit,
+>   mixer npm) con estado (integrado/referencia/pendiente) y punto de código,
+>   más los paquetes CC0 de Kenney que cubren lo que el kit no tiene. No
+>   inventa la lista oficial del kit: es el inventario que el repo puede
+>   acreditar.
+
 > **Los enemigos del PvE pasan a ser los starters oficiales de Axie,
 > reconstruidos con las partes 3D del pack (sesión 2026-09-12, quinto
 > bloque):**

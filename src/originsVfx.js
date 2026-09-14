@@ -29,6 +29,59 @@ function frameAt(clip, time) {
   return Math.min(clip.frames - 1, Math.max(0, Math.floor(time * clip.fps)))
 }
 
+// AFIADIDO 2026-09-14 (recurso oficial del Vibeathon, Axie Origins Battle Kit):
+// indice por clase de Axie para elegir el clip de skill del kit. El kit trae 7
+// skills (aquatic/beast x4/bug/plant) + 2 buffs (shield, summon_on_cast); 'bird'
+// no tiene clip propio en el kit, asi que cae al slash generico. El Lord (sin
+// clase) usa el mismo fallback. Los buffs del dado del Lord mapean a sus clips
+// de buff del kit cuando el impacto los lleve (no ocurre hoy: solo se mandan
+// impactos de ataque, pero la fuente queda lista).
+const SKILL_BY_CLASS = {
+  aqua: 'aquatic_slash',
+  beast: 'beast_slash',
+  bird: 'beast_slash',
+  plant: 'plant_bite',
+  bug: 'bug_slash',
+}
+
+export function vfxIdFor(klass, effect) {
+  if (effect === 'duplicate' || effect === 'summon') return 'summon_on_cast'
+  if (effect && /guard|shield/.test(effect)) return 'shield'
+  return SKILL_BY_CLASS[klass] || 'beast_slash'
+}
+
+let catalogPromise = null
+const clipPromiseCache = new Map()
+
+function ensureVfxCatalog() {
+  catalogPromise ||= loadCatalog()
+  return catalogPromise
+}
+
+export function getClip(id) {
+  if (!clipPromiseCache.has(id)) {
+    clipPromiseCache.set(
+      id,
+      loadClip(id)
+        .then((clip) => AdditiveAtlas.load(clip).then((atlas) => ({ clip, atlas })))
+        .catch((err) => {
+          clipPromiseCache.delete(id)
+          throw err
+        }),
+    )
+  }
+  return clipPromiseCache.get(id)
+}
+
+// Precarga en paralelo todos los clips del catalogo (atlas + clip.json) para
+// que la primera vez que un golpe pide un clip no espere a cargar del cache de
+// Vite. Igual que los modelos GLB, no bloquea la partida: falla en silencio.
+export function preloadVfx() {
+  return ensureVfxCatalog()
+    .then((cat) => Promise.allSettled(cat.items.map((it) => getClip(it.id))))
+    .catch(() => {})
+}
+
 function loadImage(url) {
   return new Promise((resolve, reject) => {
     const img = new Image()
