@@ -1,46 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  logo.svg — lockup de marca (sesion 2026-09-14, segunda vuelta de portada):
-  "AXIE INFINITY" (grande, arriba) + "TACTIC DICE" (nombre del juego, en la
-  cinta de abajo, mismo rol que "CLASSIC" en el logo oficial de Axie Infinity
-  Classic). Interpretacion ORIGINAL del estilo de /titulo/ejemplo1.png y
-  ejemplo2.png (letra de burbuja gruesa, contorno solido, relleno a cuadros,
-  zarcillos alrededor, cinta con puntas recortadas para el subtitulo) -no es
-  un calco: cada letra es una forma propia (trazo grueso + relleno mas fino a
-  cuadros encima, redondeado con stroke-linecap/linejoin), no el trazado real
-  de ninguna fuente ni logo oficial. Autocontenido: sin <image>, sin fuentes
-  externas -las letras son <path> vectoriales reutilizados via <use>.
-  Paleta identica a la de CoverScreen.jsx (variables cover ink / cover check
-  a y b, y el rojo de la cinta) para que el archivo y la pantalla se vean
-  como el mismo lenguaje visual.
+  logo.svg — lockup del NOMBRE DEL JUEGO (revisado 2026-09-14, cumplimiento
+  Official Rules del Axie Vibeathon 2026): la version anterior deletreaba
+  "AXIE INFINITY" grande arriba, calcando la composicion de dos niveles de
+  la sub-marca oficial de Sky Mavis (mismo lockup que "Axie Infinity
+  Homeland"/"Axie Infinity Classic"). La Seccion 6 de las Official Rules
+  reserva "Axie names... marks" a Sky Mavis, y el RIGHTS.md del propio kit
+  oficial que usa este proyecto dice explicitamente que las marcas "are not
+  licensed except as needed to identify an approved Axie project" -deletrear
+  el nombre completo del producto de Sky Mavis como si fuera nuestro propio
+  lockup de marca va mas alla de "identificar" el proyecto. La identificacion
+  como proyecto del Vibeathon ya vive aparte, en `.cover-credit`
+  (CoverScreen.jsx: "Prototipo para el Axie Vibeathon 2026, Ronda 1."), asi
+  que no hace falta repetirla aqui.
+  El logo pasa a ser solo el nombre del juego, "TACTIC DICE", en dos lineas
+  -mismas letras <path> ya dibujadas a mano (ver ch-* mas abajo, reutilizadas
+  tal cual de la version anterior, solo reposicionadas/reescaladas), mismo
+  tratamiento visual (contorno grueso, relleno a cuadros, zarcillos
+  decorativos). Sigue autocontenido: sin <image>, sin fuentes externas.
 -->
 <svg
   xmlns="http://www.w3.org/2000/svg"
   xmlns:xlink="http://www.w3.org/1999/xlink"
-  viewBox="0 0 460 260"
+  viewBox="0 0 460 220"
   width="460"
-  height="260"
+  height="220"
   role="img"
   aria-labelledby="logoTitle"
 >
-  <title id="logoTitle">Axie Infinity — Tactic Dice</title>
+  <title id="logoTitle">Tactic Dice</title>
 
   <defs>
     <!-- Letras: esqueleto monolinea en una caja local de 0-100 de alto
          (0 arriba, 100 abajo). Se instancian dos veces por palabra (contorno
-         grueso + relleno a cuadros mas fino) via <use>, así el mismo trazado
-         sirve para las dos pasadas y para las tres palabras a distinta
-         escala sin redibujar nada. -->
+         grueso + relleno a cuadros mas fino) via <use>. -->
     <path id="ch-A" d="M6,100 L37,0 L68,100 M18,62 L56,62" />
     <path id="ch-C" d="M45.7,89.9 L26,92.8 L9.4,77.2 L3,50 L9.4,22.8 L26,7.2 L45.7,10.1" />
     <path id="ch-D" d="M8,5 L8,95 M8,5 L31,11 L47.8,27.5 L54,50 L47.8,72.5 L31,89 L8,95" />
     <path id="ch-E" d="M10,4 L10,96 M10,4 L52,4 M10,50 L44,50 M10,96 L52,96" />
-    <path id="ch-F" d="M10,4 L10,96 M10,4 L48,4 M10,48 L40,48" />
     <path id="ch-I" d="M15,4 L15,96 M5,4 L25,4 M5,96 L25,96" />
-    <path id="ch-N" d="M8,96 L8,4 L52,96 L52,4" />
     <path id="ch-T" d="M6,4 L50,4 M28,4 L28,96" />
-    <path id="ch-X" d="M6,4 L54,96 M54,4 L6,96" />
-    <path id="ch-Y" d="M6,4 L30,50 L54,4 M30,50 L30,96" />
 
     <!-- Zarcillo decorativo, mismo trazado que VineIcon (LineIcons.jsx) para
          que la marca y la UI compartan el mismo doodle -reutilizado dos
@@ -65,65 +64,20 @@
     </style>
   </defs>
 
-  <!-- Zarcillos flanqueando el titulo grande, igual que en CoverScreen.jsx -->
-  <use xlink:href="#vine-shape" color="#ffb0cf" transform="translate(50,6) rotate(-12) scale(2)" />
-  <use xlink:href="#vine-shape" color="#6fcf9a" transform="translate(430,10) scale(-2,2)" />
+  <!-- Zarcillos flanqueando el titulo -->
+  <use xlink:href="#vine-shape" color="#ffb0cf" transform="translate(46,4) rotate(-12) scale(1.8)" />
+  <use xlink:href="#vine-shape" color="#6fcf9a" transform="translate(414,8) scale(-1.8,1.8)" />
 
-  <!-- AXIE (grande, con relieve escalonado: sombra solida detras del
-       contorno+relleno, mismo lenguaje de sombra plana que el resto de la
-       app -nada de blur). -->
-  <g transform="translate(114,20)">
+  <!-- TACTIC (grande, con relieve escalonado). -->
+  <g transform="translate(73,10) scale(0.9)">
     <g class="wd-shadow" transform="translate(0,7)">
-      <use xlink:href="#ch-A" />
-      <use xlink:href="#ch-X" x="80" />
-      <use xlink:href="#ch-I" x="146" />
-      <use xlink:href="#ch-E" x="184" />
+      <use xlink:href="#ch-T" />
+      <use xlink:href="#ch-A" x="62" />
+      <use xlink:href="#ch-C" x="142" />
+      <use xlink:href="#ch-T" x="204" />
+      <use xlink:href="#ch-I" x="266" />
+      <use xlink:href="#ch-C" x="304" />
     </g>
-    <g class="wd-outline">
-      <use xlink:href="#ch-A" />
-      <use xlink:href="#ch-X" x="80" />
-      <use xlink:href="#ch-I" x="146" />
-      <use xlink:href="#ch-E" x="184" />
-    </g>
-    <g class="wd-fill">
-      <use xlink:href="#ch-A" />
-      <use xlink:href="#ch-X" x="80" />
-      <use xlink:href="#ch-I" x="146" />
-      <use xlink:href="#ch-E" x="184" />
-    </g>
-  </g>
-
-  <!-- INFINITY (mas pequeña, pegada debajo de AXIE) -->
-  <g transform="translate(150,140) scale(0.42)">
-    <g class="wd-outline">
-      <use xlink:href="#ch-I" />
-      <use xlink:href="#ch-N" x="38" />
-      <use xlink:href="#ch-F" x="102" />
-      <use xlink:href="#ch-I" x="162" />
-      <use xlink:href="#ch-N" x="200" />
-      <use xlink:href="#ch-I" x="264" />
-      <use xlink:href="#ch-T" x="302" />
-      <use xlink:href="#ch-Y" x="364" />
-    </g>
-    <g class="wd-fill">
-      <use xlink:href="#ch-I" />
-      <use xlink:href="#ch-N" x="38" />
-      <use xlink:href="#ch-F" x="102" />
-      <use xlink:href="#ch-I" x="162" />
-      <use xlink:href="#ch-N" x="200" />
-      <use xlink:href="#ch-I" x="264" />
-      <use xlink:href="#ch-T" x="302" />
-      <use xlink:href="#ch-Y" x="364" />
-    </g>
-  </g>
-
-  <!-- Cinta del nombre del juego, mismo recorte de puntas que
-       .cover-title-ribbon (clip-path polygon) hecho como <path> hexagonal,
-       con su propio escalon de sombra solida debajo. -->
-  <path d="M112,225 L132,200 L348,200 L368,225 L348,250 L132,250 Z" fill="#b23f3f" />
-  <path d="M112,219 L132,194 L348,194 L368,219 L348,244 L132,244 Z" fill="#ff6b6b" />
-
-  <g transform="translate(149,204) scale(0.28)">
     <g class="wd-outline">
       <use xlink:href="#ch-T" />
       <use xlink:href="#ch-A" x="62" />
@@ -141,7 +95,9 @@
       <use xlink:href="#ch-C" x="304" />
     </g>
   </g>
-  <g transform="translate(265.5,204) scale(0.28)">
+
+  <!-- DICE (mas pequeña, pegada debajo de TACTIC). -->
+  <g transform="translate(178,132) scale(0.46)">
     <g class="wd-outline">
       <use xlink:href="#ch-D" />
       <use xlink:href="#ch-I" x="68" />

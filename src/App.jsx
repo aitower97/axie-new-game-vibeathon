@@ -2739,7 +2739,7 @@ export default function App() {
       <>
       <header className="topbar">
         <a className="brand" href="#/portada" title="Volver a la portada">
-          <img src="/brand/logo.svg" alt="Axie Infinity — Tactic Dice" className="brand-logo-img" />
+          <img src="/brand/logo.svg" alt="Tactic Dice" className="brand-logo-img" />
           {!isMeta && <span className="brand-sub">Asedio al mando</span>}
         </a>
 
