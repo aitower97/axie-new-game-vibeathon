@@ -1,0 +1,33 @@
+{
+  "_comment": "Copia el bloque 'hooks' dentro de .claude/settings.json del proyecto cliente (no de este hub). Ajusta la ruta si el hub no está en .claude/agents-hub.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/agents-hub/hooks/check-metadata.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/agents-hub/hooks/check-jsonld.sh",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/agents-hub/hooks/check-build.sh",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  }
+}
