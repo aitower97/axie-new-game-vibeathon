@@ -494,6 +494,13 @@ body {
   color: #ffe9a3;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 210, 90, 0.5);
 }
+/* CRITICO (2026-09-14): anuncio del critico genetico -verde chillón distinto del
+   ambar de la relacion y del rojo del dano, para que no compita con demas. */
+.combat-float.variant-crit {
+  color: #9dff8d;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.95), 0 0 10px rgba(110, 255, 90, 0.65);
+}
 @keyframes combat-float-rise {
   0% { opacity: 0; translate: 0 8px; }
   14% { opacity: 1; translate: 0 0; }
@@ -1546,6 +1553,67 @@ body {
   background: rgba(20, 60, 45, 0.8);
   color: #9ff0c1;
   box-shadow: 0 0 8px rgba(109, 227, 160, 0.4);
+}
+
+/* Fila de "probabilidades" de la preview (2026-09-14): chips de afinidad por
+   clases y critico genetico bajo el contexto del ActionPad, mas el aviso de
+   prorroga cuando la partida PVP entro en muerte subita. */
+.action-pad-odds {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.odds-chip {
+  font-size: 0.64rem;
+  font-weight: 800;
+  padding: 1px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 220, 150, 0.4);
+  background: rgba(70, 50, 20, 0.7);
+  color: #ffe9a3;
+}
+.odds-chip.affinity.up { border-color: rgba(109, 227, 160, 0.7); color: #9ff0c1; }
+.odds-chip.affinity.down { border-color: rgba(255, 130, 110, 0.7); color: #ffa090; }
+.odds-chip.crit {
+  border-color: rgba(157, 255, 141, 0.65);
+  background: rgba(25, 60, 25, 0.75);
+  color: #9dff8d;
+}
+.odds-chip.overtime {
+  border-color: rgba(255, 194, 51, 0.75);
+  background: rgba(80, 50, 10, 0.6);
+  color: #ffd34d;
+}
+
+/* Cronometro del turno PVP (2026-09-14): cuenta atras de 20 s que se ve en la
+   botonera mientras es tu turno; rojo los ultimos 5 segundos. */
+.turn-timer {
+  font-size: 0.66rem;
+  font-weight: 800;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(114, 204, 255, 0.4);
+  background: rgba(10, 40, 62, 0.6);
+  color: #bfe3ff;
+  letter-spacing: 0.03em;
+}
+.turn-timer.danger {
+  border-color: rgba(255, 120, 100, 0.85);
+  background: rgba(90, 30, 25, 0.7);
+  color: #ffb3a6;
+  animation: turn-timer-pulse 1s ease-in-out infinite;
+}
+@keyframes turn-timer-pulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255, 120, 100, 0); }
+  50% { box-shadow: 0 0 10px rgba(255, 120, 100, 0.55); }
+}
+
+/* Pastilla del reloj en prorroga (2026-09-14): el HUD marca MUERTE SUBITA con
+   el reloj de 8+2 rondas. */
+.hud-chip.turn.overtime {
+  border-color: rgba(255, 194, 51, 0.8);
+  color: #ffd34d;
+  box-shadow: 0 0 10px rgba(255, 194, 51, 0.35);
 }
 
 /* Medidor de Energia, esquina SUPERIOR del tablero (pedido 2026-09-11, "mucho

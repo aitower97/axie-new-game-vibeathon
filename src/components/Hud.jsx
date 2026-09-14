@@ -21,18 +21,19 @@ export default function Hud({
   turnCount,
   turnClock,
   activeSide,
+  overtime,
 }) {
-  const round = Math.min(Math.ceil(turnCount / 2), Math.ceil(turnClock / 2))
-  const roundClock = Math.ceil(turnClock / 2)
+  const round = Math.min(Math.ceil(turnCount / 2), Math.ceil(turnClock / 2) + (overtime ? 2 : 0))
+  const roundClock = Math.ceil(turnClock / 2) + (overtime ? 2 : 0)
   return (
     <div className="hud">
       <span className={`hud-chip ally ${activeSide === 'player' ? 'active' : ''}`} title="Tu Lord">
         <strong>👑</strong> {playerLordHp}/{lordMaxHp}
         <em>Res. {reservePlayerCount}</em>
       </span>
-      <span className="hud-chip turn" title="Ronda: un turno tuyo + uno del rival">
-        <strong>⏳</strong> {round}/{roundClock}
-        <em>{activeSide === 'player' ? 'Player' : 'Enemy'}</em>
+      <span className={`hud-chip turn ${overtime ? 'overtime' : ''}`} title="Ronda: un turno tuyo + uno del rival">
+        <strong>{overtime ? '⚡' : '⏳'}</strong> {round}/{roundClock}
+        <em>{overtime ? 'MUERTE SUBITA' : activeSide === 'player' ? 'Player' : 'Enemy'}</em>
       </span>
       <span className={`hud-chip enemy ${activeSide === 'enemy' ? 'active' : ''}`} title="Lord rival">
         <strong>👑</strong> {enemyLordHp}/{lordMaxHp}

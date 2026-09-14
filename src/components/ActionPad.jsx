@@ -32,6 +32,9 @@ export default function ActionPad({
   moveBoostArmed,
   canMoveBoost,
   onToggleMoveBoost,
+  exchangeAffinity,
+  exchangeCrit,
+  overtime,
 }) {
   const isLord = !!lordSelected
   if (!unitLabel && !isLord) return null
@@ -68,6 +71,24 @@ export default function ActionPad({
         <span className="action-pad-context">{context ?? <span>&nbsp;</span>}</span>
         <span className={`energy-chip ${energyBank > 0 ? 'has-energy' : ''}`}>Energia {energyBank}/{energyCap}</span>
       </div>
+
+      {!isLord && (
+        <div className="action-pad-line action-pad-odds">
+          {/* 2026-09-14: afinidad (x1.15/x0.85 por clases) y critico genetico de la
+              preview del objetivo bajo el cursor. Solo se muestran cuando hay un
+              intercambio calculandose (exchangeAffinity/exchangeCrit llegan de
+              describeExchange via App.jsx). */}
+          {exchangeAffinity != null && (
+            <span className={`odds-chip affinity ${exchangeAffinity > 1 ? 'up' : exchangeAffinity < 1 ? 'down' : ''}`}>
+              {exchangeAffinity > 1 ? `Afinidad x${exchangeAffinity}` : exchangeAffinity < 1 ? `Contra x${exchangeAffinity}` : 'Afinidad neutral'}
+            </span>
+          )}
+          {exchangeCrit && exchangeCrit.rate > 0 && (
+            <span className="odds-chip crit">Critico {Math.round(exchangeCrit.rate)}% x{exchangeCrit.dmg}</span>
+          )}
+          {overtime && <span className="odds-chip overtime">Muerte subita: +2 casillas, +50% dano</span>}
+        </div>
+      )}
 
       {!isLord && !isReposition && (
         <div className="action-pad-actions">

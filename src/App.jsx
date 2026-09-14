@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 import { AXIE_SAMPLE_GENES } from './Board3D'
 import { LORD_DESCRIPTORS, ROSTER_DESCRIPTORS, STARTER_INFO } from './axieGeneCatalog'
@@ -105,6 +105,78 @@ const TURN_CLOCK = 16
 const ENERGY_CAP = 5
 const ENERGY_BOOST_COST = 2
 const ENERGY_MOVE_COST = 2
+
+// Jugabilidad 2026-09-14 (tres mecanicas nuevas): afinidad de clases, critico
+// genetico y muerte subita/prorroga PVP. Detalle de decision en CLAUDE.md.
+
+// Afinidad de clases, el triangulo oficial de Axie (Plant/Reptile/Dusk ->
+// Aqua/Bird/Dawn -> Beast/Bug/Mech, x1.15 a favor / x0.85 en contra con
+// redondeo hacia abajo). Aplica a TODOS los ataques entre unidades (especial,
+// basico y contragolpe); contra el Lord es neutro (no tiene clase). Para las
+// 4 clases del MVP1: Beast gana a Plant y pierde con Aqua/Bird; Plant gana a
+// Aqua/Bird y pierde con Beast; Aqua gana a Beast y pierde con Plant; Bird
+// gana a Beast y pierde con Plant. Aqua/Bird y las demas parejas quedan
+// neutras (comparten grupo en el triangulo oficial).
+const AFFINITY_STRONG = 1.15
+const AFFINITY_WEAK = 0.85
+const AFFINITY = {
+  beast: { strong: ['plant'], weak: ['aqua', 'bird'] },
+  plant: { strong: ['aqua', 'bird'], weak: ['beast'] },
+  aqua: { strong: ['beast'], weak: ['plant'] },
+  bird: { strong: ['beast'], weak: ['plant'] },
+}
+function affinityMult(attackerKlass, defenderKlass) {
+  if (!attackerKlass || !defenderKlass) return 1
+  const rel = AFFINITY[attackerKlass]
+  if (!rel) return 1
+  if (rel.strong.includes(defenderKlass)) return AFFINITY_STRONG
+  if (rel.weak.includes(defenderKlass)) return AFFINITY_WEAK
+  return 1
+}
+
+// Critico genetico (pedido 2026-09-14): la prob. y el multiplicador salen de
+// la CLASE del Axie (su genoma) + la PARTE tirada -la cara que ataca aporta
+// +5% de rafaga y +0.25 al multiplicador sobre la base de clase. El golpe
+// basico (sin parte en el golpe) solo lleva la base de clase. Tabla base
+// confirmada con el usuario: Beast 20%/x2.0, Bird 25%/x2.5, Aqua 15%/x3.0,
+// Plant 5%/x1.5. `critFor` es puro (para preview/UI); `rollCrit` decide el
+// impacto real del golpe en el aplicador de dano (nunca en la preview, para
+// que la preview mantenga numeros deterministicos).
+const CLASS_CRIT = {
+  beast: { label: 'Beast', rate: 20, dmg: 2.0 },
+  bird: { label: 'Bird', rate: 25, dmg: 2.5 },
+  aqua: { label: 'Aqua', rate: 15, dmg: 3.0 },
+  plant: { label: 'Plant', rate: 5, dmg: 1.5 },
+}
+function critFor(attacker, rolled) {
+  const base = CLASS_CRIT[attacker?.klass] || { rate: 0, dmg: 1 }
+  const withPart = rolled ? { rate: 5, dmg: 0.25 } : { rate: 0, dmg: 0 }
+  return { rate: base.rate + withPart.rate, dmg: base.dmg + withPart.dmg }
+}
+function rollCrit(attacker, rolled) {
+  const c = critFor(attacker, rolled)
+  return Math.random() * 100 < c.rate ? { ...c, hit: true } : { ...c, hit: false }
+}
+
+// Muerte subita / prorroga (pedido 2026-09-14, SOLO PVP): al agotar las 8
+// rondas, ambos bandos reciben +2 casillas de movimiento y +50% de dano
+// durante 2 rondas extra (~2 min), y despues tiebreak por vida de Lord igual
+// que hoy. `OVERTIME_ACTIVE` es un flag de MODULO como TERRAIN_LAYOUT: los
+// helpers de dano/movimiento puros (computeUnitAttack, computeCounterHit,
+// reachableCells) lo leen sin tener que recibirlo por parametro.
+const OVERTIME_ROUNDS = 2
+const OVERTIME_EXTRA = OVERTIME_ROUNDS * 2 // medios-turno: 2 rondas = 4
+const OVERTIME_MOVE = 2
+const OVERTIME_DMG = 0.5
+let OVERTIME_ACTIVE = false
+function effectiveMove(klass) {
+  return CLASS_STATS[klass].move + (OVERTIME_ACTIVE ? OVERTIME_MOVE : 0)
+}
+// Reloj de turno PVP: 20 segundos por medios-turno del jugador en las arenas
+// PVP (batallas de ~5 min). Al acabarse se tiran los dados automaticamente (si
+// aun no) y se pasa el turno sin mover/atacar -decision confirmada con el
+// usuario. En PVE no hay reloj.
+const PVP_TURN_MS = 20000
 
 // Aqua entra en la composicion de prueba para poder verificar la regla del agua
 // ("el Aqua entra en el agua y los demas no", comprobable del paso 4). El equipo
@@ -277,7 +349,7 @@ function cellPassable(r, c, klass) {
 // control: al entrar en una casilla adyacente a un enemigo vivo, esa rama del
 // recorrido se para ahi (regla 6, seccion 5). moveBudget parametriza el presupuesto de
 // movimiento: por defecto el del chasis, pero Shrimp (Impulso) usa el suyo propio (2).
-function reachableCells(unit, units, lords, moveBudget = CLASS_STATS[unit.klass].move) {
+function reachableCells(unit, units, lords, moveBudget = effectiveMove(unit.klass)) {
   const enemyAdjacentTo = (r, c) => {
     const enemyLord = unit.side === 'player' ? lords.enemy : lords.player
     if (adjacent({ r, c }, enemyLord)) return true
@@ -573,7 +645,15 @@ function rollSideDice(units, side, lords) {
 // Calculo puro del dano de un ataque de unidad (no del Lord): mismas reglas que la
 // funcion attack() del componente (perforante, remate de Imp, combos, autoefectos),
 // pero sin tocar el estado de React -asi la puede usar tambien el resolutor de IA.
-function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyLordHp) {
+//
+// Orden de aplicacion de los multiplicadores (2026-09-14): base -> prorroga
+// (+50%, ambos bandos) -> afinidad (x1.15/x0.85, solo contra unidades) ->
+// critico (solo si `critMult` se pasa, nunca en la preview) -> flats de
+// Marca/Templanza/Energia (se SUMAN despues, limpias: un buff de +20 es +20
+// siempre, los multiplicadores solo hinchen el golpe de la parte en si).
+// `critMult` se pasa desde applyUnitAttackLocal con el resultado de rollCrit;
+// describeExchange lo omite y deja la preview determinista en el dano base.
+function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyLordHp, critMult = 1) {
   let damage
   let actionName
   let ignoresShield = false
@@ -610,6 +690,13 @@ function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyL
         break
     }
   }
+  // 2026-09-14: multiplicadores sobre el dano del golpe. Prórroga PVP (+50% a
+  // ambos bandos), afinidad por clases (triangulo oficial) y critico genetico.
+  damage = Math.floor(damage * (OVERTIME_ACTIVE ? 1 + OVERTIME_DMG : 1))
+  const defenderKlass = target.kind === 'unit' ? units.find((u) => u.id === target.id)?.klass : null
+  const affinity = affinityMult(attacker.klass, defenderKlass)
+  damage = Math.floor(damage * affinity)
+  if (critMult !== 1) damage = Math.floor(damage * critMult)
   // Marca del Lord: el PROXIMO ataque que impacte a una unidad marcada hace
   // +20, sea de quien sea. Se consume aqui (el que aplica el resultado
   // limpia `marked`), no importa si mata o no al objetivo.
@@ -624,7 +711,7 @@ function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyL
   // esta unidad. Se consume al impactar igual que marked/buffed.
   const energyHit = !!attacker.energyBoost
   if (energyHit) damage += 10
-  return { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit }
+  return { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit, affinity }
 }
 
 // --- Fase A (docs/combate-dinamico-dado.md) ---
@@ -721,7 +808,13 @@ function canCounterWith(face) {
 // Tampoco arrastra efectos propios del atacante (sin combos, sin escudo-auto
 // de Serious, sin auto-dano de Risky Fish): la respuesta es un golpe, no una
 // repeticion de la accion.
-function computeCounterHit(defender, rolled, attacker) {
+//
+// 2026-09-14: la vuelta si es "un golpe de unidad" como cualquier otro, asi
+// que lleva prorroga (+50% ambos bandos), afinidad (desde el punto de vista
+// del DEFENSOR que contesta contra el atacante original) y critico genetico
+// del que contesta (critMult, pasado por applyCounterLocal -nunca por la
+// preview, misma regla que computeUnitAttack).
+function computeCounterHit(defender, rolled, attacker, critMult = 1) {
   if (!defender || !defender.alive) return null
   if (defender.broken) return null
   if (!canCounterWith(rolled)) return null
@@ -734,6 +827,12 @@ function computeCounterHit(defender, rolled, attacker) {
   let ignoresShield = false
   if (rolled.effect === 'pierce' || rolled.effect === 'pierce-execute') ignoresShield = true
   if (rolled.effect === 'pierce-execute' && attacker.hp < attacker.maxHp / 2) damage += 10
+  // Multiplicadores (prorroga, afinidad y critico) antes de las flats, mismo
+  // orden que computeUnitAttack.
+  damage = Math.floor(damage * (OVERTIME_ACTIVE ? 1 + OVERTIME_DMG : 1))
+  const affinity = affinityMult(defender.klass, attacker.klass)
+  damage = Math.floor(damage * affinity)
+  if (critMult !== 1) damage = Math.floor(damage * critMult)
   // Marca y Templanza se consumen igual que en cualquier ataque (mismas reglas
   // marked/buffed que computeUnitAttack): el contraatacante las lee y el
   // aplicador las limpia.
@@ -749,7 +848,7 @@ function computeCounterHit(defender, rolled, attacker) {
     dealt = damage - absorbed
   }
   const killed = attacker.hp - dealt <= 0
-  return { name: rolled.name, damage, ignoresShield, absorbed, dealt, killed, wasMarked, wasBuffed, terrainBonus }
+  return { name: rolled.name, damage, affinity, ignoresShield, absorbed, dealt, killed, wasMarked, wasBuffed, terrainBonus }
 }
 
 // Aplica el contragolpe sobre un estado local (units + hps por lado), mutacion
@@ -758,13 +857,24 @@ function computeCounterHit(defender, rolled, attacker) {
 function applyCounterLocal(state, defender, rolled, attackerId) {
   const attacker = state.units.find((u) => u.id === attackerId)
   if (!attacker || !attacker.alive) return { ...state, lines: [], floatEvents: [] }
-  const hit = computeCounterHit(defender, rolled, attacker)
+  // Critico genetico de la vuelta (2026-09-14): el defensor que contesta es el
+  // golpeador, asi que su cara/parte tambien puede criticar. Tirada solo aqui,
+  // nunca en la preview (misma regla que applyUnitAttackLocal).
+  const crit = rollCrit(defender, rolled)
+  const hit = computeCounterHit(defender, rolled, attacker, crit.hit ? crit.dmg : 1)
   if (!hit) return { ...state, lines: [], floatEvents: [] }
   const lines = []
   const floatEvents = []
   lines.push(`${labelOf(defender)} contesta con ${rolled.name} sobre ${labelOf(attacker)} (-${hit.dealt}).`)
   floatEvents.push({ text: rolled.name, variant: 'cast', ...defender.pos })
   floatEvents.push({ text: `-${hit.dealt}`, variant: 'damage', ...attacker.pos })
+  if (crit.hit) {
+    lines.push(`¡CRITICO! ${crit.dmg.toFixed(2).replace('.', ',')}x.`)
+    floatEvents.push({ text: `CRITICO x${crit.dmg}`, variant: 'crit', ...defender.pos })
+  }
+  if (hit.affinity !== 1) {
+    floatEvents.push({ text: hit.affinity > 1 ? 'Afinidad +' : 'Afinidad -', variant: 'relation', ...defender.pos })
+  }
   if (hit.terrainBonus > 0 && hit.absorbed > 0) {
     lines.push(`El terreno de ${labelOf(attacker)} absorbe ${hit.terrainBonus} de la vuelta.`)
     floatEvents.push({ text: `+${hit.terrainBonus} guardia terreno`, variant: 'shield', ...attacker.pos })
@@ -855,6 +965,12 @@ function describeExchange(attacker, rolled, target, units, playerLordHp, enemyLo
     killed,
     relation,
     broke,
+    // 2026-09-14: preview de afinidad y critico. La afinidad YA esta en el
+    // dano (computeUnitAttack la aplico); el critico solo se MUESTRA como
+    // probabilidad/multiplicador (la tirada real la decide rollCrit en el
+    // aplicador de dano, nunca aqui).
+    affinity: primary.affinity,
+    crit: critFor(attacker, rolled),
     defenderFace: victim ? (rolls?.[target.id] ?? null) : null,
     counter,
   }
@@ -864,8 +980,12 @@ function describeExchange(attacker, rolled, target, units, playerLordHp, enemyLo
 // y devuelve el siguiente estado mas las lineas de log, sin usar setState -para
 // poder encadenar varias acciones de la IA en un solo turno antes de confirmar nada.
 function applyUnitAttackLocal(state, attacker, rolled, target) {
-  const { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit } = computeUnitAttack(
-    attacker, rolled, target, state.units, state.playerLordHp, state.enemyLordHp
+  // Critico genetico (2026-09-14): se tira AQUI, en el aplicador de dano real,
+  // nunca en la preview -describeExchange (que comparte computeUnitAttack) pide
+  // el gusto con critMult=1 para que la preview mantenga numeros deterministas.
+  const crit = rollCrit(attacker, rolled)
+  const { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit, affinity } = computeUnitAttack(
+    attacker, rolled, target, state.units, state.playerLordHp, state.enemyLordHp, crit.hit ? crit.dmg : 1
   )
   const lines = []
   // Floats de combate generados por ESTE ataque (los consume runEnemyTurn para
@@ -880,6 +1000,16 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
   // unidad en silencio: la preview/asistencia del rival nunca llegaba a aplicar).
   const relation = relationFor(rolled, target, state.rolls)
   floatEvents.push({ text: actionName === 'un golpe basico' ? `Ataque basico (${CLASS_STATS[attacker.klass].label})` : actionName, variant: 'cast', ...castPos })
+  // 2026-09-14: afinidad por clases y critico, ambos solo contra unidades (al
+  // Lord no hay afinidad; el critico es del golpeador y aplica a cualquier
+  // objetivo, pero se anuncia igual sobre el atacante).
+  if (affinity !== 1 && target.kind === 'unit') {
+    floatEvents.push({ text: affinity > 1 ? 'Afinidad +' : 'Afinidad -', variant: 'relation', ...castPos })
+  }
+  if (crit.hit) {
+    lines.push(`¡CRITICO! ${crit.dmg.toFixed(2).replace('.', ',')}x.`)
+    floatEvents.push({ text: `CRITICO x${crit.dmg}`, variant: 'crit', ...castPos })
+  }
   // A1: si la relacion de este golpe es ventajosa o desventajosa, se anuncia
   // sobre el atacante -es la pieza que hace visible el PORQUE del triangulo
   // Perforar > Guardar > Golpear> Perforar (REDISENO 2026-09-11, animaciones:
@@ -1594,6 +1724,22 @@ export default function App() {
   // Token de cancelacion: reiniciar la partida a mitad de la secuencia del
   // rival aborta la cola de pasos pendientes (mismo patron que rollPendingRef).
   const enemyTurnTokenRef = useRef(0)
+  // Referencia a las versiones MAS RECIENTES de passTurn/rollDice (2026-09-14):
+  // el cronometro PVP las llama desde un setInterval que se crea una sola vez
+  // por turno; si capturara las funciones directamente, ejecutaria el auto-pase
+  // con estado obsoleto (una partida que cambio durante los 20 s de espera).
+  const autoPassRef = useRef(null)
+  // MUERTE SUBITA / prorroga PVP (2026-09-14): estado de UI (banner + HUD) que
+  // refleja el flag de modulo OVERTIME_ACTIVE -se activa al pasar de la ronda 8
+  // en partidas pvp y apaga al reiniciar. El flag real vive fuera de React para
+  // que effectiveMove() y el daño lo lean sin re-render (mismo patron que
+  // TERRAIN_LAYOUT).
+  const [overtime, setOvertime] = useState(false)
+  // Cronometro del turno del jugador en PVP (20 s). turnSecondsLeft cuenta en
+  // segundos para la UI; el efecto de App.jsx lo cuenta y, al llegar a 0,
+  // tira los dados si no se habia tirado y pasa el turno (sin mover/atacar).
+  const [turnSecondsLeft, setTurnSecondsLeft] = useState(PVP_TURN_MS / 1000)
+  const turnSecondsRef = useRef(PVP_TURN_MS / 1000)
   const [log, setLog] = useState(['Empieza el asedio. Tira los dados, Player.'])
 
   const lords = { player: PLAYER_LORD, enemy: ENEMY_LORD }
@@ -1614,7 +1760,7 @@ export default function App() {
   // no en su lugar.
   const moveCells =
     selectedUnit && selectedRoll && !selectedUnit.moved
-      ? reachableCells(selectedUnit, units, lords, CLASS_STATS[selectedUnit.klass].move + (moveBoostArmed ? 1 : 0))
+      ? reachableCells(selectedUnit, units, lords, effectiveMove(selectedUnit.klass) + (moveBoostArmed ? 1 : 0))
       : []
 
   const lordSelected = selected === 'lord'
@@ -1705,7 +1851,11 @@ export default function App() {
     } else {
       items.push('Sin vuelta.')
     }
-    return items
+    // 2026-09-14: la preview ahora tambien entrega la afinidad ya aplicada y la
+    // estadistica de critico (probabilidad y multiplicador de la clase + parte
+    // del golpeador), para que el ActionPad las muestre como chips. La tirada
+    // real del critico NO vive aqui (la decide rollCrit en el aplicador).
+    return { lines: items, affinity: ex.affinity, crit: ex.crit }
   }, [hoverCell, selectedUnit, selectedRoll, effectiveMode, targets, units, playerLordHp, enemyLordHp, rolls])
 
   // Axies 3D reales del tablero (Board3D.jsx): todo el roster vivo + los dos
@@ -1875,7 +2025,7 @@ export default function App() {
   function unitCanAct(u) {
     const roll = rolls[u.id]
     if (!roll) return false
-    if (!u.moved && reachableCells(u, units, lords, CLASS_STATS[u.klass].move).length > 0) return true
+    if (!u.moved && reachableCells(u, units, lords, effectiveMove(u.klass)).length > 0) return true
     if (GUARD_EFFECTS.has(roll.effect)) {
       // Cara de guardia: su efecto (escudo/empuje/cura) ya se aplico al tirar.
       // Si ya se movio, solo le queda el golpe basico si tiene alguien al alcance.
@@ -2028,7 +2178,10 @@ export default function App() {
   // Paso 8, cara 1: ataque del Lord. Mismo dano fijo del chasis del Lord, misma
   // absorcion de escudo que un ataque basico normal; el Lord no tiene partes.
   function lordAttack(target) {
-    let damage = LORD_STATS.atk
+    // Prórroga PVP (2026-09-14): el Lord es parte del equipo, asi que sus
+    // tiros tambien suben +50% en muerte subita. Sin afinidad ni critico: el
+    // Lord no tiene clase ni partes.
+    let damage = Math.floor(LORD_STATS.atk * (OVERTIME_ACTIVE ? 1 + OVERTIME_DMG : 1))
     const lines = []
     // Igual que en attack(): hoisted para los floats fuera de los bloques.
     let victim = null
@@ -2284,10 +2437,27 @@ export default function App() {
     if (status !== 'playing' || enemyTurnRunning) return
     const token = enemyTurnTokenRef.current
     let nextTurn = turnCount + 1
-    if (nextTurn > TURN_CLOCK) {
+    // Muerte subita / prorroga (2026-09-14, SOLO PVP): la primera vez que el
+    // reloj supera las 8 rondas (turnCount pasa de las 16 medias-turno) se
+    // activa AQUI, antes del corte: en PVP se amplia el techo a 8+2 rondas en
+    // vez de saltar al tiebreak, y en PVE el corte de abajo tira del reloj de
+    // siempre (mismo comportamiento que antes del cambio).
+    if (!OVERTIME_ACTIVE && nextTurn > TURN_CLOCK && matchInfo.mode === 'pvp') {
+      OVERTIME_ACTIVE = true
+      setOvertime(true)
+      pushLog('MUERTE SUBITA (PVP): prorroga de 2 rondas. Ambos bandos ganan +2 casillas de movimiento y +50% de dano.')
+      // Bang visual sobre los dos Lords; vfxIdFor('lord','overtime') cae al
+      // slash generico del kit, valido para el anuncio.
+      pushImpacts([
+        { r: PLAYER_LORD.r, c: PLAYER_LORD.c, kind: 'lord', klass: 'lord', effect: 'overtime' },
+        { r: ENEMY_LORD.r, c: ENEMY_LORD.c, kind: 'lord', klass: 'lord', effect: 'overtime' },
+      ])
+    }
+    const clockCap = TURN_CLOCK + (OVERTIME_ACTIVE ? OVERTIME_EXTRA : 0)
+    if (nextTurn > clockCap) {
       endOfMatch(clockTiebreak(playerLordHp, enemyLordHp))
       setTurnCount(nextTurn)
-      pushLog(`Se acaba el reloj de ${TURN_CLOCK / 2} rondas.`)
+      pushLog(`Se acaba el reloj de ${clockCap / 2} rondas.`)
       return
     }
 
@@ -2356,10 +2526,11 @@ export default function App() {
     }
 
     nextTurn += 1
-    if (nextTurn > TURN_CLOCK) {
+    const postCap = TURN_CLOCK + (OVERTIME_ACTIVE ? OVERTIME_EXTRA : 0)
+    if (nextTurn > postCap) {
       endOfMatch(clockTiebreak(result.playerLordHp, result.enemyLordHp))
       setTurnCount(nextTurn)
-      pushLog(`Se acaba el reloj de ${TURN_CLOCK / 2} rondas.`)
+      pushLog(`Se acaba el reloj de ${postCap / 2} rondas.`)
       return
     }
     setUnits((us) => us.map((u) => (u.side === 'player' ? { ...u, acted: false } : u)))
@@ -2371,6 +2542,10 @@ export default function App() {
     setBoostArmed(false)
     setMoveBoostArmed(false)
     setTurnCount(nextTurn)
+    // El turno del jugador empieza de nuevo: el reloj PVP vuelve a los 20 s
+    // completos (lo consume el effect del cronometro de arriba).
+    turnSecondsRef.current = PVP_TURN_MS / 1000
+    setTurnSecondsLeft(PVP_TURN_MS / 1000)
     pushLog(`Turno ${nextTurn}. Tira los dados, Player.`)
   }
 
@@ -2378,6 +2553,36 @@ export default function App() {
   // rival se queda ahi para que Die3D pueda aterrizar en su cara), asi que
   // "ya ha tirado" es solo sobre el bando activo.
   const rolled = units.some((u) => u.side === activeSide && u.alive && rolls[u.id])
+
+  // Enlaza las funciones vivas al ref del cronometro cada render: el interval
+  // siempre llama a las ultimas versiones (ver autoPassRef arriba).
+  autoPassRef.current = { passTurn, rollDice }
+
+  // Cronometro PVP (2026-09-14): 20 s de reloj por turno del jugador en las
+  // arenas. Solo corre mientras es el turno jugable del jugador (no durante la
+  // reproduccion en vivo del turno rival ni fuera de partida). Al agotarse se
+  // tiran los dados si no se habia tirado y se pasa el turno sin mover/atacar.
+  // El conteo vive en turnSecondsRef (no re-render por segundo); el effect se
+  // recrea en cada cambio de estado relevante y limpia el interval al pasar el
+  // turno (enemyTurnRunning se vuelve true y el countdown se detiene).
+  useEffect(() => {
+    if (status !== 'playing' || matchInfo.mode !== 'pvp' || enemyTurnRunning) return
+    const id = window.setInterval(() => {
+      if (turnSecondsRef.current <= 0) return
+      turnSecondsRef.current -= 1
+      setTurnSecondsLeft(turnSecondsRef.current)
+      if (turnSecondsRef.current === 0) {
+        turnSecondsRef.current = PVP_TURN_MS / 1000
+        setTurnSecondsLeft(turnSecondsRef.current)
+        if (!rolled) {
+          pushLog('Tiempo agotado: tirada automatica.')
+          autoPassRef.current.rollDice()
+        }
+        autoPassRef.current.passTurn()
+      }
+    }, 1000)
+    return () => window.clearInterval(id)
+  }, [status, matchInfo.mode, enemyTurnRunning, rolled, turnCount])
 
   // Nueva partida desde cero (boton "Reiniciar partida", y cada "Jugar" desde el
   // hub/mapa): resetea todo el estado de combate. cfg (matchConfig) decide el
@@ -2427,6 +2632,12 @@ export default function App() {
     setEnemyEnergyBank(0)
     setBoostArmed(false)
     setMoveBoostArmed(false)
+    // Muerte subita (PVP): el flag de modulo y la UI vuelven a apagarse en cada
+    // partida nueva; el reloj PVP vuelve a los 20 s de inicio.
+    OVERTIME_ACTIVE = false
+    setOvertime(false)
+    turnSecondsRef.current = PVP_TURN_MS / 1000
+    setTurnSecondsLeft(PVP_TURN_MS / 1000)
     endOfMatchRef.current = false
     setStatus('playing')
     setLog([`Empieza la batalla: ${c.blurb || 'Escaramuza en el centro de Lunacia.'} Tira los dados, Player.`])
@@ -2462,6 +2673,7 @@ export default function App() {
           turnCount={turnCount}
           turnClock={TURN_CLOCK}
           activeSide={activeSide}
+          overtime={overtime}
         />
         )}
 
@@ -2475,6 +2687,10 @@ export default function App() {
             rolling={rolling}
             busy={enemyTurnRunning}
             activeSide={activeSide}
+            // 2026-09-14: cronometro PVP solo visible en arenas mientras es el
+            // turno jugable del jugador (el rival reproduce su secuencia en
+            // vivo, no consume segundo del reloj).
+            timer={matchInfo.mode === 'pvp' && status === 'playing' && !enemyTurnRunning ? turnSecondsLeft : null}
             onRoll={rollDice}
             onPass={passTurn}
             onReset={resetMatch}
@@ -2555,7 +2771,7 @@ export default function App() {
           energyBank,
           enemyEnergyBank,
           energyCap: ENERGY_CAP,
-          exchangeInfo: exchangeInfo && hoverCell ? { cell: hoverCell, lines: exchangeInfo } : null,
+          exchangeInfo: exchangeInfo && hoverCell ? { cell: hoverCell, lines: exchangeInfo.lines, affinity: exchangeInfo.affinity, crit: exchangeInfo.crit } : null,
           onCellClick: cellClick,
           onCellHover: setHoverCell,
         }}
@@ -2583,6 +2799,9 @@ export default function App() {
         moveBoostArmed={moveBoostArmed}
         canMoveBoost={status === 'playing' && energyBank >= ENERGY_MOVE_COST && !!selectedUnit && !!selectedRoll && !selectedUnit.moved && selectedUnit.side === activeSide && !selectedUnit.acted}
         onToggleMoveBoost={() => setMoveBoostArmed((a) => !a)}
+        exchangeAffinity={exchangeInfo && hoverCell ? exchangeInfo.affinity : null}
+        exchangeCrit={exchangeInfo && hoverCell ? exchangeInfo.crit : null}
+        overtime={overtime}
       />
       </div>
       )}
