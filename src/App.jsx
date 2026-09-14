@@ -171,6 +171,7 @@ const OVERTIME_ROUNDS = 2
 const OVERTIME_EXTRA = OVERTIME_ROUNDS * 2 // medios-turno: 2 rondas = 4
 const OVERTIME_MOVE = 2
 const OVERTIME_DMG = 0.5
+const OVERTIME_DRAIN = 15 // HP que ambos Lords pierden por ronda de prorroga
 let OVERTIME_ACTIVE = false
 function effectiveMove(klass) {
   return CLASS_STATS[klass].move + (OVERTIME_ACTIVE ? OVERTIME_MOVE : 0)
@@ -1554,6 +1555,22 @@ export default function App() {
     navigate('partida')
   }
   const goPlay = () => startMatch(MATCH_DEFAULT)
+  // PVP "Emparejar" (fix 2026-09-14): el boton de la sala abierta lanzaba una
+  // partida PVE (goPlay -> MATCH_DEFAULT.mode:'pve') y el usuario nunca veia el
+  // timer de turno ni la prorroga en el PVP. Ahora construye una config PVP
+  // real (modo pvp + rival normal, sin starters) con el mismo rival/equipo del
+  // PVE clasico.
+  const goPlayPvp = () => startMatch({
+    zone: 'pvp-libre',
+    mode: 'pvp',
+    enemyTitle: 'Rival del PVP',
+    blurb: 'Emparejamiento local contra la IA (maqueta de combate clasificado).',
+    enemyClasses: [...PLAYER_TEAM],
+    starterEnemy: false,
+    hpScale: 1,
+    reward: 2,
+    terrain: TEST_TERRAIN,
+  })
   // Fin de partida centralizado: la recompensa de esencia y el desbloqueo de
   // regiones del hub/mapa se conceden UNA vez por partida (guarda de ref -la
   // victoria solo debe liquidarse una vez aunque el estado toque setStatus por
@@ -1611,7 +1628,7 @@ export default function App() {
         onPlayFree={goPlay}
       />
     ),
-    pvp: <PvpScreen onPlay={(cfg) => startMatch(cfg || MATCH_DEFAULT)} onPlayFree={goPlay} />,
+    pvp: <PvpScreen onPlay={(cfg) => startMatch(cfg || MATCH_DEFAULT)} onPlayFree={goPlayPvp} />,
   }
   const [reserve, setReserve] = useState(() => ({
     player: makeInitialReserve('player', PLAYER_TEAM, { starterEnemy: false }),
@@ -2532,10 +2549,47 @@ export default function App() {
       return
     }
 
+    // Desgaste de la prorroga (2026-09-14, pedido del usuario: "muerte por
+    // descuento de vida"): cada ronda de prorroga, ambos Lords pierden vida
+    // tras terminar el turno del rival. Es lo que hace que la prorroga no
+    // termine en empate pasivo: si nadie remata, el RELOJ se come los Lords.
+    // Se aplica sobre las vidas FINALES del turno (result.*), despues de que
+    // la IA haya actuado, para no pisar su dano con un setState posterior.
+    let drainPHp = result.playerLordHp
+    let drainEHp = result.enemyLordHp
+    if (OVERTIME_ACTIVE) {
+      drainPHp = result.playerLordHp - OVERTIME_DRAIN
+      drainEHp = result.enemyLordHp - OVERTIME_DRAIN
+      setPlayerLordHp(drainPHp)
+      setEnemyLordHp(drainEHp)
+      if (drainPHp <= 0 && drainEHp <= 0) {
+        endOfMatch('enemy-won') // empate exacto: lo gana el defensor (Regla 5)
+        setTurnCount(nextTurn)
+        pushLog('MUERTE SUBITA: ambos Lords se desangran a la vez. Gana el defensor (Rival).')
+        return
+      }
+      if (drainPHp <= 0) {
+        endOfMatch('enemy-won')
+        setTurnCount(nextTurn)
+        pushLog('MUERTE SUBITA: tu Lord cae por agotamiento de la prorroga.')
+        return
+      }
+      if (drainEHp <= 0) {
+        endOfMatch('player-won')
+        setTurnCount(nextTurn)
+        pushLog('MUERTE SUBITA: el Lord rival cae por agotamiento de la prorroga.')
+        return
+      }
+      pushLog(`Prorroga: ambos Lords pierden ${OVERTIME_DRAIN} de vida por desgaste (tu Lord ${drainPHp} / rival ${drainEHp}).`)
+    }
+
     nextTurn += 1
     const postCap = TURN_CLOCK + (OVERTIME_ACTIVE ? OVERTIME_EXTRA : 0)
     if (nextTurn > postCap) {
-      endOfMatch(clockTiebreak(result.playerLordHp, result.enemyLordHp))
+      endOfMatch(clockTiebreak(
+        OVERTIME_ACTIVE ? drainPHp : result.playerLordHp,
+        OVERTIME_ACTIVE ? drainEHp : result.enemyLordHp,
+      ))
       setTurnCount(nextTurn)
       pushLog(`Se acaba el reloj de ${postCap / 2} rondas.`)
       return
@@ -2801,6 +2855,14 @@ export default function App() {
           exchangeInfo: exchangeInfo && hoverCell ? { cell: hoverCell, lines: exchangeInfo.lines, affinity: exchangeInfo.affinity, crit: exchangeInfo.crit } : null,
           onCellClick: cellClick,
           onCellHover: setHoverCell,
+          // 2026-09-14: el recuerdo de turno y el timer viven TAMBIEN sobre el
+          // canvas (el chip del topbar se pierde jugando); la prorroga PVP se
+          // anuncia en el mismo banner para que se vea sin mirar el HUD.
+          status,
+          rolled,
+          rolling,
+          overtime,
+          timer: matchInfo.mode === 'pvp' && status === 'playing' && !enemyTurnRunning ? turnSecondsLeft : null,
         }}
       />
 
