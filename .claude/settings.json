@@ -1,5 +1,5 @@
 {
-  "_comment": "Copia el bloque 'hooks' dentro de .claude/settings.json del proyecto cliente (no de este hub). Ajusta la ruta si el hub no está en .claude/agents-hub.",
+  "_comment": "Hooks del hub-agentes-app (.claude/agents-hub): check-rls.sh es no-op sin migraciones de Supabase (este proyecto no usa Supabase), check-build.sh corre 'npm run build' al terminar un subagente.",
   "hooks": {
     "PostToolUse": [
       {
@@ -7,12 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/agents-hub/hooks/check-metadata.sh",
-            "timeout": 15
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/agents-hub/hooks/check-jsonld.sh",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/agents-hub/hooks/check-rls.sh",
             "timeout": 15
           }
         ]

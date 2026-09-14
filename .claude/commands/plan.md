@@ -1,48 +1,45 @@
-# /plan — Fase 2: Plan técnico + estrategia SEO (Technical Requirement Document)
+# /plan — Fase 2: Plan técnico (Technical Requirement Document)
 
-A partir de `spec.md`, el coordinador traduce el QUÉ en un CÓMO técnico
-Y en una estrategia de posicionamiento concreta. Se guarda en `plan.md`
-— cumple el rol de **Technical Requirement Document (TRD)**. En este
-hub, la parte SEO del plan NO es opcional.
+A partir de `spec.md`, el coordinador traduce el QUÉ en un CÓMO técnico,
+concreto para el stack de este hub (React + Tailwind + Supabase). Se
+guarda en `plan.md` — cumple el rol de **Technical Requirement Document
+(TRD)**.
 
 ## Qué captura `plan.md`
 
 ```markdown
 # Plan técnico: <nombre del proyecto>
 
-## Arquitectura de páginas (sitemap conceptual)
-<jerarquía de URLs: /, /servicios, /servicios/x, /blog, /blog/slug...>
+## Schema de datos (borrador)
+<tablas, columnas clave, relaciones — esto lo refinará backend-supabase>
 
-## Palabras clave objetivo por página
-<tabla: página → keyword principal → keywords secundarias>
+## Vistas/rutas principales
+<lista de pantallas, qué subagente frontend construirá cada una>
 
-## Estrategia de renderizado
-<qué páginas son estáticas (SSG), cuáles necesitan ISR/revalidación,
-cuáles SSR puro — depende de si el contenido cambia>
+## Auth
+<qué proveedor, qué roles>
 
-## Datos estructurados necesarios (schema.org)
-<ej: Organization, LocalBusiness, Article, Product, FAQPage...>
-
-## Fuente de datos
-<CMS headless, Supabase, MDX en el repo, mezcla>
+## Dependencias entre piezas
+<qué debe existir antes de qué — ej: schema antes de integration>
 
 ## Modo
 <POC | Producción>
 ```
 
 ## Regla clave
-`plan.md` es lo que usa el coordinador para decidir el ORDEN de
-delegación. `seo-technical` y `content-seo` no se delegan hasta que la
-tabla de keywords por página exista, aunque sea en borrador.
+`plan.md` es lo que el coordinador usa para decidir el ORDEN de
+delegación a los subagentes (`scaffolding`, `backend-supabase`,
+`frontend`, `integration`, `testing`). No se delega nada de `/tasks` sin
+que este documento exista.
 
 ## Modo POC
-Plan breve: arquitectura de páginas + keyword principal por página (sin
-secundarias todavía) + qué es estático vs dinámico.
+Plan breve, puede caber en 10-15 líneas. Suficiente para no perder el
+hilo entre subagentes, no para justificar decisiones ante un comité.
 
 ## Modo Producción
-Incluye investigación de keywords más completa, y explícitamente qué
-páginas compiten por qué términos (para evitar canibalización SEO entre
-páginas del mismo sitio).
+Incluye explícitamente los puntos de riesgo (ej: "RLS granular necesaria
+en tabla X porque hay datos sensibles") para que el coordinador sepa
+dónde activar los gates de `CLAUDE.md`.
 
 ## Salida
 `plan.md` en la raíz, commiteado junto a `spec.md`.
