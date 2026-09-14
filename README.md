@@ -1,7 +1,11 @@
-# Vínculo de Lunacia — Alpha (Ronda 1, Axie Vibeathon)
+# Tactic Dice — Axie Vibeathon 2026, Ronda 1
 
 > Un táctico por turnos donde el dado de cada Axie está hecho de sus seis partes del
 > cuerpo, y ascender no sube un número: evoluciona una parte y reescribe esa cara.
+
+Prototipo construido para la Ronda 1 del Axie Vibeathon 2026 usando el
+[Axie Origins Battle Kit](https://github.com/axieinfinity/axie-origins-asset-kit) oficial
+bajo el permiso concedido en la Sección 5 de las Official Rules del Vibeathon.
 
 ## Arrancar
 
@@ -10,87 +14,136 @@ npm install
 npm run dev
 ```
 
-Abre la URL que muestre la terminal (normalmente http://localhost:5173).
+Abre la URL que muestre la terminal (normalmente http://localhost:5173). Build de
+producción con `npm run build` (salida en `dist/`), servible como sitio estático (no
+necesita backend ni base de datos).
+
+## Controles y dispositivos soportados
+
+Solo navegador de escritorio (Chrome/Edge verificados), con ratón — **no hay soporte
+táctil/móvil**, es una decisión de diseño explícita para poder centrar el tiempo de la
+Ronda 1 en el combate en vez de en dos layouts distintos.
+
+- **Arrastrar** el tablero para desplazar la cámara, **rueda del ratón** para zoom.
+- **Clic** en un Axie propio para seleccionarlo; las casillas a su alcance se iluminan.
+- **Clic** en una casilla para moverte (mover nunca gasta el turno) o en un enemigo
+  adyacente para atacar con la cara tirada (botón **Básico** o **Especial** en el panel
+  de acción, según lo que haya salido).
+- **Tirar dados** tira la cara de las seis partes de cada Axie vivo; las caras sin golpe
+  (guardia/reposición) sí acumulan Energía aunque no ataquen.
+- **Pasar turno** cuando ya no queda nada útil que hacer — en arenas PVP hay un reloj de
+  20 s por turno jugable que pasa el turno solo si se agota.
+- El icono 🔊/🔇 de la barra superior controla la música (arranca al primer clic, por
+  política de autoplay del navegador).
 
 ## La idea en treinta segundos
 
 Cada Axie tiene seis partes: ojos, orejas, cuerno, boca, lomo y cola. **Esas seis partes
 son las seis caras de su dado.** Tirar no dice "cuánto pego", dice **qué puedo hacer este
-turno**:
+turno** — y qué cara sale depende de **qué parte concreta** llevas: un cuerno *Imp*
+perfora, un *Little Branch* pega menos pero dobla de guardia, un cuerno *Cactus* ni
+siquiera ataca. Mover nunca gasta el turno de una unidad: el jugador decide moverse y
+*después* elegir el ataque Básico o el Especial de la cara tirada, o al revés.
 
-| Cara | Efecto |
-|---|---|
-| ✦ Invocación | Fuera del tablero: entra. Dentro: reposiciona (mueve 2) o golpea por 1. |
-| ⚔ Golpe | Ataque normal, la DEF lo reduce. |
-| ➤ Perforante | Ignora la DEF del objetivo. |
-| ♥ Drenaje | Ataca y te cura 1. |
-| ◉ Guardia | Escudo inmediato, se aplica solo al tirar. También puede golpear por 1. |
-| ⇉ Impulso | Mueve hasta 2 y puede atacar. |
+Sobre esa base, el combate añade tres capas pensadas para que la partida se decida por
+el jugador, no por rachas de suerte:
 
-No hay cara "muerta" en combate: cualquier cara con la que tengas un rival al lado te
-deja darle un golpe simple de 1 de daño, aunque su especialidad sea otra cosa (invocar,
-moverte, dar guardia). Las caras de ataque de verdad (Golpe, Perforante, Drenaje,
-Impulso) siguen siendo mejores — más daño, o encima curan o mueven.
+- **Afinidad de clase** (triángulo real de Axie llevado a las 4 clases del MVP1): Beast
+  gana a Plant y pierde con Aqua/Bird; Plant gana a Aqua/Bird y pierde con Beast; Aqua
+  gana a Beast y pierde con Plant; Bird gana a Beast y pierde con Plant. Multiplica el
+  daño ×1.15/×0.85, visible en el panel de acción antes de golpear.
+- **Crítico genético**: la probabilidad y el multiplicador de crítico salen de la CLASE
+  del atacante (Beast 20 %/×2.0, Bird 25 %/×2.5, Aqua 15 %/×3.0, Plant 5 %/×1.5) más un
+  extra si la cara tirada añade ráfaga (+5 % de probabilidad, +0.25 al multiplicador).
+- **Muerte súbita (solo PVP)**: tras la ronda 8, +2 casillas de movimiento y +50 % de
+  daño para ambos bandos durante 2 rondas extra; si nadie gana en ese margen, decide la
+  vida restante del Lord.
 
-Qué cara tiene cada parte depende de **qué parte concreta** llevas: un cuerno *Imp*
-perfora por 3, un *Little Branch* por 2, un *Cactus* ni siquiera ataca, da guardia. Dos
-Axies con el mismo esqueleto pero distinto genoma juegan distinto.
+**Progresión**: evolucionar una parte no sube un número — **reescribe la cara del dado**
+de esa parte para siempre. El Laboratorio deja además bloquear caras concretas: no
+compra poder, compra certidumbre sobre qué cara sale en la tirada.
 
-Las dos crías de partida están construidas como opuestas a propósito: **Axie #1** es
-agresivo (cuerno Imp perforante, boca que drena, cola con impulso) y **Axie #2** es
-defensivo (orejas y lomo que dan guardia, más DEF, cola de golpe fiable). Sin nombre de
-fantasía: un Axie real sin apodo se muestra como "Axie #\<id>" en el marketplace, así que
-el prototipo hace lo mismo en vez de inventar nombres que no significan nada en el juego
-real.
+## Encaje con Axie Core y visión de producto
 
-## Controles
+El genoma de Axie (seis partes + clase) deja de ser cosmético o una hoja de
+estadísticas: **es la fuente de la mecánica central del juego** — la distribución de
+probabilidad del dado. Cambiar una parte cambia literalmente qué puede hacer la
+criatura ese turno, y evolucionar una parte reescribe esa cara de forma permanente. Es
+la misma genética que ya existe en el ecosistema Axie, convertida en la palanca de
+juego en vez de en un número de fondo.
 
-1. **Tirar dados** — se tira por todas tus criaturas, estén o no en el tablero. Las
-   caras de guardia aplican su escudo solas.
-2. Una criatura **fuera del tablero** solo actúa si le sale invocación: toca una casilla
-   marcada cerca de tu Lord para colocarla. Con cualquier otra cara, espera.
-3. Una criatura **en el tablero** hace lo que diga su cara. Tócala para seleccionarla (o
-   usa "Seleccionar en tablero") y las casillas a su alcance se iluminan. Toca una casilla
-   para moverte o un enemigo adyacente para atacar.
-4. Cada criatura actúa **una vez por turno**. Al gastarse se atenúa.
-5. **Terminar turno**: los enemigos priorizan rematar a la criatura más herida que tengan
-   al lado; si no, van a por tu Lord. Cada tres turnos aparece uno nuevo.
-6. Gana quien baje a 0 los corazones del Lord rival.
+El análisis de mercado, el modelo económico (estructura Lord/tropa, sink asimétrico,
+suscripción de acuñado) y el estudio de la competencia (Terrariums, Homeland, Den of
+Mysteries) están en `docs/decision-de-producto.md` y `docs/estudio-mercado-2026.md`.
 
-## Qué es real y qué está simulado
+## Estado actual (verificado en vivo, no solo por código)
 
-- **Partes y clases: reales.** Los nombres de partes (Imp, Little Branch, Hermit, Nut
-  Cracker…) y las clases (Beast, Aquatic, Plant, Bird, Bug, Reptile) son del sistema real
-  de Axie. La clase de una criatura se deriva de la mayoría de su genoma, como en Axie.
-- **AXP y Ascensión: sistema real, umbral abstraído.** En Axie, la AXP es off-chain, los
-  niveles son on-chain y **la Ascensión ocurre en los niveles 10, 20 y 30 y requiere que
-  el usuario firme una transacción**. Aquí el umbral es de 3 AXP y la Ascensión es
-  inmediata, para que la progresión se vea dentro de una partida de demostración. Es una
-  abstracción deliberada, no un malentendido del sistema.
-- **Dado e invocación: mecánica propia del prototipo**, no del juego original.
-- **Sin integración on-chain.** Las bases del Vibeathon la marcan como opcional en fase
-  de prototipo, y la AXP API requiere una app aprobada en el Ronin Developer Console con
-  permiso explícito del servicio AXP.
-- **IA enemiga.** Prioriza un remate (dejar a un rival a 0) sobre solo "el más herido", y
-  si tiene el paso recto al Lord bloqueado por una de tus criaturas, prueba rodear por
-  fila. Suficiente para demostrar el loop, no para un balance final.
-- **Arte: Axies reales**, dibujados con `@axieinfinity/mixer` + `pixi.js`/`pixi-spine` a
-  partir del genoma de cada criatura (ver `src/axieMixer.js` y `src/AxieSprite.jsx`), con
-  animación de ataque real según la parte que golpea. Si el navegador no puede cargar las
-  texturas del CDN de Axie, la carta cae de vuelta al cuadro de color con la inicial, para
-  que la partida nunca se rompa por falta de red.
-- **Fondo 3D: decorativo, no el tablero.** El tablero y las piezas siguen siendo el
-  sistema 2D real de arriba. Detrás hay una escena Three.js ambiental (`src/
-  LunaciaBackdrop.jsx`) — islas flotantes, una luna, motas de luz — en la paleta del
-  juego. No es un lugar del lore de Lunacia: Sky Mavis no publica assets de entorno, así
-  que es deliberadamente abstracta en vez de inventar geografía.
+Combate del MVP1 completo y jugable de principio a fin: tablero 3D real (Three.js
+vanilla + bloques Kenney), IA enemiga con prioridades, dos modos (PVE contra el mapa de
+Lunacia, PVP contra arenas con reloj y muerte súbita), un HUB con Laboratorio de
+evolución/bloqueo de partes, Investigación e Inventario de recursos, música ambiental
+por estado, y VFX de combate reales del Axie Origins Battle Kit sobre cada impacto.
 
-## Siguientes pasos
+## Known issues / limitaciones conocidas
 
-- Afinidad de clase por terreno en el tablero (Aquatic por agua, Bird ignora obstáculos).
-- Escena explorable previa al combate.
-- Ritual de Ascensión con pantalla propia en lugar del aviso actual.
-- Desplegar, grabar el vídeo de respaldo y escribir la declaración de encaje con Axie Core.
+- **Sin build desplegado todavía** — el juego corre en local (`npm run dev`) o desde un
+  build estático (`npm run build`); no hay una URL pública jugable en este momento. Es
+  el hueco más importante pendiente de cerrar antes de la fecha límite de Ronda 1.
+- **Sin tests automatizados.** La lógica de combate (afinidad, crítico, contragolpes,
+  muerte súbita) está verificada por revisión de código y partidas jugadas a mano en
+  cada sesión, no por una suite que corra sola.
+- **Muerte súbita PVP verificada por código, no por una partida real completa**: la IA
+  del PVE gana en pocas rondas si el jugador no defiende activamente, así que ninguna
+  partida de verificación llegó a la ronda 9 en el entorno de pruebas. La lógica está
+  revisada a fondo pero pendiente de una partida manual que la dispare.
+- **AXP/Ascensión con umbral abstraído.** En Axie real, la Ascensión ocurre en los
+  niveles 10/20/30 y exige una transacción on-chain firmada; aquí el umbral es menor y
+  la Ascensión es inmediata para que la progresión se vea dentro de una partida de
+  demostración. Se declara explícitamente como abstracción, no como confusión del
+  sistema real.
+- **Nada on-chain** — deliberado, las bases del Vibeathon lo marcan como opcional en
+  fase de prototipo.
+- **Fondo 2D de Lunacia es una composición propia**, no arte oficial de Sky Mavis: usa
+  props CC0 de Kenney recoloreados más algunos elementos (santuario de cristal, árbol de
+  flor, una choza) dibujados a mano en SVG, inspirados en referencias visuales de
+  Terrariums/Homeland pero sin calcarlas.
 
-El contexto completo del proyecto, las decisiones de diseño y las referencias del tooling
-de Sky Mavis están en `CLAUDE.md`.
+## Disclosures (uso de IA, dependencias, assets, contribuidores)
+
+- **Uso material de IA**: este prototipo se construyó con asistencia extensa de
+  **Claude Code** (agente de codificación de Anthropic) a lo largo de toda la Ronda 1 —
+  implementación de la lógica de juego, componentes de interfaz, iteración de diseño
+  visual, y arte derivado original (el logotipo del juego y algunos elementos del fondo
+  2D son SVG dibujados por el agente, no trazados de ningún asset de terceros). Cada
+  sesión de trabajo queda documentada con su alcance y verificación en `CLAUDE.md`.
+- **Trabajo/starters preexistentes**: ninguno más allá de las herramientas oficiales del
+  Vibeathon listadas abajo.
+- **Dependencias de código**: React 19, Vite 8, Three.js, Tailwind CSS (capa
+  responsive), y `@jaatster/threejs-axie-mixer3d-public` (mixer 3D vendorizado,
+  herramienta del propio ecosistema de la competición) — lista completa en
+  `package.json`.
+- **Assets del Axie Origins Battle Kit** (modelos 3D, partes, VFX de combate,
+  emblemas de ranura): inventario completo, verificado archivo por archivo, en
+  `docs/recursos-vibeathon.md`.
+- **Assets de terceros no-Axie**: props 3D CC0 de Kenney (Platformer Kit, Mini Forest)
+  para el terreno del tablero y la decoración de fondo; música ambiental de Kevin
+  MacLeod (incompetech.com, CC-BY 4.0, atribución en el panel de ayuda del juego y en
+  `public/music/README.md`).
+- **Contribuidores**: proyecto individual (ver historial de commits de git para
+  autoría).
+
+## Estructura del repo
+
+```
+src/
+  App.jsx              orquestador: estado de partida, logica de turnos/combate/IA
+  components/          UI de presentacion (HUB, tablero, cartas, HUD)
+  axie.js              datos de partes, clases, dados y resolucion de efectos
+  axieMixer3D.js        puente genoma -> mixer 3D oficial del Vibeathon
+docs/                  estudio de mercado, decision de producto, disclosures de assets
+CLAUDE.md              historial completo de sesiones de desarrollo, con verificacion
+```
+
+El contexto completo del proyecto, cada decisión de diseño tomada y su verificación en
+vivo (capturas, pruebas manuales, comandos ejecutados) están documentados sesión a
+sesión en `CLAUDE.md`.
