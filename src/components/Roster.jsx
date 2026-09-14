@@ -2,9 +2,9 @@
 // cartas de unidad + panel de detalle compartido. Resuelve internamente los
 // valores por `side` para que los dos call sites en App.jsx sean simetricos.
 //
-// El hover de que unidad mostrar en el panel de detalle (pedido explicito
-// 2026-09-10: cartas compactas + detalle desplegable al pasar el cursor o al
-// seleccionar) es estado puramente de UI, sin efecto en la partida -por eso
+// El hover de que unidad mostrar en el panel de detalle (cartas compactas +
+// detalle desplegable al pasar el cursor o al seleccionar) es estado
+// puramente de UI, sin efecto en la partida -por eso
 // vive aqui como useState local, no en App.jsx (que solo guarda estado de
 // partida). Selected SI viene de App.jsx (afecta a la partida) y actua como
 // resultado por defecto cuando no hay hover activo.

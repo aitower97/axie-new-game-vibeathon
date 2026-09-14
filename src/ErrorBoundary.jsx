@@ -1,9 +1,7 @@
-// ErrorBoundary.jsx — red de seguridad ante un fallo de carga real (hallazgo
-// critico de la auditoria 2026-09-14: el juego encadena varias cargas
-// asincronas -bloques GLB del terreno, mixer 3D con strict:true, atlas de
-// VFX, musica- y sin esto un fallo en cualquiera de ellas tumbaba TODA la
-// app a pantalla en blanco sin ningun mensaje, justo el escenario del enlace
-// jugable del Vibeathon.
+// ErrorBoundary.jsx — red de seguridad ante un fallo de carga real: el juego
+// encadena varias cargas asincronas -bloques GLB del terreno, mixer 3D con
+// strict:true, atlas de VFX, musica- y sin esto un fallo en cualquiera de
+// ellas tumbaba TODA la app a pantalla en blanco sin ningun mensaje.
 import { Component } from 'react'
 
 export default class ErrorBoundary extends Component {

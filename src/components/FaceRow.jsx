@@ -1,9 +1,8 @@
 // FaceRow.jsx — una fila de "cara del dado" (icono de la parte + nombre +
 // efecto, con tooltip al pasar el cursor). Extraida de UnitDetailPanel.jsx
-// (pedido explicito 2026-09-10) para reutilizarla tal cual en dos sitios: el
-// panel de detalle compartido (las 6 ranuras) y el pie de la carta compacta
-// (SOLO la ranura que salio en la tirada, "igual que sale debajo pero solo
-// la que ha tocado"). El `key` de remount-por-tirada se pone en el call site
+// para reutilizarla tal cual en dos sitios: el panel de detalle compartido
+// (las 6 ranuras) y el pie de la carta compacta (SOLO la ranura que salio en
+// la tirada). El `key` de remount-por-tirada se pone en el call site
 // (no aqui dentro), porque solo tiene sentido en el punto donde React
 // necesita distinguir instancias.
 import { faceValue, SLOT_LABEL_MVP1 } from '../axie'

@@ -13,13 +13,12 @@
   --ally: #5fa0ff;
   --enemy: #e0544f;
   /* Tinte de los emblemas de ranura (slotIcons.js): el PNG oficial del
-     marketplace es gris metalico -pedido explicito del usuario: "un color
-     generico bonito distinto al del marketplace, que no se pierdan las
-     formas". Un filtro (no una mascara rellena de un color plano, que
-     aplanaba el relieve del PNG y borraba la forma) para conservar el
-     claroscuro original y solo virar el tono a un dorado calido. Mismo
-     resultado en Die3D.jsx (ICON_FILTER, canvas ctx.filter admite la misma
-     sintaxis), a mano: ese recoloreo es en un canvas, no hay CSS que valga. */
+     marketplace es gris metalico. Un filtro (no una mascara rellena de un
+     color plano, que aplanaba el relieve del PNG y borraba la forma) para
+     conservar el claroscuro original y solo virar el tono a un dorado calido.
+     Mismo resultado en Die3D.jsx (ICON_FILTER, canvas ctx.filter admite la
+     misma sintaxis), a mano: ese recoloreo es en un canvas, no hay CSS que
+     valga. */
   --icon-filter: sepia(1) saturate(2.6) hue-rotate(-8deg) brightness(0.92);
 }
 
@@ -82,9 +81,9 @@ body {
   font-family: 'Manrope', system-ui, sans-serif;
 }
 
-/* Red de seguridad de ErrorBoundary.jsx (auditoria 2026-09-14): pantalla de
-   recuperacion minima, sin depender de nada que pueda haber fallado (Three.js,
-   mixer 3D, musica) -solo HTML/CSS plano. */
+/* Red de seguridad de ErrorBoundary.jsx: pantalla de recuperacion minima, sin
+   depender de nada que pueda haber fallado (Three.js, mixer 3D, musica)
+   -solo HTML/CSS plano. */
 .error-boundary {
   min-height: 100dvh;
   display: flex;
@@ -119,11 +118,11 @@ body {
   z-index: 0;
   width: 100%;
   max-width: 1680px;
-  /* dvh en vez de vh (sesion refactor responsive): mismo criterio que el
-     100svh de #root en index.css -evita el salto de tamano en navegadores
-     que muestran/ocultan la barra de UI segun el scroll (no aplica aqui
-     porque .app nunca hace scroll, pero mantiene el mismo criterio en toda
-     la app en vez de mezclar unidades de viewport distintas). */
+  /* dvh en vez de vh: mismo criterio que el 100svh de #root en index.css
+     -evita el salto de tamano en navegadores que muestran/ocultan la barra
+     de UI segun el scroll (no aplica aqui porque .app nunca hace scroll,
+     pero mantiene el mismo criterio en toda la app en vez de mezclar
+     unidades de viewport distintas). */
   height: 100dvh;
   margin: 0 auto;
   padding: 14px 20px 12px;
@@ -133,19 +132,13 @@ body {
 }
 
 /* Fondo 3D ambiental de Lunacia, fijo y decorativo: nunca intercepta clics.
-   SEGUNDA VUELTA (2026-09-14, tras comparar contra capturas reales de
-   Homeland/Terrariums en titulo/fondo-refs/): el bug real de la vuelta
-   anterior no era el hue-rotate de cada familia (eso ya se habia corregido),
-   era que la BASE seguia siendo var(--panel) -un verde casi negro (~13% de
-   luminosidad medido)- por debajo de todo. Ninguna de las 3 referencias usa
-   un suelo oscuro: arena tostada en homeland-1-oasis-cristal, pantano
-   turquesa OSCURO PERO SATURADO (no apagado) en homeland-2-pantano-cristal,
-   cesped verde vivo en terrariums-1-aldea. Se sustituye var(--panel) por un
-   degradado propio, mas claro (~25-55% de luminosidad segun la zona, el
-   doble o el triple que antes) y con temperatura propia: verde-menta
+   La base no puede ser var(--panel) -un verde casi negro (~13% de
+   luminosidad)- porque ninguna referencia de ambiente (Homeland/Terrariums)
+   usa un suelo oscuro: arena tostada, pantano turquesa OSCURO PERO SATURADO
+   (no apagado), cesped verde vivo. Es un degradado propio, mas claro (~25-55%
+   de luminosidad segun la zona) y con temperatura propia: verde-menta
    saturado (familia de --mint, no generico) con un realce calido arriba
-   (simula luz de sol entrando, contraste de temperatura como los techos de
-   paja/estampados calidos de terrariums-1-aldea contra el verde). */
+   (simula luz de sol entrando, contraste de temperatura contra el verde). */
 .lunacia-backdrop {
   position: fixed;
   inset: 0;
@@ -165,9 +158,8 @@ body {
   image-rendering: pixelated;
   opacity: 0.4;
   /* Verde crudo del pack -> verde-menta saturado propio de Lunacia (mismo
-     tono que --mint, no el verde generico de Kenney). Brightness subida un
-     poco respecto a la vuelta anterior para que la textura se lea contra la
-     nueva base clara en vez de fundirse con ella. */
+     tono que --mint, no el verde generico de Kenney). Brightness alta para
+     que la textura se lea contra la base clara en vez de fundirse con ella. */
   filter: saturate(1.55) hue-rotate(24deg) brightness(1.2);
 }
 .lunacia-grass-detail {
@@ -183,14 +175,13 @@ body {
   filter: saturate(1.55) hue-rotate(24deg) brightness(1.2);
 }
 
-/* Recoloreo por FAMILIA de prop (sesion 2026-09-14): el bosque de relleno
-   (arboles/arbustos/setas/cajones, todo Kenney real) sigue tenido por
-   familia para que comparta luz -mismo truco que --icon-filter
-   (sepia+hue-rotate para tenir conservando el relieve/sombreado real, no
-   una mascara plana). CUARTA VUELTA: se quitan las familias 'rock',
-   'flower' y 'landmark' -el cristal y la flor ya no son sprites Kenney con
-   tinte, son SVG propio (ver .lunacia-scene-svg mas abajo), y no queda
-   ninguna roca suelta en DECOR. */
+/* Recoloreo por FAMILIA de prop: el bosque de relleno (arboles/arbustos/
+   setas/cajones, todo Kenney real) sigue tenido por familia para que
+   comparta luz -mismo truco que --icon-filter (sepia+hue-rotate para tenir
+   conservando el relieve/sombreado real, no una mascara plana). Las
+   familias 'rock', 'flower' y 'landmark' no estan aqui: el cristal y la flor
+   son SVG propio (ver .lunacia-scene-svg mas abajo), y no queda ninguna
+   roca suelta en DECOR. */
 .lunacia-decor {
   position: absolute;
   image-rendering: pixelated;
@@ -222,13 +213,12 @@ body {
    ocre de verdad, no solo "verde con menos saturacion". */
 .lunacia-decor-village { --decor-tint: sepia(0.22) saturate(1.7) hue-rotate(-8deg) brightness(1.08); }
 
-/* Escenas dibujadas a mano: cristal, arbol de flor y choza (SVG propio,
-   sesion 2026-09-14, cuarta vuelta -"que dibuje sus propias escenas en vez
-   de reciclar sprites"). Mismo enfoque que public/brand/logo.svg: formas
-   vectoriales originales inspiradas en las referencias, no un calco.
-   Posicionadas igual que .lunacia-decor (left/top % + width/height fijos en
-   px, ver SCENES en LunaciaBackdrop.jsx) -el viewBox de cada motivo respeta
-   la misma proporcion que su caja en pantalla, asi que nunca se estiran. */
+/* Escenas dibujadas a mano: cristal, arbol de flor y choza (SVG propio).
+   Mismo enfoque que public/brand/logo.svg: formas vectoriales originales
+   inspiradas en las referencias, no un calco. Posicionadas igual que
+   .lunacia-decor (left/top % + width/height fijos en px, ver SCENES en
+   LunaciaBackdrop.jsx) -el viewBox de cada motivo respeta la misma
+   proporcion que su caja en pantalla, asi que nunca se estiran. */
 .lunacia-scene-wrap {
   position: absolute;
   pointer-events: none;
@@ -268,9 +258,7 @@ body {
     radial-gradient(circle, rgba(178, 110, 255, 0.34) 0%, rgba(190, 150, 255, 0.14) 46%, transparent 74%);
 }
 
-/* Camino + corral (sesion 2026-09-14, tercera pasada -"rehazlo desde cero,
-   no hay sinergia entre los elementos, las vallas no se unen, no hay
-   caminos"): geometria SVG exacta en vez de sprites sueltos, porque un
+/* Camino + corral: geometria SVG exacta en vez de sprites sueltos, porque un
    rectangulo/curva dibujado con coordenadas siempre cierra bien, mientras
    que posicionar 4 vallas por separado con left/top en % nunca garantiza que
    los extremos se toquen sin verlo en vivo. Vive en su propio <svg> a pantalla
@@ -319,21 +307,19 @@ body {
   vector-effect: non-scaling-stroke;
 }
 
-/* Vignette mas suave que la vuelta anterior: antes terminaba en var(--panel)
-   SOLIDO (volvia a apagar el borde a un verde casi negro, justo lo que se
-   queria evitar en toda la escena); ahora es un negro-verdoso translucido,
-   enmarca sin devolver la oscuridad plana de antes. */
+/* Vignette en negro-verdoso translucido (no un var(--panel) solido, que
+   apagaria el borde a un verde casi negro): enmarca sin devolver oscuridad
+   plana a la escena. */
 .lunacia-vignette {
   position: absolute;
   inset: 0;
-  /* FIX (sesion 2026-09-14, tercera pasada del fondo): el fondo base paso de
-     oscuro a muy claro/vivo (para leer como Lunacia de verdad), pero eso
-     rompio el contraste del texto que vive SIN tarjeta propia encima del
-     fondo (la cabecera de las pantallas meta, las notas del HUB) -antes el
-     fondo oscuro hacia de vignette "gratis", ahora hace falta una de verdad.
+  /* El fondo base es muy claro/vivo (para leer como Lunacia de verdad), lo
+     que rompe el contraste del texto que vive SIN tarjeta propia encima del
+     fondo (la cabecera de las pantallas meta, las notas del HUB) -sin un
+     fondo oscuro no hay vignette "gratis", asi que hace falta una de verdad.
      Oscurece fuerte ya desde el 20% (el area central donde vive el
-     contenido, no solo el borde) para que el texto vuelva a tener contraste;
-     los props vivos quedan en el margen exterior (0-20%/80-100%), donde este
+     contenido, no solo el borde) para que el texto tenga contraste; los
+     props vivos quedan en el margen exterior (0-20%/80-100%), donde este
      degradado sigue transparente. */
   background: radial-gradient(ellipse at center, transparent 20%, rgba(6, 20, 16, 0.88) 68%, rgba(6, 20, 16, 0.95) 100%);
 }
@@ -357,10 +343,9 @@ body {
   opacity: 0.75;
 }
 
-/* Barra superior moderna (sesion "ganar espacio al tablero"): titulo, HUD de
-   chips, nav y botonera en UNA fila compacta. Elasticidad pura: si el hueco
-   mengua, la botonera (derecha) y la nav son lo que mas se comprimen antes de
-   que nada se desborde. */
+/* Barra superior moderna: titulo, HUD de chips, nav y botonera en UNA fila
+   compacta. Elasticidad pura: si el hueco mengua, la botonera (derecha) y la
+   nav son lo que mas se comprimen antes de que nada se desborde. */
 .topbar {
   flex: none;
   position: relative;
@@ -381,9 +366,9 @@ body {
   cursor: pointer;
 }
 /* Logo real (public/brand/logo.svg, mismo lockup que la portada) en vez del
-   nombre escrito a mano -pedido explicito del usuario. Alto fijo pequeno
-   para que quepa en la barra compacta junto al HUD/nav/botonera; ancho auto
-   para respetar la proporcion del SVG (viewBox 460x260). */
+   nombre escrito a mano. Alto fijo pequeno para que quepa en la barra
+   compacta junto al HUD/nav/botonera; ancho auto para respetar la proporcion
+   del SVG (viewBox 460x260). */
 .brand-logo-img {
   display: block;
   height: 34px;
@@ -510,12 +495,10 @@ body {
 }
 
 /* Tres columnas: tu roster a la izquierda, el tablero en medio (domina la
-   pantalla), el roster rival a la derecha -pedido explicito del usuario
-   ("a la izquierda lo mio, a la derecha del canvas el rival"). La botonera
-   y el log viven ahora arriba en la topbar, fuera del layout, para que el
-   canvas gane toda la altura que antes consumian. La pagina en si no hace
-   scroll nunca (pedido de antes); cada roster tiene su propio scroll interno
-   si hace falta. */
+   pantalla), el roster rival a la derecha. La botonera y el log viven ahora
+   arriba en la topbar, fuera del layout, para que el canvas gane toda la
+   altura que antes consumian. La pagina en si no hace scroll nunca; cada
+   roster tiene su propio scroll interno si hace falta. */
 .layout {
   flex: 1;
   min-height: 0;
@@ -538,7 +521,7 @@ body {
    Kenney, Platformer Kit CC0) renderiza la escena dentro de .board3d-host, que
    ocupa todo el hueco disponible (.board-scene reparte el espacio, Board3D mide
    su propio contenedor con un ResizeObserver interno -no hace falta boardScale
-   ni medir rectangulos a mano como con el intento anterior en CSS puro).
+   ni medir rectangulos a mano).
 
    Alineacion del grid interactivo: la camara de Board3D es ORTOGRAFICA (sin
    escorzo de perspectiva), asi que 3D->pantalla es una transformacion afin.
@@ -561,15 +544,12 @@ body {
   cursor: grab;
 }
 .board3d-host:active { cursor: grabbing; }
-/* Reducido a icono (pedido 2026-09-11): antes era una franja de texto ancha
-   arriba a la izquierda, justo donde ahora va el medidor de Energia propio.
-   Centrado arriba (no a un lado, para no chocar con ningun medidor) y con
-   `pointer-events:auto` -al contrario que el resto del overlay del tablero,
-   este SI necesita recibir el hover y el clic. `cursor:pointer` a proposito:
-   desde el pedido 2026-09-12 el clic ABRE el panel de ayuda (HelpOverlay),
-   asi que hay interaccion real detras de la mano -el cursor de `help` (flecha
-   con interrogacion) se descarto en su dia porque el icono NO hacia nada y
-   el usuario lo leyo como un boton roto. */
+/* Icono de ayuda centrado arriba (no a un lado, para no chocar con ningun
+   medidor) y con `pointer-events:auto` -al contrario que el resto del
+   overlay del tablero, este SI necesita recibir el hover y el clic.
+   `cursor:pointer` porque el clic ABRE el panel de ayuda (HelpOverlay): el
+   cursor de `help` (flecha con interrogacion) no vale aqui porque no
+   prometeria una interaccion real. */
 .board-view-hint {
   position: absolute;
   left: 50%;
@@ -588,9 +568,8 @@ body {
   line-height: 1;
   pointer-events: auto;
   user-select: none;
-  /* Clicable (pedido 2026-09-12, "pinchas la mano y no pasa nada"): abre el
-     panel HelpOverlay. cursor:pointer + leve brillo al pasar para que se vea
-     que hay interaccion real. */
+  /* Clicable: abre el panel HelpOverlay. cursor:pointer + leve brillo al
+     pasar para que se vea que hay interaccion real. */
   cursor: pointer;
   transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
@@ -602,8 +581,7 @@ body {
 .board-view-hint:active {
   transform: translateX(-50%) scale(0.94);
 }
-/* Burbuja propia en vez de `title` (bug real reportado, "pinchas la mano o
-   te pones encima y no pasa nada"): el tooltip nativo del navegador tarda
+/* Burbuja propia en vez de `title`: el tooltip nativo del navegador tarda
    1-1.5s en aparecer y solo si el raton se queda quieto del todo -en la
    practica parecia que el icono no hacia nada. Esta aparece al instante con
    :hover, sin depender de ningun temporizador del sistema operativo. */
@@ -710,8 +688,8 @@ body {
   color: #ffe9a3;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 8px rgba(255, 210, 90, 0.5);
 }
-/* CRITICO (2026-09-14): anuncio del critico genetico -verde chillón distinto del
-   ambar de la relacion y del rojo del dano, para que no compita con demas. */
+/* CRITICO: anuncio del critico genetico -verde chillón distinto del ambar de
+   la relacion y del rojo del dano, para que no compita con demas. */
 .combat-float.variant-crit {
   color: #9dff8d;
   font-weight: 800;
@@ -724,11 +702,11 @@ body {
   100% { opacity: 0; translate: 0 -26px; }
 }
 
-/* Impacto de combate (REDISENO 2026-09-11, animaciones): anillo que nace en la
-   celda que recibe el golpe y se expande (golpe primario verde menta, vuelta
-   del contragolpe ambar, Ataque del Lord dorado). La sacudida la dispara la
-   propia existencia de impactos: .board-shake en .board-scene mientras hay
-   alguno activo, y BoardRegion lo quita a los 650 ms (IMPACT_MS). */
+/* Impacto de combate: anillo que nace en la celda que recibe el golpe y se
+   expande (golpe primario verde menta, vuelta del contragolpe ambar, Ataque
+   del Lord dorado). La sacudida la dispara la propia existencia de impactos:
+   .board-shake en .board-scene mientras hay alguno activo, y BoardRegion lo
+   quita a los 650 ms (IMPACT_MS). */
 .impact-ring {
   position: absolute;
   inset: -4px;
@@ -741,10 +719,10 @@ body {
 }
 .impact-ring.kind-counter { border-color: var(--amber); }
 .impact-ring.kind-lord { border-color: #ffc233; }
-/* VFX del Axie Origins Battle Kit (2026-09-14): canvas superpuesto al overlay
-   del tablero donde cada impacto reproduce el clip de skill del golpeador. Se
-   transforma con el tablero (misma matriz que las celdas) y nunca interactua
-   con el raton: los clicks pasan al overlay de celdas que vive debajo. */
+/* VFX del Axie Origins Battle Kit: canvas superpuesto al overlay del tablero
+   donde cada impacto reproduce el clip de skill del golpeador. Se transforma
+   con el tablero (misma matriz que las celdas) y nunca interactua con el
+   raton: los clicks pasan al overlay de celdas que vive debajo. */
 .vfx-canvas {
   position: absolute;
   inset: 0;
@@ -776,10 +754,9 @@ body {
    que respeta el test de profundidad de WebGL: el Axie que esta de pie sobre
    el anillo lo tapa el solo, como toca. */
 .roster-col {
-  /* clamp en vez de px fijo (sesion refactor responsive): se encoge hacia
-     260px en portatiles pequenos (~1152px de ancho) y crece hacia 380px en
-     pantallas ultrawide, sin salto de breakpoint. En 1366px/1920px cae cerca
-     del 340px fijo que ya estaba verificado sin overflow. */
+  /* clamp en vez de px fijo: se encoge hacia 260px en portatiles pequenos
+     (~1152px de ancho) y crece hacia 380px en pantallas ultrawide, sin salto
+     de breakpoint. En 1366px/1920px cae cerca del 340px fijo original. */
   flex: 0 0 clamp(260px, 22vw, 380px);
   min-height: 0;
   display: flex;
@@ -796,16 +773,14 @@ body {
 }
 .roster-col.enemy-col { padding: 2px 2px 2px 4px; }
 /* Las 4 cartas de cada columna (Lord + 3 Axies) en la misma altura que el
-   canvas, releidas (pedido explicito 2026-09-10): el Lord vuelve a ser una
-   carta ancha arriba a su altura natural y los 3 Axies van en una FILA
-   horizontal debajo (`.roster-squad` -> flex row) en lugar de 4 cartas
-   apiladas. Asi el alto total de la columna es "titulo + Lord + una sola
-   fila de Axies" y sobra altura de sobra: cada carta vuelve a contener
-   holgadamente sus elementos en su propio marco sin compactar textos ni
-   retratos (antes habia que recortar padding/fuentes/portraits para que
-   cupieran 4 apiladas). Los tres Axies ahora no compiten por alto sino por
-   ancho (~96px cada uno), asi que su dado pasa a formato vertical: cubo
-   arriba y la lista de 6 caras apilada debajo (`.mini-die-unit` column). */
+   canvas: el Lord es una carta ancha arriba a su altura natural y los 3
+   Axies van en una FILA horizontal debajo (`.roster-squad` -> flex row) en
+   lugar de 4 cartas apiladas. Asi el alto total de la columna es "titulo +
+   Lord + una sola fila de Axies" y sobra altura de sobra: cada carta
+   contiene holgadamente sus elementos en su propio marco sin compactar
+   textos ni retratos. Los tres Axies no compiten por alto sino por ancho
+   (~96px cada uno), asi que su dado pasa a formato vertical: cubo arriba y
+   la lista de 6 caras apilada debajo (`.mini-die-unit` column). */
 .roster-col > .card {
   min-height: 0;
   display: flex;
@@ -819,11 +794,10 @@ body {
 }
 .roster-col > .card.lord-card { flex: 0 0 auto; }
 .roster-col > .roster-title { flex: none; }
-/* Fila de 3 Axies bajo el Lord (sesion 2026-09-10, cartas compactas): ya NO
-   reparte el alto que sobra -se queda a su alto natural (solo cubo, sin
-   lista de 6 caras) y el resto de la columna pasa al panel de detalle
-   compartido (.unit-detail-panel, debajo). Cada mini carta sigue repartiendo
-   el ancho de la columna a partes iguales. */
+/* Fila de 3 Axies bajo el Lord: ya NO reparte el alto que sobra -se queda a
+   su alto natural (solo cubo, sin lista de 6 caras) y el resto de la
+   columna pasa al panel de detalle compartido (.unit-detail-panel, debajo).
+   Cada mini carta sigue repartiendo el ancho de la columna a partes iguales. */
 .roster-squad {
   flex: 0 0 auto;
   display: flex;
@@ -837,7 +811,7 @@ body {
 }
 /* --- Mini cartas de Axie (fila de 3 bajo el Lord) ---
    Cabecera en fila (retrato a la izquierda, nombre y clase a la derecha):
-   bug real medido con chrome-devtools-mcp a 1366x768 (portatil comun), la
+   bug real medido a 1366x768 (portatil comun), la
    cabecera apilada en columna (retrato ENCIMA del texto) media 104px de alto
    ella sola y desbordaba la carta. Ya NO llevan el detalle de las 6 ranuras
    (se despliega en UnitDetailPanel.jsx al pasar el cursor o seleccionar), asi
@@ -854,11 +828,10 @@ body {
   font-size: 0.58rem;
 }
 /* Los dos stats (mov/alc) tienen que caber en el mismo ancho que el nombre
-   de la clase encima (pedido explicito 2026-09-10: "el numero de alc no se
-   ve porque ocupan mucho ancho") -medido real: con el tamano base del emoji
-   (1.05rem) los dos stat-ico sumaban 72.8px pero su columna solo tenia
-   65.8px, el segundo (alcance) se salia por el borde de la carta. Emoji e
-   iconos mas chicos y menos gap para que quepan los dos en una fila. */
+   de la clase encima -medido real: con el tamano base del emoji (1.05rem)
+   los dos stat-ico sumaban 72.8px pero su columna solo tenia 65.8px, el
+   segundo (alcance) se salia por el borde de la carta. Emoji e iconos mas
+   chicos y menos gap para que quepan los dos en una fila. */
 .card.mini .class-stats { margin-left: 0; gap: 3px; }
 .card.mini .stat-ico { font-size: 0.6rem; gap: 1px; }
 .card.mini .flat-emoji { font-size: 0.6rem; height: 10px; line-height: 10px; }
@@ -869,10 +842,10 @@ body {
   margin-bottom: 0;
   padding: 9px 5px;
 }
-/* Pie de carta en flujo normal, NO absoluto (pedido explicito 2026-09-10: se
-   superponia con el cubo -.card-foot base es position:absolute, pensado
-   para la carta grande de antes con la lista de 6 caras debajo). Aqui
-   empuja el alto de la carta en vez de flotar encima de nada. */
+/* Pie de carta en flujo normal, NO absoluto (.card-foot base es
+   position:absolute, pensado para la carta grande con la lista de 6 caras
+   debajo; aqui se superpondria con el cubo). Empuja el alto de la carta en
+   vez de flotar encima de nada. */
 .card.mini .card-foot {
   position: static;
   display: flex;
@@ -882,10 +855,9 @@ body {
   margin-top: 4px;
   padding: 0;
 }
-/* La cara tirada como FaceRow (icono+nombre+efecto), NO como texto suelto
-   -pedido explicito: "una representacion de la parte... igual que sale
-   debajo pero solo la que ha tocado". Mismo .face-card que el panel de
-   detalle, recortado aqui al ancho real de la carta mini. */
+/* La cara tirada como FaceRow (icono+nombre+efecto), NO como texto suelto.
+   Mismo .face-card que el panel de detalle, recortado aqui al ancho real de
+   la carta mini. */
 .card.mini .card-foot-face .face-card { padding: 3px 4px; gap: 5px; border-bottom: none; }
 .card.mini .card-foot-face .face-logo { width: 14px; height: 11px; }
 .card.mini .card-foot-face .face-part { font-size: 0.56rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 12px; }
@@ -894,7 +866,7 @@ body {
 .card.mini .card-foot-face .done { display: block; font-size: 0.52rem; padding-left: 4px; }
 .card.mini .card-foot button.small { padding: 1px 5px; font-size: 0.56rem; }
 
-/* --- Panel de detalle compartido (sesion 2026-09-10) ---
+/* --- Panel de detalle compartido ---
    Debajo de la fila de 3 cartas compactas: muestra el detalle en texto de
    las 6 ranuras de la unidad sobre la que esta el cursor (hover) o, si no
    hay hover, la que este seleccionada (Roster.jsx). Absorbe el alto que
@@ -928,10 +900,9 @@ body {
   color: var(--ink);
 }
 .unit-detail-panel .die-list { flex: 1 1 0; min-height: 0; }
-/* Las 6 filas reparten TODO el alto del panel a partes iguales -pedido
-   explicito 2026-09-10: "que no sobre espacio... que se vea mas grande y
-   ocupe todo el espacio, no dejes espacios vacios". Sin esto cada fila se
-   queda en su alto natural y sobra hueco vacio debajo de la sexta. */
+/* Las 6 filas reparten TODO el alto del panel a partes iguales. Sin esto
+   cada fila se queda en su alto natural y sobra hueco vacio debajo de la
+   sexta. */
 .unit-detail-panel .face-card { flex: 1 1 0; min-height: 26px; }
 .banner.won { background: rgba(127, 231, 196, 0.15); color: var(--mint); }
 .banner.lost { background: rgba(194, 91, 107, 0.18); color: var(--rose); }
@@ -990,8 +961,8 @@ body {
 }
 
 /* Overley del terreno: flota sobre la esquina superior derecha del tablero en
-   vez de ocupar una fila arriba (sesion "ganar espacio al tablero"). position
-   relativo respecto a .board-scene (que necesita position:relative para esto). */
+   vez de ocupar una fila arriba. position relativo respecto a .board-scene
+   (que necesita position:relative para esto). */
 .terrain-legend {
   position: absolute;
   top: 8px;
@@ -1123,14 +1094,14 @@ body {
 .unit.own { color: #a9c8ff; }
 .unit.own.ascended { filter: drop-shadow(0 0 5px rgba(227, 168, 87, 0.75)); }
 .unit.enemy { color: #ff9b94; }
-/* Marca del Lord (rediseño 2026-09-10): brillo rosa/rojizo -mismo --rose que
-   ya usa la app para "peligro" (banner.lost)- para que se note en el tablero
-   que el proximo golpe que reciba esta unidad hace +20. Se apaga solo al
-   consumirse (marked vuelve a false tras el impacto). */
+/* Marca del Lord: brillo rosa/rojizo -mismo --rose que ya usa la app para
+   "peligro" (banner.lost)- para que se note en el tablero que el proximo
+   golpe que reciba esta unidad hace +20. Se apaga solo al consumirse (marked
+   vuelve a false tras el impacto). */
 .unit.marked { filter: drop-shadow(0 0 6px rgba(194, 91, 107, 0.9)); }
-/* Templanza del Lord (rediseño 2026-09-10): brillo menta -mismo --mint que ya
-   usa la app para "aliado/positivo" (.roster-title.ally)- para distinguirlo
-   claramente del rosa/rojizo de Marca (peligro). */
+/* Templanza del Lord: brillo menta -mismo --mint que ya usa la app para
+   "aliado/positivo" (.roster-title.ally)- para distinguirlo claramente del
+   rosa/rojizo de Marca (peligro). */
 .unit.buffed { filter: drop-shadow(0 0 6px rgba(127, 231, 196, 0.9)); }
 /* Rotura (Fase A): tono ambar rojizo intermedio entre el rose de Marca y el
    rojo de dano -anuncia "va a recibir un golpe ventajoso y se queda sin vuelta". */
@@ -1201,9 +1172,9 @@ body {
 .stat-emblem { flex: none; }
 .heart-emblem { fill: #ff5f6d; }
 
-/* Cabecera de cada columna de roster (pedido explicito: roster propio a la
-   izquierda del tablero, roster rival a la derecha) -sticky para que no se
-   pierda de vista al hacer scroll dentro de la columna. */
+/* Cabecera de cada columna de roster (roster propio a la izquierda del
+   tablero, roster rival a la derecha) -sticky para que no se pierda de
+   vista al hacer scroll dentro de la columna. */
 .roster-title {
   position: sticky;
   top: 0;
@@ -1231,18 +1202,15 @@ body {
 .roster-title.enemy { color: var(--rose); }
 .roster-title.enemy::before { background: var(--rose); }
 
-/* Restyle explicito del usuario ("los estilos de las tarjetas es muy claude"):
-   antes era un panel plano de un solo color con un borde de 1px -aqui hay una
-   franja lateral gruesa del color de la clase (como el filo de una carta de
-   coleccionable), fondo con un ligero degradado para dar algo de profundidad,
-   y sombra propia en vez de vivir pegada al fondo. El color de la clase tinta
-   ademas el fondo y el borde de TODA la carta (pedido posterior: "cada una
-   sea del color del tipo de clase"): border-left en el color de la clase y un
-   degradado suave mezclando ese color con el panel para no ensuciar la lectura. */
-/* Compacto a proposito (pedido explicito: "que se vea todo de una, sin
-   scroll") -las 3 cartas de un bando tienen que caber en el alto disponible
-   de la columna sin scroll interno, asi que cada pieza (retrato, cubo,
-   paddings) se recorto para que la carta entera pese menos en vertical. */
+/* Cada carta tiene una franja lateral gruesa del color de la clase (como el
+   filo de una carta de coleccionable), fondo con un ligero degradado para dar
+   algo de profundidad, y sombra propia en vez de vivir pegada al fondo. El
+   color de la clase tinta ademas el fondo y el borde de TODA la carta:
+   border-left en el color de la clase y un degradado suave mezclando ese
+   color con el panel para no ensuciar la lectura. */
+/* Compacto a proposito: las 3 cartas de un bando tienen que caber en el alto
+   disponible de la columna sin scroll interno, asi que cada pieza (retrato,
+   cubo, paddings) se recorto para que la carta entera pese menos en vertical. */
 .card {
   position: relative;
   background: linear-gradient(160deg, color-mix(in srgb, var(--card-accent, var(--line)) 22%, var(--panel)), color-mix(in srgb, var(--card-accent, var(--line)) 5%, var(--bg)) 130%);
@@ -1260,23 +1228,19 @@ body {
 }
 .card.down { opacity: 0.4; }
 .card.selected { border-color: var(--amber); border-left-color: var(--amber); box-shadow: 0 0 0 1px var(--amber), 0 6px 16px rgba(0, 0, 0, 0.28); }
-/* Marca del Lord (rediseño 2026-09-10): mismo criterio que .unit.marked en el
-   tablero, aplicado a la carta del dashboard. */
+/* Marca del Lord: mismo criterio que .unit.marked en el tablero, aplicado a
+   la carta del dashboard. */
 .card.marked { box-shadow: 0 0 0 1px var(--rose), 0 6px 16px rgba(0, 0, 0, 0.28); }
 .card.buffed { box-shadow: 0 0 0 1px var(--mint), 0 6px 16px rgba(0, 0, 0, 0.28); }
 
-/* Carta del Lord (pedido explicito: "el Lord tambien tiene funcionalidades y
-   un dado, necesita su propia carta"): misma familia visual que la de los
-   Axies, pero con corona (CrownEmblem) en la insignia, tinte dorado y su dado
-   de 6 caras (LORD_DIE, rediseñado 2026-09-10: 1 ataque + Muro/Marca/Cura/
-   Templanza/Duplicar) en formato lista, sin el cubo de ranuras de cuerpo
-   -segun el Lord no son partes. */
+/* Carta del Lord: misma familia visual que la de los Axies, pero con corona
+   (CrownEmblem) en la insignia, tinte dorado y su dado de 6 caras (LORD_DIE:
+   1 ataque + Muro/Marca/Cura/Templanza/Duplicar) en formato lista, sin el
+   cubo de ranuras de cuerpo -segun el Lord no son partes. */
 .card.lord-card { --card-accent: var(--amber); padding: 6px 12px; }
 /* Pie de la carta del Lord en flujo normal, NO absoluto -mismo bug que ya se
-   arreglo en .card.mini .card-foot (pedido explicito 2026-09-10, "el boton
-   de seleccionar tiene el mismo bug de antes, se solapa con las
-   habilidades"): .card-foot base es position:absolute y flotaba encima de
-   la lista de caras del dado del Lord. */
+   arreglo en .card.mini .card-foot: .card-foot base es position:absolute y
+   flotaba encima de la lista de caras del dado del Lord. */
 .card.lord-card .card-foot {
   position: static;
   margin-top: 4px;
@@ -1292,11 +1256,11 @@ body {
   line-height: 1.3;
 }
 .lord-die-list .face-part { font-size: 0.68rem; }
-/* El Lord tambien es un Axie real (LORD_DESCRIPTORS, cuerpo 'sumo') -pedido
-   explicito: le faltaba la integracion del modelo 3D que ya tienen las
-   cartas de Axie (Portrait3D). La corona se queda como insignia pequeña en
-   la esquina, mismo lenguaje que la corona 3D que flota sobre su cabeza en
-   el tablero, en vez de ser todo el retrato. */
+/* El Lord tambien es un Axie real (LORD_DESCRIPTORS, cuerpo 'sumo'): tiene la
+   misma integracion del modelo 3D que las cartas de Axie (Portrait3D). La
+   corona se queda como insignia pequeña en la esquina, mismo lenguaje que la
+   corona 3D que flota sobre su cabeza en el tablero, en vez de ser todo el
+   retrato. */
 .lord-portrait-wrap { position: relative; flex: none; line-height: 0; }
 .lord-crown-badge {
   position: absolute;
@@ -1324,8 +1288,8 @@ body {
   font-size: 0.72rem;
 }
 .lord-die-list { flex: 1; min-width: 0; }
-/* Dado de mando 3D del Lord (pedido "dado del Lord"): mismo cubo que el de
-   unidades pero con las 6 ordenes en las caras. Se monta a la izquierda de la
+/* Dado de mando 3D del Lord: mismo cubo que el de unidades pero con las 6
+   ordenes en las caras. Se monta a la izquierda de la
    leyenda plana (que sigue debajo/abajo con sus tooltips) y se distingue del
    dado blanco de los axies con un halo dorado sutil, el color del Lord. */
 .lord-die-3d-wrap {
@@ -1362,8 +1326,8 @@ body {
   min-width: 0;
 }
 .card-title strong { font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* Nombre del Axie = su ID (pedido explicito, aqui un ID ficticio #P0/#E1...):
-   el nombre ya no es la clase, la clase pasa a una linea secundaria. Junto al
+/* Nombre del Axie = su ID (aqui un ID ficticio #P0/#E1...): el nombre ya no
+   es la clase, la clase pasa a una linea secundaria. Junto al
    ID va el emblema de clase como insignia, mismo lenguaje que el medallon que
    cuelga de la unidad en el tablero (ClassEmblem coloreado por clase). */
 .card-id-line {
@@ -1413,10 +1377,9 @@ body {
   white-space: nowrap;
   min-width: 0;
 }
-/* Movimiento y alcance junto al tipo de clase (pedido explicito: "al lado del
-   tipo de clase, encima de la barra y un poco mas grandes"): iconos planos SVG
-   (StepIcon/MeleeIcon/RangedIcon, un solo color) + su numero, en ambar para
-   distinguirlos del texto de la clase. */
+/* Movimiento y alcance junto al tipo de clase, encima de la barra: iconos
+   planos SVG (StepIcon/MeleeIcon/RangedIcon, un solo color) + su numero, en
+   ambar para distinguirlos del texto de la clase. */
 .class-stats {
   display: inline-flex;
   align-items: center;
@@ -1433,8 +1396,7 @@ body {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-/* Emoji de stats con color PLANO (pedido: "los emojis siempre con colores
-   planos no con colores y forma reales"): el emoji de siempre (👣/🤜/🏹) pero
+/* Emoji de stats con color PLANO: el emoji de siempre (👣/🤜/🏹) pero
    aplanado a un GRIS plano y uniforme (grayscale + contrast(0) + brightness),
    como el de los pies. */
 /* El glifo emoji tiene metricas de fuente mucho mas altas que su font-size
@@ -1456,9 +1418,9 @@ body {
 .klass { align-self: flex-start; }
 .asc { font-size: 0.75rem; color: var(--amber); }
 
-/* Barras de vida y de escudo en la carta (pedido explicito): mismas barras
-   que el overlay del tablero (HpBar semaforo + ShieldBar azul) pero a ancho
-   completo de la carta y con los numeros del momento de la batalla al lado. */
+/* Barras de vida y de escudo en la carta: mismas barras que el overlay del
+   tablero (HpBar semaforo + ShieldBar azul) pero a ancho completo de la
+   carta y con los numeros del momento de la batalla al lado. */
 .card-vitals {
   display: flex;
   flex-direction: column;
@@ -1491,12 +1453,10 @@ body {
 .axp-fill { height: 100%; background: var(--amber); }
 
 /* El dado del genoma: un cubo fisico real (Die3D.jsx) a la izquierda + una
-   lista compacta de sus 6 ranuras a la derecha -pedido explicito del usuario
-   ("el dado lo veo mas fisico, no tan virtual, y si unir las caras"): antes
-   eran 6 tarjetas sueltas en rejilla con el cubo flotando encima (dos lecturas
-   compitiendo); ahora el cubo ES el dado y la lista es solo su referencia de
-   texto -filas finas sin aspecto de tarjeta propia, unidas visualmente por un
-   borde compartido en vez de 6 cajas separadas. */
+   lista compacta de sus 6 ranuras a la derecha -el cubo ES el dado y la
+   lista es solo su referencia de texto: filas finas sin aspecto de tarjeta
+   propia, unidas visualmente por un borde compartido en vez de 6 cajas
+   separadas. */
 .die-unit {
   display: flex;
   align-items: center;
@@ -1519,9 +1479,8 @@ body {
 }
 .face-card {
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  /* Filas compactas a proposito (pedido: "ver las 4 cartas en la misma altura
-     y tamano que el canvas"): 6 ranuras + el cubo tienen que caber dentro de
-     1/4 de la columna sin scroll ni recorte. */
+  /* Filas compactas a proposito: 6 ranuras + el cubo tienen que caber dentro
+     de 1/4 de la columna sin scroll ni recorte. */
   padding: 0.5px 4px;
   display: flex;
   align-items: center;
@@ -1531,10 +1490,9 @@ body {
   position: relative;
 }
 .face-card:last-child { border-bottom: none; }
-/* Caja de ayuda de cada ranura (pedido explicito: "una box explicando que
-   hace cada parte cada vez que me pongo encima de ella"): sustituye al
-   tooltip nativo del navegador. Aparece por encima de la fila al hacer hover,
-   con el nombre de la parte, la ranura, el efecto y su afinidad de clase. */
+/* Caja de ayuda de cada ranura: sustituye al tooltip nativo del navegador.
+   Aparece por encima de la fila al hacer hover, con el nombre de la parte,
+   la ranura, el efecto y su afinidad de clase. */
 .part-tip {
   position: absolute;
   left: 0;
@@ -1561,19 +1519,17 @@ body {
 }
 .tip-affinity { color: var(--mint); font-style: normal; font-weight: 600; }
 /* El emblema (slotIcons.js) es un PNG gris del marketplace CON relieve real
-   (borde oscuro, relieve claro) -pedido explicito: "un color generico bonito
-   distinto al del marketplace" pero SIN perder ese relieve. Un intento
-   anterior lo usaba como mascara rellena de un color plano: aplanaba borde y
-   relieve al mismo tono y la forma se perdia. Aqui es un filtro CSS
-   (--icon-filter) que solo cambia el tono, conservando el claroscuro
-   original -mismo filtro en Die3D.jsx (ICON_FILTER, canvas ctx.filter) para
-   que las caras del dado y las cartas usen el mismo color. */
+   (borde oscuro, relieve claro): una mascara rellena de un color plano
+   aplanaria borde y relieve al mismo tono y la forma se perderia. Aqui es un
+   filtro CSS (--icon-filter) que solo cambia el tono, conservando el
+   claroscuro original -mismo filtro en Die3D.jsx (ICON_FILTER, canvas
+   ctx.filter) para que las caras del dado y las cartas usen el mismo color. */
 .face-logo {
   flex: none;
 /* Logo compacto (13px de alto) a proposito: las 6 filas + el cubo tienen
-       que caber dentro de 1/4 de la columna (pedido: las 4 cartas al mismo alto
-       que el canvas). Con 16/14px la fila hacia 18/16px y la carta se recortaba.
-       El cubo 3D sigue dando el tamano: es solo la referencia de pie pequena. */
+       que caber dentro de 1/4 de la columna. Con 16/14px la fila hacia
+       18/16px y la carta se recortaba. El cubo 3D sigue dando el tamano: es
+       solo la referencia de pie pequena. */
   width: 16px;
   height: 13px;
   display: block;
@@ -1603,8 +1559,7 @@ body {
      numero: >/X/~/) arranque siempre en la misma columna vertical. Sin el
      ancho fijo, el bloque se alineaba a la derecha y su ancho variaba por
      fila ("Not Throw 2" -> "26", "Swallow 2" -> "20" y similares) y el
-     glifo caia en una x distinta en cada fila (reportado: "el emejo de
-     pigeon post no esta en la vertical que los otros 2"). */
+     glifo caia en una x distinta en cada fila. */
   width: 54px;
   font-size: 0.58rem;
   color: var(--muted);
@@ -1635,8 +1590,8 @@ body {
   100% { background: rgba(127, 231, 196, 0.1); }
 }
 
-/* Recreacion visual del lanzamiento de dados (pedido explicito): durante la
-   tirada el cubo (Die3D) hace tumble por su cuenta y la lista de texto
+/* Recreacion visual del lanzamiento de dados: durante la tirada el cubo
+   (Die3D) hace tumble por su cuenta y la lista de texto
    "baraja" con un leve retardo en cascada (--i) y un brillo barre la franja;
    al hacer commit el cubo aterriza y la fila ganadora se resalta (dice-land-row). */
 .die-list.rolling .face-card:not(.active) {
@@ -1671,13 +1626,12 @@ body {
   100% { transform: rotate(360deg) scale(1); opacity: 1; }
 }
 
-/* ActionPad (REDISENO 2026-09-11, "poder atacar eligiendo basico/especial"):
-   HUD flotante sobre la zona muerta bajo el tablero, sustituye a la card
-   estatica (ActionBar) que el usuario reporto ("no sirve, sobra espacio").
-   position:absolute -> NO consume layout, el .board3d-host no re-encuadra
-   nunca (fin del bug de zoom de la card) y el hueco deja de estar muerto.
-   pointer-events:none en el contenedor para que el fondo siga dejando pasar
-   clicks; solo los controles (filas de botones) interactuan. */
+/* ActionPad: HUD flotante sobre la zona muerta bajo el tablero, sustituye a
+   la card estatica (ActionBar) que dejaba sobrar espacio. position:absolute
+   -> NO consume layout, el .board3d-host no re-encuadra nunca (fin del bug
+   de zoom de la card) y el hueco deja de estar muerto. pointer-events:none
+   en el contenedor para que el fondo siga dejando pasar clicks; solo los
+   controles (filas de botones) interactuan. */
 .action-pad {
   position: absolute;
   bottom: 6px;
@@ -1771,9 +1725,9 @@ body {
   box-shadow: 0 0 8px rgba(109, 227, 160, 0.4);
 }
 
-/* Fila de "probabilidades" de la preview (2026-09-14): chips de afinidad por
-   clases y critico genetico bajo el contexto del ActionPad, mas el aviso de
-   prorroga cuando la partida PVP entro en muerte subita. */
+/* Fila de "probabilidades" de la preview: chips de afinidad por clases y
+   critico genetico bajo el contexto del ActionPad, mas el aviso de prorroga
+   cuando la partida PVP entro en muerte subita. */
 .action-pad-odds {
   gap: 6px;
   flex-wrap: wrap;
@@ -1801,8 +1755,8 @@ body {
   color: #ffd34d;
 }
 
-/* Cronometro del turno PVP (2026-09-14): cuenta atras de 20 s que se ve en la
-   botonera mientras es tu turno; rojo los ultimos 5 segundos. */
+/* Cronometro del turno PVP: cuenta atras que se ve en la botonera mientras es
+   tu turno; rojo los ultimos 5 segundos. */
 .turn-timer {
   font-size: 0.66rem;
   font-weight: 800;
@@ -1824,22 +1778,20 @@ body {
   50% { box-shadow: 0 0 10px rgba(255, 120, 100, 0.55); }
 }
 
-/* Pastilla del reloj en prorroga (2026-09-14): el HUD marca MUERTE SUBITA con
-   el reloj de 8+2 rondas. */
+/* Pastilla del reloj en prorroga: el HUD marca MUERTE SUBITA con el reloj de
+   8+2 rondas. */
 .hud-chip.turn.overtime {
   border-color: rgba(255, 194, 51, 0.8);
   color: #ffd34d;
   box-shadow: 0 0 10px rgba(255, 194, 51, 0.35);
 }
 
-/* Medidor de Energia, esquina SUPERIOR del tablero (pedido 2026-09-11, "mucho
-   mas visual" y luego reubicado: "abajo no puede estar porque esta lo de
-   seleccionar las habilidades especiales" -el ActionPad vive abajo, ver
-   App.css mas abajo- "y cuidado con ponerlo muy arriba que esta lo de la
-   vision" -el icono de .board-view-hint queda centrado arriba, este medidor
-   en la esquina, no chocan). Anillo de progreso SVG que se llena hasta
-   ENERGY_CAP, con el numero dentro y dos lineas de contexto (gastos y
-   pista). Solo presentacion; los gastos y el vaciado los decide App.jsx
+/* Medidor de Energia, esquina SUPERIOR del tablero: no puede ir abajo porque
+   ahi vive el ActionPad (seleccion de habilidades especiales), y en la franja
+   superior comparte espacio con el icono de .board-view-hint (centrado) sin
+   chocar. Anillo de progreso SVG que se llena hasta ENERGY_CAP, con el
+   numero dentro y dos lineas de contexto (gastos y pista). Solo
+   presentacion; los gastos y el vaciado los decide App.jsx
    (attack/moveTo/passTurn). Arriba a la IZQUIERDA por defecto (el propio,
    lado de "TU MANDO"); `.energy-enemy` lo manda a la derecha (lado de
    "ASEDIANTES", ver mas abajo). */
@@ -1874,9 +1826,8 @@ body {
   stroke: #9ff0c1;
   filter: drop-shadow(0 0 6px rgba(159, 240, 193, 0.7));
 }
-/* Medidor del rival (2026-09-11, reubicado: "la mia a mi lado y la suya al
-   suyo"): esquina opuesta (derecha, lado de "ASEDIANTES") + paleta
-   roja/rosa -mismo acento que el resto de la UI del bando enemigo
+/* Medidor del rival: esquina opuesta (derecha, lado de "ASEDIANTES") +
+   paleta roja/rosa -mismo acento que el resto de la UI del bando enemigo
    (.unit.enemy #ff9b94, .roster-title.enemy var(--rose)) en vez del azul del
    jugador, para distinguirlos a simple vista sin leer la etiqueta. */
 .energy-gauge.energy-enemy {
@@ -1969,12 +1920,12 @@ body {
 .hp-bar-fill.good { background: #5fd88a; }
 .hp-bar-fill.mid { background: var(--amber); }
 .hp-bar-fill.low { background: #e0544f; }
-/* Barra de escudo: azul, debajo de la de HP (pedido explicito). */
+/* Barra de escudo: azul, debajo de la de HP. */
 .shield-bar { width: 34px; }
 .shield-fill { background: #5fa0ff; }
 
-/* Pie de carta FLOTANTE (pedido: las 4 cartas siempre al mismo alto que el
-   canvas): el resultado + boton de seleccion van en una pildora superpuesta
+/* Pie de carta FLOTANTE: el resultado + boton de seleccion van en una pildora
+   superpuesta
    sobre la ultima fila del dado (que en los Axies es el hueco vacio de ojos/
    orejas), en vez de empujar el contenido y desbordar la carta a mitad de
    partida. Absolute = no cuenta en el flujo y no produce scroll. */
@@ -2073,8 +2024,8 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
   width: 100%;
   box-sizing: border-box;
 }
-/* Variante compacta en una sola linea (sesion "chat arriba"): muestra la
-   ultima linea con icono; el tooltip (.title) contiene las 7 anteriores. */
+/* Variante compacta en una sola linea: muestra la ultima linea con icono; el
+   tooltip (.title) contiene las 7 anteriores. */
 .log.slim {
   height: auto;
   max-height: none;
@@ -2100,11 +2051,11 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 .log-ico { flex: none; font-size: 0.9rem; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.6)); }
 
 /* ---------------------------------------------------------------------------
-   Capa meta (sesion 2026-09-10): navegacion por hash (routes.js) + pantallas
-   Base/Recursos/Investigacion/PVE/PVP. First-approach: presentacion y acciones
-   de sesion reales (curar/investigar/recolectar/emparejar) sobre el mismo
-   sistema visual bespoke. Vive aparte del layout de combate: cuando la ruta no
-   es "partida", el contenedor cambia a .meta-view y ocupa todo el ancho.
+   Capa meta: navegacion por hash (routes.js) + pantallas Base/Recursos/
+   Investigacion/PVE/PVP. First-approach: presentacion y acciones de sesion
+   reales (curar/investigar/recolectar/emparejar) sobre el mismo sistema
+   visual bespoke. Vive aparte del layout de combate: cuando la ruta no es
+   "partida", el contenedor cambia a .meta-view y ocupa todo el ancho.
 --------------------------------------------------------------------------- */
 .meta-nav {
   display: flex;
@@ -2278,10 +2229,9 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 .meta-list li { margin-bottom: 6px; }
 
 /* Panel "Como jugar" (HelpOverlay.jsx, abierto con el clic de la mano del
-   tablero -pedido 2026-09-12, "pinchas la mano y no pasa nada"). Overlay fijo
-   a pantalla completa con fondo oscuro translucido; el panel reusa el lenguaje
-   visual de .card (--panel, borde var(--line)) para que se lea como parte del
-   juego. */
+   tablero). Overlay fijo a pantalla completa con fondo oscuro translucido; el
+   panel reusa el lenguaje visual de .card (--panel, borde var(--line)) para
+   que se lea como parte del juego. */
 .help-backdrop {
   position: fixed;
   inset: 0;
@@ -2366,8 +2316,8 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 }
 
 /* ---------------------------------------------------------------------------
-   HUB ("Base", sesion 2026-09-12): equipo principal en el centro, accesos a
-   los lados (pedido explicito del usuario). Tres columnas simetricas.
+   HUB ("Base"): equipo principal en el centro, accesos a los lados. Tres
+   columnas simetricas.
 --------------------------------------------------------------------------- */
 .hub3 {
   display: grid;
@@ -2436,10 +2386,9 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
   .hub3-card { flex: 1 1 220px; }
 }
 
-/* Acento de color por accion del hub (sesion 2026-09-14, "retoque del hub"
-   junto a la portada nueva): cada tarjeta de NAV lleva su propio color via
-   --card-accent (mismo patron que ya usan LordCard/UnitCard), en vez del
-   panel plano uniforme de antes -mas facil de escanear de un vistazo y mas
+/* Acento de color por accion del hub: cada tarjeta de NAV lleva su propio
+   color via --card-accent (mismo patron que ya usan LordCard/UnitCard), en
+   vez de un panel plano uniforme -mas facil de escanear de un vistazo y mas
    "vibra Axie" (cada accion es su propio color, como las clases del roster). */
 .hub3-card { --card-accent: var(--line); }
 .hub3-card { border-left: 4px solid var(--card-accent); }
@@ -2454,43 +2403,19 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 }
 
 /* ---------------------------------------------------------------------------
-   Portada (sesion 2026-09-14, "que tenga vibras axie y que tenga una
-   portada"; retocada la MISMA sesion tras feedback directo del usuario:
-   "quitemos las cards redondas con colores transparentes tipicas de diseño de
-   claude" -fuera glassmorphism (fondos rgba(255,255,255,.5-ish), glow
-   difuminado, bordes translucidos): todo aqui es plano y opaco, con contorno
-   solido en vez de sombra suave, en linea con las capturas oficiales de Axie
-   que dejo el usuario en /titulo (letras con relieve solido, no cristal). Los
+   Portada: paleta clara, todo plano y opaco -sin glassmorphism (fondos
+   rgba(255,255,255,.5-ish), glow difuminado, bordes translucidos), contorno
+   solido en vez de sombra suave (letras con relieve solido, no cristal). Los
    emojis de color tambien fuera -ver LineIcons.jsx, trazo fino que hereda el
-   acento via `color`.
-
-   SEGUNDA PASADA (mismo dia): tratamiento de logotipo real a partir de las
-   capturas de /titulo -letra burbuja con relleno a cuadros (checkerboard via
-   `repeating-conic-gradient` recortado con `background-clip:text`, no una
-   imagen), contorno solido grueso (-webkit-text-stroke) + relieve escalonado
-   (text-shadow opaco, sin blur), zarcillos pastel sueltos alrededor
-   (VineIcon, SVG de trazo fino, estaticos -nada de loop decorativo) y una
-   cinta con las puntas recortadas (`clip-path`, no una pildora redondeada)
-   para el descriptor, igual que el "CLASSIC" del ejemplo. De paso, la
-   auditoria de tells encontro DOS versiones del mismo problema ("eyebrow en
-   versalitas sobre el titulo"): `.cover-kicker` (credito del evento, en
-   pildora+versalitas+letter-spacing encima del titulo) y `.cover-title-axie`
-   (la palabra "Axie" suelta, mismo patron, encima del titulo). Las dos se
-   quitaron: el credito del evento paso a nota al pie en frase normal (sin
-   pildora ni versalitas, `.cover-credit`), y "Axie" como palabra suelta del
-   logotipo desaparecio. Los dos retratos circulares (Lord y escuadra) pasan
-   de sombra difusa (rgba+blur, el "tell" de la tarjeta-cristal generica) a
+   acento via `color`. Los dos retratos circulares (Lord y escuadra) usan
    sombra escalonada solida, igual que los botones -un unico lenguaje de
    sombra en toda la pantalla.
 
-   TERCERA PASADA (mismo dia): el logotipo entero (texto+zarcillos+cinta) se
-   saco de aqui -ahora es `public/brand/logo.svg`, un archivo real e
-   independiente ("que se pueda meter en cualquier parte", pedido explicito),
-   cargado como `<img class="cover-logo-img">`. Todo el bloque CSS que
-   dibujaba el logotipo con texto+stroke+background-clip (`.cover-vine*`,
-   `.cover-title*`) se elimino: ya no hay texto real detras, el SVG lleva sus
-   propias formas. Solo queda `.cover-logo`/`.cover-logo-img` para el hueco
-   que ocupa en el layout de dos columnas.
+   El logotipo (texto+zarcillos+cinta) es un archivo real e independiente,
+   `public/brand/logo.svg`, cargado como `<img class="cover-logo-img">` -no
+   hay texto real detras en este CSS, el SVG lleva sus propias formas. Solo
+   `.cover-logo`/`.cover-logo-img` gestionan el hueco que ocupa en el layout
+   de dos columnas.
    Sigue sin tocar ninguna variable global (--bg, --panel...): todo vive
    dentro de .cover-screen.
 --------------------------------------------------------------------------- */
@@ -2518,10 +2443,9 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 
 .cover-hero { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 
-/* Logotipo: ahora es el archivo real `public/brand/logo.svg` (lockup "AXIE
-   INFINITY" + cinta "TACTIC DICE", zarcillos y todo incluidos en el propio
-   SVG), cargado como imagen -el `<h1>` solo aporta el landmark semantico de
-   titulo de pagina, el nombre accesible vive en el `alt` de la imagen. */
+/* Logotipo: el archivo real `public/brand/logo.svg`, cargado como imagen -el
+   `<h1>` solo aporta el landmark semantico de titulo de pagina, el nombre
+   accesible vive en el `alt` de la imagen. */
 .cover-logo { margin: 0; line-height: 0; }
 .cover-logo-img {
   display: block;
@@ -2599,10 +2523,9 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 .cover-step b { font-size: 0.86rem; color: var(--cover-ink); }
 .cover-step p { margin: 1px 0 0; font-size: 0.78rem; color: var(--cover-muted); line-height: 1.4; }
 
-/* Nota de credito del evento (antes era `.cover-kicker`, una pildora en
-   versalitas sobre el titulo -el "eyebrow generico" que senalo la auditoria).
-   Ahora es una frase normal, sin pildora ni letter-spacing, al pie del bloque
-   de texto: informacion de contexto, no una etiqueta decorativa. */
+/* Nota de credito del evento: frase normal, sin pildora ni letter-spacing, al
+   pie del bloque de texto -informacion de contexto, no una etiqueta
+   decorativa (evita el "tell" de eyebrow en versalitas sobre el titulo). */
 .cover-credit {
   display: inline-flex;
   align-items: center;
@@ -2663,9 +2586,9 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 }
 
 /* ---------------------------------------------------------------------------
-   Mapa PVE (LunaciaMap.jsx, sesion 2026-09-12): mundo navegable estilo NFS
-   Carbon con regiones como nodos sobre un panel, conexiones en SVG, y la ficha
-   de la region activa con sus zonas (cada una con su config de partida).
+   Mapa PVE (LunaciaMap.jsx): mundo navegable estilo NFS Carbon con regiones
+   como nodos sobre un panel, conexiones en SVG, y la ficha de la region
+   activa con sus zonas (cada una con su config de partida).
 --------------------------------------------------------------------------- */
 .map-scene {
   position: relative;
@@ -2798,9 +2721,9 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 .map-zone-play { flex: none; }
 
 /* ---------------------------------------------------------------------------
-   Laboratorio (LaboratoryScreen.jsx, sesion 2026-09-12): el dado de cada
-   clase con sus 4 ranuras de combate para EVOLUCIONAR (reescribe la cara,
-   +10 irreversible) o BLOQUEAR (saca la parte de la tirada, gratis).
+   Laboratorio (LaboratoryScreen.jsx): el dado de cada clase con sus 4 ranuras
+   de combate para EVOLUCIONAR (reescribe la cara, +10 irreversible) o
+   BLOQUEAR (saca la parte de la tirada, gratis).
 --------------------------------------------------------------------------- */
 .lab-hud { align-items: center; }
 .lab-grid { display: flex; flex-direction: column; gap: 16px; }
@@ -2906,7 +2829,7 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 .lab-tooltip b { color: var(--ink); }
 
 /* ---------------------------------------------------------------------------
-   Arenas PVP (PvpScreen.jsx, sesion 2026-09-12): rivales de axies normales.
+   Arenas PVP (PvpScreen.jsx): rivales de axies normales.
 --------------------------------------------------------------------------- */
 .arena-list { display: flex; flex-direction: column; gap: 12px; }
 .arena-card {

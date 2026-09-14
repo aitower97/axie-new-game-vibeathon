@@ -54,12 +54,11 @@ function pureClassDescriptor(resourceClass, variant, body = 'normal') {
 const MVP1_PACK_CLASS = { plant: 'Plant', beast: 'Beast', bird: 'Bird', aqua: 'Aquatic' }
 
 // Las caras del dado (PARTS_MVP1 en axie.js) ponen el NOMBRE real de la parte
-// (Shrimp, Imp, Pumpkin...) pero los descriptores del roster usaban variantes
-// genericas 2/4 que NO se corresponden (la cola Aquatic v2 es Koi, v4 Nimo...)
-// -bug real reportado: "el agua de mi equipo lleva KOI y decimos shrimp en la
-// habilidad". Arreglo 2026-09-12: cada ranura del modelo pasa a usar la
-// variante = id real de la parte (decoder agp, github.com/ShaneMaglangit/agp,
-// cruzado con PART_GENE ya verificado en axieMixer.js: shrimp tail=12,
+// (Shrimp, Imp, Pumpkin...), asi que cada ranura del modelo tiene que usar la
+// variante = id real de esa parte (no una generica 2/4 que no se corresponda:
+// la cola Aquatic v2 es Koi, v4 Nimo, no Shrimp) -decoder agp,
+// github.com/ShaneMaglangit/agp, cruzado con PART_GENE ya verificado en
+// axieMixer.js: shrimp tail=12,
 // hermit back=2, balloon back=2, serious mouth=2, imp horn=4, little-branch
 // horn=2...). En el pack del mixer 3D las variantes por (clase, ranura) son
 // los pares (ojos/bocas solo 2/4/8/10, el resto ademas 6/12 - verificado en
@@ -126,10 +125,10 @@ function rosterDescriptor(klassMvp1, fallbackVariant) {
   }
 }
 
-// Starters oficiales de Axie como rivales del PvE (camino "reconstruir con
-// partes" elegido por el usuario 2026-09-12): el roster enemigo deja de ser
-// un clon generico del nuestro y pasa a ser la pandilla de starters con
-// nombre propio -Buba (Beast), Momo (Bird) y Puffy (Aquatic)-, las mismas
+// Starters oficiales de Axie como rivales del PvE (reconstruidos con partes,
+// no como modelo completo): el roster enemigo no es un clon generico del
+// nuestro, es la pandilla de starters con nombre propio -Buba (Beast), Momo
+// (Bird) y Puffy (Aquatic)-, las mismas
 // mascotas que el repos oficial 3D (axie-starter-3d-assets) trae como
 // modelos completos. NO se cargan como modelos enteros (romperia la premisa
 // del dado de 6 partes), se RE-CONSTRUYEN con las partes reales de su clase
@@ -172,8 +171,8 @@ export const ROSTER_DESCRIPTORS = {
 // PLAYER_LORD_GENOME/ENEMY_LORD_GENOME en App.jsx) -para el tablero 3D basta
 // con dos clases que el roster NO usa (Bug, Reptile) para que se distingan
 // de un vistazo del resto de unidades. Cuerpo "sumo" (mas grande/imponente,
-// pedido explicito para diferenciar al Lord del roster) -las 8 formas de
-// cuerpo (AXIE_BODY_TYPES) tienen su malla completa en el pack local
+// para diferenciar al Lord del roster) -las 8 formas de cuerpo
+// (AXIE_BODY_TYPES) tienen su malla completa en el pack local
 // (manifest.json -> assets.bodies.sumo.lods), y las partes de clase pura se
 // enganchan sin problema (missingParts vacio, verificado antes de usarlo).
 export const LORD_DESCRIPTORS = {

@@ -1,6 +1,5 @@
-// UnitCard.jsx — carta COMPACTA de unidad en el dashboard (pedido explicito
-// 2026-09-10, "hacer una carta mas pequena en la que se vean los 3 a la vez"):
-// retrato 3D, stats, HP y el cubo del dado (Die3D). El detalle en texto de
+// UnitCard.jsx — carta COMPACTA de unidad en el dashboard: retrato 3D,
+// stats, HP y el cubo del dado (Die3D). El detalle en texto de
 // las 6 ranuras YA NO vive aqui -se despliega en UnitDetailPanel.jsx, un
 // panel compartido debajo de las 3 cartas del bando, al pasar el cursor o al
 // seleccionar la unidad (ver Roster.jsx, que gestiona ese hover).
@@ -16,9 +15,8 @@ import FaceRow from './FaceRow'
 export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, enemyTurn, rollTick, selected, status, onSelect, onMouseEnter, onMouseLeave }) {
   const stats = CLASS_STATS[u.klass]
   // `rolling` es un unico flag global (vale para todo el turno, no por
-  // bando), pero solo el bando activo tira dados ahora mismo -pedido
-  // explicito del usuario: "cuando es mi turno los dados del rival no
-  // deberian tirarse". Con la excepcion de la secuencia animada del rival
+  // bando), pero solo el bando activo tira dados ahora mismo. Con la
+  // excepcion de la secuencia animada del rival
   // (enemyTurn), donde es el rival quien tira y sus dados deben barajarse.
   // Caido: el dado ya no se baraja (bug: los dados de los muertos se giraban
   // cada turno del bando aunque rollDice los excluye; la animacion se guiaba
@@ -92,10 +90,10 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
         />
       </div>
 
-      {/* Pie de la carta, ya en flujo normal (no absoluto): pedido explicito
-          2026-09-10, antes se superponia con el cubo. La cara tirada se
-          muestra como FaceRow -la misma fila visual que el panel de
-          detalle de abajo, pero solo la que ha tocado-, no como texto suelto. */}
+      {/* Pie de la carta, ya en flujo normal (no absoluto, se superponia con
+          el cubo). La cara tirada se muestra como FaceRow -la misma fila
+          visual que el panel de detalle de abajo, pero solo la que ha
+          tocado-, no como texto suelto. */}
       {u.alive && ((rolledFace) || (u.side === activeSide && !u.acted && status === 'playing')) && (
         <div className="card-foot">
           {rolledFace && (

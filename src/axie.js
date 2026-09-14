@@ -178,28 +178,13 @@ export const CLASS_STATS = {
 
 export const LORD_STATS = { hp: 240, move: 0, range: 2, atk: 30 }
 
-// Paso 8 (rediseñado 2026-09-10 dos veces, ambas a pedido explicito del
-// usuario): el dado del Lord, 6 caras.
-//
-// Primer rediseño: la version original (seccion 4.2 del documento) era 1
-// ataque + 2 invocacion + 3 ranuras bloqueadas que, sin desbloquear (paso 12,
-// sistema de Esencia no implementado en el MVP1), se comportaban TAMBIEN
-// como invocacion -> 5 caras de 6 invocaban. El usuario reporto que eso
-// alarga la partida sin sentido. Las 3 ranuras bloqueadas se sustituyeron
-// por las 3 habilidades de apoyo del documento (seccion 4.3), con "Llamada"
-// cambiada por "Duplicar".
-//
-// Segundo rediseño (mismo dia): el usuario pidio ir mas lejos -"quiero que
-// las habilidades no sean meter mas axies... el que haya invocacion solo
-// sea en la de duplicar"- y ademas quitar toda mencion a "torre" (el Lord ya
-// no se llama "torre" en ningun sitio, ni el ataque ni el subtitulo de la
-// carta). Las 2 caras de Invocacion desaparecen del todo: se sustituyen por
-// dos buffs pequeños para el equipo (Cura, Templanza). La reserva de 3
-// unidades no se queda huerfana -Duplicar pasa a cubrir TANTO clonar un
-// aliado en el tablero COMO sacar de la reserva (el jugador elige con el
-// click: toca un aliado para clonarlo, o toca una casilla libre junto al
-// Lord para sacar al siguiente de la reserva), asi que "invocacion" sigue
-// existiendo pero unicamente dentro de esta cara.
+// Paso 8: el dado del Lord, 6 caras -1 ataque + 5 habilidades de apoyo.
+// Invocar una unidad nueva ocurre SOLO a traves de Duplicar (el jugador
+// elige con el click: toca un aliado para clonarlo, o toca una casilla
+// libre junto al Lord para sacar al siguiente de la reserva), asi que la
+// reserva de 3 unidades nunca se queda sin forma de entrar en juego pese a
+// no haber una cara de invocacion dedicada. El Lord no tiene "torre" en
+// ningun nombre (ni el ataque ni el subtitulo de la carta).
 //   - Muro: 30 de escudo a un aliado propio a alcance 3.
 //   - Marca: un enemigo a alcance 3 queda marcado -el PROXIMO ataque que lo
 //     impacte (de cualquier atacante) hace +20. Se consume al primer golpe.

@@ -1,14 +1,11 @@
 // Die3D.jsx — dado fisico 3D por carta (T0). Un cubo redondeado Three.js con
 // las 6 partes del cuerpo en sus caras, flotando superpuesto a la rejilla 2D
-// del dado (que se mantiene debajo, "superpuesto a la rejilla actual", y
-// conserva sus estados rolling/tick). Modelo imperativo vanilla igual que
-// Board3D: sin reconciliador.
+// del dado (que se mantiene debajo y conserva sus estados rolling/tick).
+// Modelo imperativo vanilla igual que Board3D: sin reconciliador.
 //
-// Diseno actual (pedido usuario 2026-09-10): casco RoundedBoxGeometry como
-// cuerpo solido (esquinas redondeadas) y 6 planos opacos pegados a la zona
-// plana de cada cara con la cara del dice; sin reborde de color de clase ni
-// marco dorado -antes las caras eran tarjetas transparentes dentro de un
-// cubo dorado y parecian "partes cortadas en un cuadrado".
+// Casco RoundedBoxGeometry como cuerpo solido (esquinas redondeadas) y 6
+// planos opacos pegados a la zona plana de cada cara con la cara del dice;
+// sin reborde de color de clase ni marco dorado.
 //
 // Caras del cubo (orden de plano +X,-X,+Y,-Y,+Z,-Z):
 //   -Z   tail         (cara trasera)
@@ -27,15 +24,11 @@ import { SLOT_LABEL_MVP1 } from './axie'
 import { SLOT_ICON_URL } from './slotIcons'
 import { registerRenderable, getSharedPixelRatio } from './sharedRenderer3D'
 
-// Color del dado entero (pedido explicito 2026-09-10: "el borde y las caras
-// del mismo color, no verde, blanco o beis"): el cuerpo (bisel redondeado) y
-// el fondo de cada cara comparten este mismo tono. Antes era verde oscuro con
-// un reborde de color de clase y marco dorado; ya no hay color por clase.
-// Pedido posterior del usuario: "el color del dado que brille mas, mas
-// blanco, esta muy oscuro" -primero subio a 0xF7F7F7 y el usuario siguio
-// viendolo igual (el salto de 8 niveles es imperceptible), asi que se va a
-// blanco puro 0xFFFFFF con la luz ambiente y principal mas altas: que el
-// cuerpo lea BLANCO de verdad y solo las sombras del bisel marquen el volumen.
+// Color del dado entero: el cuerpo (bisel redondeado) y el fondo de cada
+// cara comparten este mismo tono, sin color por clase. Blanco puro 0xFFFFFF
+// (un gris casi blanco como 0xF7F7F7 es imperceptible a este tamano) con la
+// luz ambiente y principal altas, para que el cuerpo lea BLANCO de verdad y
+// solo las sombras del bisel marquen el volumen.
 const DIE_COLOR = 0xFFFFFF
 
 // Orientacion final que deja cada ranura mirando +Z (hacia la camara).
@@ -77,12 +70,9 @@ const SLOT_INDEX = { eyes: 2, ears: 3, horn: 4, mouth: 0, back: 1, tail: 5 }
 // faceMeshes mas abajo) y el grupo ENTERO vuelve a rotar y=PI para traerla a
 // camara (targetEulerFor('tail')) -dos giros de 180 grados alrededor del
 // mismo eje Y deberian cancelarse, pero en la practica la cara sale invertida
-// (bug reportado 2026-09-11, "la cara de la cola cae boca abajo", confirmado
-// con una captura real: la etiqueta de texto aparecia arriba en vez de abajo
-// de la cara). Se compensa dibujando ESA cara reflejada 180 grados en el
-// propio canvas 2D -mismo mecanismo que existia antes de pasar a planos
-// individuales por cara, que un comentario anterior daba por innecesario sin
-// haberlo verificado en vivo.
+// (verificado con una captura real: la etiqueta de texto aparecia arriba en
+// vez de abajo de la cara). Se compensa dibujando ESA cara reflejada 180
+// grados en el propio canvas 2D.
 const FLIP_SLOT = { tail: true }
 
 function makeFaceCanvas(slot) {
@@ -137,23 +127,17 @@ function makeFaceCanvas(slot) {
   return { canvas, ctx, empty }
 }
 
-// El icono vuelve a hornearse en la textura 3D del cubo, EN LAS 6 CARAS (no
-// solo la ganadora) -pedido 2026-09-11 ("como no se va a poder si lo
-// tenemos hecho arriba en el Lord, inserta tal cual las partes en el
-// modelo 3D del dado"): LordDie3D.jsx hace justo esto (`ctx.fillText` del
-// glifo, horneado en la propia textura, gira con el cubo de verdad sin
-// ningun apaño) y aqui es el mismo principio con una imagen en vez de un
-// caracter. El intento anterior (un <img> plano SUPERPUESTO al canvas 3D)
-// evitaba el lavado de contraste del pipeline 3D, pero a cambio el icono no
-// giraba con el cubo (un <img> no puede seguir una rotacion 3D arbitraria)
-// -approximarlo con CSS durante el balanceo funcionaba, pero seguia sin
-// estar REALMENTE pegado, y el usuario lo noto. Mismo color "tal cual" que
-// el panel de detalle (`ICON_FILTER`, igual que `--icon-filter` en
-// App.css), pero con un TRAZO real por debajo (silueta estampada en anillo,
-// recoloreada a negro solido via `source-atop`) para que el contorno
-// sobreviva al brillo emisivo plano del material de la cara (ver mas abajo,
-// `emissiveIntensity`) -sin el trazo, la imagen se lavaba demasiado contra
-// el blanco del dado (motivo real del primer intento de superponerla).
+// El icono se hornea en la textura 3D del cubo, EN LAS 6 CARAS (no solo la
+// ganadora) -mismo principio que LordDie3D.jsx (`ctx.fillText` del glifo,
+// horneado en la propia textura, gira con el cubo de verdad sin ningun
+// apaño), aqui con una imagen en vez de un caracter. Un <img> plano
+// SUPERPUESTO al canvas 3D no sirve: no puede seguir una rotacion 3D
+// arbitraria del cubo. Mismo color "tal cual" que el panel de detalle
+// (`ICON_FILTER`, igual que `--icon-filter` en App.css), pero con un TRAZO
+// real por debajo (silueta estampada en anillo, recoloreada a negro solido
+// via `source-atop`) para que el contorno sobreviva al brillo emisivo plano
+// del material de la cara (ver mas abajo, `emissiveIntensity`) -sin el
+// trazo, la imagen se lava contra el blanco del dado.
 const ICON_FILTER = 'sepia(1) saturate(2.6) hue-rotate(-8deg) brightness(0.92)'
 const ICON_OUTLINE_COLOR = '#000000'
 
@@ -224,9 +208,9 @@ export default function Die3D({ slots, rolling, rolledSlot, size = 120 }) {
     const seed = ++dieSeed
 
     const scene = new THREE.Scene()
-    // Luz suave (pedido: "que no se note tanto el cambio de color... queda
-    // cutra"): con las caras en el mismo material que el casco el bisel solo
-    // se marca con una pequena caida de luz en la curva redondeada, sutil.
+    // Luz suave: con las caras en el mismo material que el casco el bisel
+    // solo se marca con una pequena caida de luz en la curva redondeada,
+    // sutil.
     scene.add(new THREE.AmbientLight(0xffffff, 0.9))
     const key = new THREE.DirectionalLight(0xffffff, 0.6)
     key.position.set(1.8, 2.2, 3.2)
@@ -269,11 +253,10 @@ export default function Die3D({ slots, rolling, rolledSlot, size = 120 }) {
       canvas._texture = tex
       // Opaco y CON la misma luz que el casco (MeshStandardMaterial): si la cara
       // fuera plana sin luz (Basic) sobre un bisel iluminado (Standard), la zona
-      // plana vuela como un cuadrado beis pegado encima (rechazado: "la cara un
-      // cuadrado ahi..."). Mismo material que el casco = el claroscuro corre
-      // continuo del borde redondeado a la cara y el cuadrado desaparece. Con el
-      // mismo emisivo que el bisel (pedido: "vale pero a la cara tambien, es que
-      // sino queda fatal") para que el brillo sea UNIFORME en todo el dado.
+      // plana se veria como un cuadrado beis pegado encima. Mismo material que
+      // el casco = el claroscuro corre continuo del borde redondeado a la cara
+      // y el cuadrado desaparece. Mismo emisivo que el bisel para que el
+      // brillo sea UNIFORME en todo el dado.
       materials[idx] = new THREE.MeshStandardMaterial({ map: tex, color: 0xffffff, roughness: 0.85, emissive: 0xffffff, emissiveIntensity: 0.18 })
       // Icono horneado en la propia textura de la cara (ver comentario largo
       // de stampIcon, arriba): TODAS las caras lo llevan, no solo la
@@ -283,17 +266,17 @@ export default function Die3D({ slots, rolling, rolledSlot, size = 120 }) {
       if (iconUrl) stampIcon(ctx, canvas, iconUrl, empty)
     }
 
-// Casco redondeado (pedido explicito: "redondear las puntas") en el MISMO
-    // beis que las caras e iluminado (MeshStandardMaterial). Con las caras en el
-    // mismo material, el claroscuro del bisel cae suave y continuo hasta la cara
-    // -sin el corte plano/sombreado que hacia de la cara un parche cuadrado.
+// Casco redondeado en el MISMO beis que las caras e iluminado
+    // (MeshStandardMaterial). Con las caras en el mismo material, el
+    // claroscuro del bisel cae suave y continuo hasta la cara -sin el corte
+    // plano/sombreado que hacia de la cara un parche cuadrado.
     const DIE_SIZE = 1.5
     const DIE_RADIUS = 0.24
     const FLAT = DIE_SIZE - DIE_RADIUS * 2
     const hullGeo = new RoundedBoxGeometry(DIE_SIZE, DIE_SIZE, DIE_SIZE, 3, DIE_RADIUS)
     // Emisivo blanco tenue en el bisel: con el color ya en blanco puro, es la
-    // forma de que el dado "brille" un punto mas sin tocar las caras (pedido:
-    // "un poco mas"). Solo el casco; las caras usan textura y no lo necesitan.
+    // forma de que el dado "brille" un punto mas sin tocar las caras. Solo el
+    // casco; las caras usan textura y no lo necesitan.
     const hullMat = new THREE.MeshStandardMaterial({ color: DIE_COLOR, roughness: 0.85, emissive: 0xffffff, emissiveIntensity: 0.18 })
     const hull = new THREE.Mesh(hullGeo, hullMat)
     sceneRoot.add(hull)
@@ -327,16 +310,14 @@ export default function Die3D({ slots, rolling, rolledSlot, size = 120 }) {
     // primer commit): el idle de despues tiene que orbitar alrededor de ESTA,
     // no del origen -si no, en cuanto landing termina (landing=null) el frame
     // siguiente cae en la rama idle de abajo y la reescribe con una rotacion
-    // absoluta, tapando la cara que se acaba de tirar (bug real: "gira y
-    // gira, nunca cae y muestra la cara que ha tocado").
+    // absoluta, tapando la cara que se acaba de tirar.
     let landedEuler = null
 
     function startLanding(slot) {
-      // Bug real (reportado dos veces por el usuario, "gira y gira, nunca
-      // cae"): tumble se ponia a true al empezar la tirada (toggleTumble) y
-      // NUNCA volvia a false -loop() mira `if (tumble)` antes que `landing`,
-      // asi que aunque aqui se armara el aterrizaje, tumble seguia ganando y
-      // el cubo tumbaba para siempre. Hay que apagarlo aqui explicitamente.
+      // tumble se ponia a true al empezar la tirada (toggleTumble) y nunca
+      // volvia a false -loop() mira `if (tumble)` antes que `landing`, asi
+      // que aunque aqui se armara el aterrizaje, tumble seguia ganando y el
+      // cubo tumbaba para siempre. Hay que apagarlo aqui explicitamente.
       tumble = false
       const target = new THREE.Quaternion().setFromEuler(targetEulerFor(slot))
       landing = { phase: 'spin', t: 0, target, snapped: null }
@@ -417,16 +398,15 @@ export default function Die3D({ slots, rolling, rolledSlot, size = 120 }) {
       }
       // Bug real (StrictMode remonta el efecto en dev): sin quitar el canvas
       // aqui, el remontaje anadia OTRO canvas al mismo host y quedaban dos
-      // apilados -pedido explicito 2026-09-10 al depurar el rediseno de las
-      // cartas compactas.
+      // apilados.
       if (canvas.parentNode === host) host.removeChild(canvas)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size])
 
   // Control de estado: tumble mientras rolling, landing al commit (rolledSlot).
-  // rollTick YA NO esta en las deps (bug real 2026-09-11): es un contador
-  // GLOBAL que sube cada vez que CUALQUIER bando tira, asi que un dado con la
+  // rollTick YA NO esta en las deps: es un contador GLOBAL que sube cada vez
+  // que CUALQUIER bando tira, asi que un dado con la
   // cara aterrizada volvia a girar cuando el OTRO bando lanzaba sus dados.
   // Ahora el aterrizaje solo ocurre en el commit de ESTE dado: justo despues
   // de su ventana de tumble (rolling pasa de true a false), o si su ranura

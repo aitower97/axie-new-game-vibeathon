@@ -1,7 +1,7 @@
-// BaseScreen.jsx — pantalla "Base": el HUB del juego (pedido explicito del
-// usuario: equipo principal en el centro y los menus/pantallas en los
-// laterales, como los juegos de Axie). El centro muestra el Lord (Portrait3D
-// compartido con el tablero) y la escuadra viva con sus mejoras de sesion;
+// BaseScreen.jsx — pantalla "Base": el HUB del juego, equipo principal en el
+// centro y los menus/pantallas en los laterales, como los juegos de Axie. El
+// centro muestra el Lord (Portrait3D compartido con el tablero) y la
+// escuadra viva con sus mejoras de sesion;
 // los laterales son los accesos a PVE/PVP/Laboratorio y a la partida libre.
 import MetaScreen, { MetaUnitRow, StatChip } from './MetaScreen'
 import Portrait3D from '../../Portrait3D'

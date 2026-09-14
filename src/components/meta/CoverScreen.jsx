@@ -1,38 +1,14 @@
-// CoverScreen.jsx — portada del juego (sesion 2026-09-14, "que tenga vibras
-// axie y que tenga una portada"; retocada la MISMA sesion tras feedback
-// directo: "quitemos las cards redondas con colores transparentes tipicas de
-// diseño de claude" + "los emojis en colores los evitaria, los haria con
-// lineas finas y con un color acorde" + nombre nuevo relacionado con dados y
-// tactica + mensaje centrado en el bucle evolucion-Axie/evolucion-dado).
-// Segunda pasada, mismo dia, sobre el tratamiento del titulo: el usuario dejo
-// dos capturas reales del logo oficial de Axie en /titulo (letra burbuja
-// gruesa, contorno solido, relleno a cuadros, zarcillos pastel alrededor, y
-// una cinta de color debajo con el descriptor) -el logotipo se rehizo para
-// seguir ese lenguaje, solo con CSS/SVG inline (sin imagenes nuevas). De
-// paso, la auditoria de esta pantalla encontro que `.cover-kicker` (el
-// credito "Axie Vibeathon Ronda 1" en versalitas sobre una pildora) era
-// exactamente el "eyebrow en versalitas sobre el titulo" de la lista de
-// tells genericos -y que la linea "Axie" que colgaba encima del titulo
-// repetia el MISMO patron. Las dos se quitaron: el credito paso a ser una
-// linea de nota al pie del bloque de texto (sin pildora, sin versalitas, sin
-// letter-spacing), y la palabra "Axie" suelta se elimino del logotipo.
+// CoverScreen.jsx — portada del juego: primera pantalla que ve cualquiera
+// (DEFAULT_ROUTE='portada' en routes.js). El pitch, el Lord y el roster en
+// 3D real (mismo mixer/descriptores que el HUB y el tablero, cero assets
+// nuevos) y dos puertas de entrada. Presentacional puro: no toca estado de
+// partida, solo recibe `onEnter` (ir al HUB) y `onPlay` (partida libre
+// directa).
 //
-// TERCERA pasada, mismo dia: nombre del juego a ingles ("yo lo llamaria
-// Tactic Dice") + logo como ARCHIVO real reutilizable fuera de la app
-// ("crearia un png o algo con fondo transparente que luego se pueda meter en
-// cualquier parte") -se opto por SVG (mismo resultado, vectorial, sin
-// perdida de calidad). El bloque de texto del logotipo (`.cover-title-*`,
-// letra burbuja via CSS text-stroke/background-clip) se sustituyo por
-// `public/brand/logo.svg` (lockup "AXIE INFINITY" + cinta "TACTIC DICE",
-// mismas letras propias dibujadas como paths, mismo lenguaje visual) cargado
-// como `<img>` -asi el archivo sirve igual para el README o el thumbnail del
-// Vibeathon sin depender de React/CSS. Los zarcillos y la cinta ya viven
-// DENTRO del SVG, asi que `VineIcon`/`cover-title-ribbon` salieron de aqui.
-// Primera pantalla que ve cualquiera (DEFAULT_ROUTE='portada' en routes.js):
-// el pitch, el Lord y el roster en 3D real (mismo mixer/descriptores que el
-// HUB y el tablero, cero assets nuevos) y dos puertas de entrada.
-// Presentacional puro: no toca estado de partida, solo recibe `onEnter` (ir
-// al HUB) y `onPlay` (partida libre directa).
+// El logotipo es `public/brand/logo.svg` (formas propias dibujadas como
+// paths, sin wordmark de Sky Mavis -ver el comentario de ese archivo),
+// cargado como `<img>`: los zarcillos y la cinta viven DENTRO del SVG, asi
+// que no hace falta ningun `VineIcon`/`cover-title-ribbon` aqui.
 import Portrait3D from '../../Portrait3D'
 import { AXIE_SAMPLE_GENES } from '../../Board3D'
 import { LORD_DESCRIPTORS, ROSTER_DESCRIPTORS } from '../../axieGeneCatalog'

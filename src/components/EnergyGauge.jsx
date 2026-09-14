@@ -1,10 +1,8 @@
 // EnergyGauge.jsx — medidor de la banca de Energia (A3) en la esquina del
-// tablero, "mucho mas visual" (pedido 2026-09-11): un anillo de progreso SVG
-// (no un numero suelto en un chip) que se llena hasta el tope ENERGY_CAP.
+// tablero: un anillo de progreso SVG (no un numero suelto en un chip) que se
+// llena hasta el tope ENERGY_CAP.
 //
-// Como funciona (A3, docs/combate-dinamico-dado.md seccion 6.4; rediseno
-// 2026-09-12, "tiene que tener un sentido, no que sea 2 de inicio y cada turno
-// se acumule 1 de energia"):
+// Como funciona (A3, docs/combate-dinamico-dado.md seccion 6.4):
 //   - La Energia sale de TU tirada: cada cara sin golpe que asientas
 //     (guardia/reposicion/utilidad, ver yieldsEnergy) mete +1 en la banca.
 //   - La banca PERSISTE toda la partida: ya NO se vacia al cambiar de turno
@@ -17,8 +15,7 @@
 // Este componente es SOLO presentacion: los gastos y la generacion los decide
 // App.jsx (rollDice/attack/moveTo/passTurn).
 //
-// `side`/`label` (2026-09-11, "tiene que haber 2, uno para el rival y otro
-// para mi equipo"): con dos medidores en pantalla a la vez, el del rival
+// `side`/`label`: con dos medidores en pantalla a la vez, el del rival
 // necesita distinguirse a simple vista -mismo tratamiento que el resto de la
 // UI del bando enemigo (rojo/rosa, `.energy-enemy` en App.css) y un titulo
 // propio en vez de "Energia" a secas. El del jugador tambien pierde los

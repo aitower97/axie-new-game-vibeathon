@@ -1,8 +1,9 @@
 // Board3D.jsx — el tablero como bloques 3D reales (GLB de Kenney) unidos en una
-// plataforma, con Three.js VANILLA (no react-three-fiber): el bug real de la
-// sesion anterior (canvas en blanco, sin error) era especifico del reconciliador
-// separado de r3f y su Suspense -aqui no hay reconciliador de React tocando la
-// escena, es imperativo puro dentro de un useEffect, igual que el patron que ya
+// plataforma, con Three.js VANILLA (no react-three-fiber): r3f monta la escena
+// con su PROPIO reconciliador de React separado del arbol normal, y su
+// Suspense interno (usado por useGLTF) no se puede envolver desde fuera de
+// <Canvas> -aqui no hay reconciliador de React tocando la escena, es
+// imperativo puro dentro de un useEffect, igual que el patron que ya
 // funciono bien con Phaser antes de quitarlo.
 //
 // Alineacion con el overlay interactivo de React: la camara es ORTOGRAFICA (sin
@@ -11,7 +12,7 @@
 // que basta con proyectar 3 puntos de referencia (origen, +X, +Y del grid en
 // "pixeles de overlay") para sacar una matriz CSS `matrix(a,b,c,d,e,f)` que
 // alinea TODO el grid interactivo de golpe -nada de recalcular celda por celda,
-// y nada de derivar la proyeccion a mano (fuente de bugs de signo esta sesion).
+// ni de derivar la proyeccion a mano.
 //
 // Dos useEffect separados a proposito, no uno solo:
 // - El primero monta terreno/camara/renderer/loop y TAMBIEN define la
@@ -28,7 +29,7 @@
 // practica el efecto de terreno se ejecuta varias veces al arrancar -sin este
 // enganche los Axies podian terminar creandose sobre un tablero ya
 // desechado (invisible, aunque las descargas de red y la creacion del
-// personaje 3D terminaran bien: bug real, visto en esta sesion).
+// personaje 3D terminaran bien).
 //
 // Ademas: pasar `axieCell={{ r, c }}` como objeto literal en el JSX de
 // App.jsx creaba una referencia nueva en cada render, y como el efecto de
@@ -94,8 +95,7 @@ function loadCrownTemplate() {
       obj.updateMatrixWorld(true)
       // El .mtl trae 4 materiales pero todos con Ns 0 (brillo/especular a
       // cero -por eso salia mate, sin destacar). Se sustituyen por un unico
-      // dorado mas vivo, pedido explicito ("un dorado con mas brillo que
-      // destaque"), en vez de intentar afinar los 4 originales (gemas rojas/
+      // dorado mas vivo, en vez de intentar afinar los 4 originales (gemas rojas/
       // verdes/plata incluidas) por separado. metalness bajo a proposito: la
       // escena solo tiene luz ambiental + una direccional, sin environment
       // map -un material casi 100% metalico se ve OSCURO sin reflejos de
@@ -214,7 +214,7 @@ export default function Board3D({
     let frameId = null
 
     const scene = new THREE.Scene()
-    // Fondo "hasta el horizonte" (v5): cielo opaco + niebla atmosferica del MISMO
+    // Fondo "hasta el horizonte": cielo opaco + niebla atmosferica del MISMO
     // color. El campo de hierba gigante se extiende hasta las ~4200 unidades y la
     // niebla la disuelve gradualmente ANTES de que se vea el borde: el horizonte
     // no se corta, se evapora. El tablero (a ~30-40 unidades de la camara) queda
@@ -229,7 +229,7 @@ export default function Board3D({
     dirLight.position.set(4, 10, 6)
     scene.add(dirLight)
 
-    // Angulo "de mesa" decidido con el usuario: 30 grados de inclinacion en el
+    // Angulo "de mesa": 30 grados de inclinacion en el
     // eje X (elevationDeg) + un giro de 10 grados tipo peonza sobre el propio
     // plano del tablero (azimuthDeg, en boardGroup, no en la camara).
     const elevationDeg = 30
@@ -291,10 +291,9 @@ export default function Board3D({
 
     // La "isla" (rejilla + canto de tierra + Axies) es un grupo aparte dentro
     // de boardGroup: es lo unico que sube y baja (loop(), mas abajo) para dar
-    // la sensacion de flotar -pedido explicito del usuario, que aclaro que
-    // "flotar" no es un trozo de geometria estatica, es una animacion sutil
-    // de sube y baja. El fondo (campo + arboles/rocas/caminos) se queda fijo
-    // en boardGroup: sin ese punto de referencia inmovil, el sube y baja de
+    // la sensacion de flotar -una animacion sutil de sube y baja, no un
+    // trozo de geometria estatica. El fondo (campo + arboles/rocas/caminos)
+    // se queda fijo en boardGroup: sin ese punto de referencia inmovil, el sube y baja de
     // la isla no se notaria.
     const islandGroup = new THREE.Group()
     boardGroup.add(islandGroup)
@@ -353,10 +352,10 @@ export default function Board3D({
       const p2 = overlayToScreen(0, 1, width, height)
       const matrix = [p1.x - p0.x, p1.y - p0.y, p2.x - p0.x, p2.y - p0.y, p0.x, p0.y]
       const matrixStr = `matrix(${matrix.join(',')})`
-      // REDISENO 2026-09-11: la matriz del overlay ya NO sube por props de
-      // React (Estado -> CSS -> re-render -> Board3D -> Estado+... bucle), se
-      // escribe DIRECTO sobre el nodo DOM del overlay (ref). Asi Board3D manda
-      // y el overlay obedece, sin re-render alguno y sin bucle matriz->App.
+      // La matriz del overlay NO sube por props de React (Estado -> CSS ->
+      // re-render -> Board3D -> Estado+... bucle), se escribe DIRECTO sobre
+      // el nodo DOM del overlay (ref). Asi Board3D manda y el overlay obedece,
+      // sin re-render alguno y sin bucle matriz->App.
       if (overlayElRef && overlayElRef.current) {
         overlayElRef.current.style.transform = matrixStr
         return
@@ -381,8 +380,8 @@ export default function Board3D({
     }
 
     // No hay ninguna pieza de agua en los packs de Kenney descargados (Platformer
-    // Kit, Mini Forest) -a peticion del usuario, un "laguito" dibujado a mano en
-    // vez de un modelo cargado: una mancha redondeada e irregular (poligono con
+    // Kit, Mini Forest), asi que es un "laguito" dibujado a mano en vez de un
+    // modelo cargado: una mancha redondeada e irregular (poligono con
     // el radio ligeramente aleatorio por vertice, semilla determinista por
     // celda para que no cambie entre renders) con un material azul brillante.
     function hash2(r, c, salt) {
@@ -417,13 +416,12 @@ export default function Board3D({
     }
 
     // Anillo de bando (aliado/rival) en el SUELO, geometria 3D real -no un
-    // recuadro DOM. Antes esto era un borde CSS (`.cell3d.cell-ally::after`)
-    // que se pintaba SIEMPRE por encima de todo el canvas, cortando el cuerpo
-    // del Axie donde este sobresale del borde matematico de su celda (pedido
-    // explicito del usuario: "que se vea el elemento 3D por delante"). Al ser
-    // geometria real tumbada en el suelo, el propio test de profundidad de
-    // WebGL hace que el Axie de pie encima lo tape solo -sin trucos de
-    // z-index, es fisica de la escena.
+    // recuadro DOM. Un borde CSS (`.cell3d.cell-ally::after`) se pintaria
+    // SIEMPRE por encima de todo el canvas, cortando el cuerpo del Axie donde
+    // este sobresale del borde matematico de su celda. Al ser geometria real
+    // tumbada en el suelo, el propio test de profundidad de WebGL hace que el
+    // Axie de pie encima lo tape solo -sin trucos de z-index, es fisica de la
+    // escena.
     const ringGeometry = new THREE.RingGeometry(1, 1.22, 24)
     const ringMaterials = {
       player: new THREE.MeshBasicMaterial({ color: 0x5fa0ff, transparent: true, opacity: 0.85, side: THREE.DoubleSide }),
@@ -447,9 +445,9 @@ export default function Board3D({
     const decorEntryUrl = (entry) => (typeof entry === 'string' ? entry : entry.url)
     const decorEntryFit = (entry) => (typeof entry === 'string' ? 0.62 : (entry.fit ?? 0.62))
 
-    // Fondo (v4): el tablero es un CAMPO (isla de cesped que flota sobre un
+    // Fondo: el tablero es un CAMPO (isla de cesped que flota sobre un
     // prado mas claro) y alrededor, como un coliseo, un anillo de MONTANAS
-    // hechas de cubos (estilo Minecraft, pedido explicito) que lo rodea por
+    // hechas de cubos (estilo Minecraft) que lo rodea por
     // completo, mas un bosque en el cinturon que queda entre el borde de la
     // rejilla y el muro. Piezas usadas (Platformer Kit y Mini Forest, CC0):
     //  - makeShadow(): una mancha oscura difuminada (textura radial en
@@ -465,9 +463,8 @@ export default function Board3D({
     //    centro sera solo cesped, protagonismo al board"). Densidad alta de
     //    arboles: es EL bosque que enmarca el campo, como el que hay detras
     //    de una zona de arena.
-    //  - buildColosseumRing(): el muro de montanas. En vez de las piezas
-    //    grandes y suaves sueltas (version anterior, "desperdicio"), se usan
-    //    los CUBOS base del propio tablero (block-grass / block-snow) como
+    //  - buildColosseumRing(): el muro de montanas, hecho con los CUBOS base
+    //    del propio tablero (block-grass / block-snow) como
     //    voxels: una coronacion casi continua alrededor del board, apilados
     //    1-4 unidades con silueta irregular y picos nevados -lee como montaña
     //    Minecraft que ABRAZA el campo como las gradas de un coliseo. Un
@@ -484,8 +481,8 @@ export default function Board3D({
       patchDirt: '/models/mini-forest/patch-dirt.glb',
     }
 
-    // Piezas NUEVAS del Platformer Kit (mismo pack, mismas rutas de textura
-    // relativas `Textures/colormap.png`) para el mundo abierto v6: la pendiente
+    // Piezas del Platformer Kit (mismo pack, mismas rutas de textura relativas
+    // `Textures/colormap.png`) para el mundo abierto: la pendiente
     // para los escalones de las llanuras, los pinos unicos de las cimas, y la
     // vegetacion baja que se pega a los bordes de las llanuras.
     const WORLD_URLS = {
@@ -496,7 +493,7 @@ export default function Board3D({
       flowers: '/models/flowers.glb',
       mushrooms: '/models/mushrooms.glb',
     }
-    // Campo de llanuras voxel (v6): radio hasta donde llega la malla de cubos
+    // Campo de llanuras voxel: radio hasta donde llega la malla de cubos
     // (mas alla lo disuelve la niebla), tamano del lattice del ruido de valor
     // en celdas (llanuras de ~4-12 bloques del mismo nivel) y cuantas alturas
     // de cubo hay (0=suelo, 1..WORLD_LEVELS-1 = llanuras elevadas). El radio
@@ -579,7 +576,7 @@ export default function Board3D({
       const texture = new THREE.CanvasTexture(canvas)
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping
       // La repeticion se calcula del tamano del plano para que el tile mantenga
-      // ~8 unidades junto al tablero aunque el campo sea ahora gigantesco (v5).
+      // ~8 unidades junto al tablero aunque el campo sea gigantesco.
       const repeats = Math.max(1, Math.round(planeSize / 8))
       texture.repeat.set(repeats, repeats)
       return texture
@@ -594,7 +591,7 @@ export default function Board3D({
       // angulo, un hueco grande desplaza la sombra (mas abajo) muy lejos del
       // pie del tablero en pantalla y deja de leerse como su sombra.
       backdropY = -spacing2 * 0.22
-      // Plano GIGANTE (v5): el mundo abierto llega hasta la niebla (~340 ud), asi
+      // Plano GIGANTE: el mundo abierto llega hasta la niebla (~340 ud), asi
       // que el campo tiene que cubrir todo eso y mas para que su borde nunca
       // asome -la niebla atmosferica lo disuelve antes de que se vea el corte.
       const SIZE = 4200
@@ -632,7 +629,7 @@ export default function Board3D({
     // efecto, para que el cleanup pueda hacerles dispose).
     const brightBoardMaterials = []
     const colosseumMaterials = []
-    // Mundo abierto v6: los cubos del campo de llanuras se dibujan con
+    // Mundo abierto: los cubos del campo de llanuras se dibujan con
     // InstancedMesh (una sola draw call por material en vez de miles de meshes
     // sueltos). Las geometrias fusionadas de instancia NO son compartidas con
     // los templates (se montan aqui), asi que se recogen en heapGeos para
@@ -669,8 +666,8 @@ export default function Board3D({
     function decorateSurroundings(spacing2, cols2, rows2) {
       // El cinturon entre el borde de la rejilla y las gradas queda LIMPIO a
       // proposito: solo cesped homogeneo, para que la zona junto al board no
-      // tenga barullo (pedido: "que esa parte sea mas homogenea, no tan densa").
-      // El resto (arboles, rocas, matas) paso al campo de llanuras lejano, que
+      // tenga barullo. El resto (arboles, rocas, matas) paso al campo de
+      // llanuras lejano, que
       // es donde la densidad no estorba al juego.
 
       // Distancia (en celdas) desde el borde de la rejilla -0 dentro, 1 en la
@@ -717,9 +714,9 @@ export default function Board3D({
       })
     }
 
-    // Gradas del estadio: alrededor del board ya no hay muro de montanas
-    // irregulares, sino GRADAS limpias y homogeneas (pedido explicito): anillos
-    // concentricos de cubos, cada uno a una altura fija y aumentando hacia
+    // Gradas del estadio: alrededor del board hay GRADAS limpias y
+    // homogeneas -no un muro de montanas irregulares-: anillos concentricos
+    // de cubos, cada uno a una altura fija y aumentando hacia
     // fuera, como las gradas de un estadio donde incluso podria haber
     // espectadores. El cinturon entre la rejilla y las gradas es cesped liso
     // (barullo quitado), y los caminos pasan por dos puertas alineadas en los
@@ -788,8 +785,8 @@ export default function Board3D({
       }
     }
 
-    // Mundo abierto v6 ("expandirlo hasta el infinito", segunda pasada): un
-    // CAMPO DE LLANURAS voxel, no scatter. En una malla fina (una celda de
+    // Mundo abierto: un CAMPO DE LLANURAS voxel que se extiende hasta el
+    // horizonte, no scatter. En una malla fina (una celda de
     // mundo por cubo, mismo lenguaje voxel que el tablero y el muro del
     // coliseo) se calcula un heightfield de ruido de valor: el ruido es
     // correlacionado entre vecinos, asi que al cuantizar su altura cada zona
@@ -1135,9 +1132,9 @@ export default function Board3D({
 
       const terrainAtFn = terrainAtRef.current || (() => 'open')
       // Destacar el BOARD: los bloques de cesped de la rejilla se pintan con
-      // un material mas claro y llamativo que el campo y las gradas (pedido
-      // explicito), usando el propio map como emissiveMap para que la tapa de
-      // hierba brille mas donde el texto ya es verde sin lavar las caras de
+      // un material mas claro y llamativo que el campo y las gradas, usando
+      // el propio map como emissiveMap para que la tapa de hierba brille mas
+      // donde el texto ya es verde sin lavar las caras de
       // tierra (ahi el map es oscuro y el brillo apenas actua). Un clon por
       // material base; se recogen para hacerles dispose al desmontar.
       const BRIGHT_TINT = new THREE.Color(1.3, 1.5, 1.12)
@@ -1427,12 +1424,12 @@ export default function Board3D({
       const mixer = await mixerReady
       // unit.descriptor (AxieDescriptor: clase pura verificada contra el
       // manifest local, ver axieGeneCatalog.js) tiene prioridad sobre
-      // unit.genes: los genomas reales de marketplace probados en esta sesion
-      // (45 IDs, las 4 clases, precio suelo y coleccion Mystic) fallan casi
-      // todos con 5 o 6 de 6 partes sin asset local -el pack que trae el
-      // paquete es una demo, no un espejo del universo real de partes-, asi
-      // que las unidades "de verdad visibles" usan combinaciones de clase
-      // pura confirmadas presentes en public/assets/axie/manifest.json.
+      // unit.genes: los genomas reales de marketplace probados (45 IDs, las
+      // 4 clases, precio suelo y coleccion Mystic) fallan casi todos con 5 o
+      // 6 de 6 partes sin asset local -el pack que trae el paquete es una
+      // demo, no un espejo del universo real de partes-, asi que las
+      // unidades "de verdad visibles" usan combinaciones de clase pura
+      // confirmadas presentes en public/assets/axie/manifest.json.
       const axie = unit.descriptor
         ? await mixer.create({
             descriptor: unit.descriptor,
@@ -1620,9 +1617,9 @@ export default function Board3D({
       if (len > limit) camTarget.multiplyScalar(limit / len)
       if (render) applyView()
     }
-    // Inercia del pan (sesion "vista isometrica mas fluida"): al soltar el
-    // arrastre, la vista sigue deslizandose con la velocidad que llevaba y
-    // frena poco a poco en vez de pararse en seco. vx/vy en px por segundo.
+    // Inercia del pan: al soltar el arrastre, la vista sigue deslizandose
+    // con la velocidad que llevaba y frena poco a poco en vez de pararse en
+    // seco. vx/vy en px por segundo.
     const momentum = { vx: 0, vy: 0 }
     const MOMENTUM_DECAY = 3.2
     function onPointerDown(e) {
@@ -1715,13 +1712,11 @@ export default function Board3D({
     const clock = new THREE.Clock()
     let elapsedTime = 0
     // Velocidad de giro y de flotado de la corona, en radianes/seg y unidades
-    // de tablero/seg respectivamente -pedido explicito del usuario ("que se
-    // aflotante y rote sobre la cabeza del lord").
+    // de tablero/seg respectivamente -flota y rota sobre la cabeza del Lord.
     const CROWN_SPIN_SPEED = 0.6
     const CROWN_FLOAT_SPEED = 1.6
-    // Efecto de flotar (pedido explicito del usuario, aclarando que no es un
-    // trozo de geometria estatica): la isla entera (rejilla + canto + Axies,
-    // ver islandGroup mas arriba) sube y baja muy sutil y despacio, como si
+    // Efecto de flotar: la isla entera (rejilla + canto + Axies, ver
+    // islandGroup mas arriba) sube y baja muy sutil y despacio, como si
     // flotase en el aire sobre el campo de fondo -que se queda fijo, es el
     // contraste el que hace notar el movimiento.
 const ISLAND_BOB_SPEED = 0.5
@@ -1845,8 +1840,8 @@ const ISLAND_BOB_SPEED = 0.5
     }
     loop()
 
-    // Hook de debug minimo (verificacion en vivo via CDP): expone la superficie
-    // real de cada casilla y las posiciones mundo de las unidad/hess para
+    // Hook de debug minimo: expone la superficie real de cada casilla y las
+    // posiciones mundo de las unidad/hess para
     // comprobar que al asentarse sobre terreno (tierra/roca/agua) el Axie queda
     // por ENCIMA de la tapa de la decoracion, no tapado por ella.
     window.__boardDebug = {

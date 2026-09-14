@@ -1,8 +1,7 @@
 // slotIcons.js — emblemas OFICIALES de ranura del marketplace de Axie Infinity
 // (app.axieinfinity.com/marketplace/axies, filtro "Parts"): el mismo icono para
-// TODOS los Axies de esa ranura, sea cual sea la parte concreta o la clase -
-// pedido explicito del usuario ("boca, cuerno, nariz... siempre igual para
-// todos, en el marketplace hay algun emblema"). Descargados directamente del
+// TODOS los Axies de esa ranura, sea cual sea la parte concreta o la clase.
+// Descargados directamente del
 // CDN publico de Axie (cdn.axieinfinity.com/marketplace-website/asset-icon/
 // part-icons/dark-<slot>.png) a public/assets/axie/slot-icons/. Sustituyen al
 // render 3D por (clase, ranura) de partIcon3D.js, que se queda en el repo sin

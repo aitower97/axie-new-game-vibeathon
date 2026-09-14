@@ -56,12 +56,11 @@ export default function BoardRegion({ board3d, overlay }) {
   } = overlay
 
   // Ref sobre la que Board3D escribe DIRECTAMENTE la matriz 3D->DOM (CSS
-  // transform) sin pasar por estado de React (REDISENO 2026-09-11): asi el
-  // overlay esta siempre alineado y App deja de guardar board3dMatrix/onTransform.
+  // transform) sin pasar por estado de React: asi el overlay esta siempre
+  // alineado y App no necesita guardar board3dMatrix/onTransform.
   const overlayElRef = useRef(null)
 
-  // Panel de ayuda (pedido 2026-09-12, "pinchas la mano y no pasa nada"): el
-  // clic en la mano lo abre. Estado LOCAL de UI, igual que hoveredId en
+  // Panel de ayuda: el clic en la mano lo abre. Estado LOCAL de UI, igual que hoveredId en
   // Roster.jsx -no es estado de partida, no vive en App.jsx.
   const [showHelp, setShowHelp] = useState(false)
 
@@ -81,8 +80,8 @@ export default function BoardRegion({ board3d, overlay }) {
     node.style.transform = ev.done ? '' : `translate(${ev.dx}px, ${ev.dy}px) translateX(-50%)`
   }, [])
 
-  // VFX del Axie Origins Battle Kit (recurso oficial del Vibeathon, 2026-09-14):
-  // cada impacto que llega en `impacts` reproduce el clip de skill del kit de la
+  // VFX del Axie Origins Battle Kit (recurso oficial del Vibeathon): cada
+  // impacto que llega en `impacts` reproduce el clip de skill del kit de la
   // clase del golpeador (vfxIdFor) sobre un canvas superpuesto al overlay 3D, en
   // el MISMO espacio de layout que las celdas (se transforma con el tablero).
   // El clip trae los eventos OnAttack/OnHit con los nombres reales del mixer -
@@ -113,15 +112,13 @@ export default function BoardRegion({ board3d, overlay }) {
   return (
     <>
       <div className={`board-scene ${impacts.length > 0 ? 'board-shake' : ''}`}>
-        {/* Dos medidores, cada uno en SU lado (pedido 2026-09-11, "la mia a
-            mi lado y la suya al suyo"): el propio arriba a la IZQUIERDA
+        {/* Dos medidores, cada uno en SU lado: el propio arriba a la IZQUIERDA
             (lado de "TU MANDO" en el layout de dos columnas), el del rival
             arriba a la DERECHA (lado de "ASEDIANTES"), en rojo -mismo color
             de acento que el resto de la UI del bando enemigo
             (.unit.enemy/.roster-title.enemy). Arriba y no abajo: abajo esta
             el ActionPad (seleccion de ataque basico/especial), que no puede
-            compartir hueco -reportado explicitamente ("abajo no puede estar
-            porque esta lo de seleccionar las habilidades especiales"). */}
+            compartir hueco. */}
         <EnergyGauge bank={energyBank} cap={energyCap} />
         <EnergyGauge bank={enemyEnergyBank} cap={energyCap} side="enemy" label="Energía rival" />
         <div className="board3d-host">
@@ -139,19 +136,14 @@ export default function BoardRegion({ board3d, overlay }) {
             fx={fx}
             onTween={handleUnitTween}
           />
-          {/* Reducido a icono (pedido 2026-09-11, "lo de la vision se puede
-              poner como un icono, cuidado con ponerlo muy arriba"): antes era
-              una franja de texto arriba a la izquierda, justo donde ahora va
-              el medidor de Energia propio. El texto completo NO va en
-              `title` (bug real reportado justo despues, "pinchas la mano o
-              te pones encima y no pasa nada": el tooltip nativo del
-              navegador tarda 1-1.5s en aparecer y solo si el raton se queda
-              quieto del todo, asi que en la practica parecia que el icono no
-              hacia nada) -va como burbuja CSS propia (`.board-view-hint
-              .tip`), visible al instante con `:hover`, sin depender del
-              tooltip del sistema operativo. Y ademas (pedido 2026-09-12) el
-              CLIC abre el panel de ayuda real HelpOverlay: hover informa,
-              clic explica. */}
+          {/* Icono de ayuda, centrado arriba (no chocar con los medidores de
+              Energia). El texto completo NO va en `title`: el tooltip nativo
+              del navegador tarda 1-1.5s en aparecer y solo si el raton se
+              queda quieto del todo, asi que en la practica parecia que el
+              icono no hacia nada -va como burbuja CSS propia
+              (`.board-view-hint .tip`), visible al instante con `:hover`,
+              sin depender del tooltip del sistema operativo. El CLIC abre el
+              panel de ayuda real HelpOverlay: hover informa, clic explica. */}
           <div className="board-view-hint" onClick={() => setShowHelp(true)}>
             🖐️
             <span className="tip">Clic para ver como jugar · Arrastra para mover · rueda para zoom · R para centrar</span>

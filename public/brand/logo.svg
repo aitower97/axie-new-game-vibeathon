@@ -1,23 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  logo.svg — lockup del NOMBRE DEL JUEGO (revisado 2026-09-14, cumplimiento
-  Official Rules del Axie Vibeathon 2026): la version anterior deletreaba
-  "AXIE INFINITY" grande arriba, calcando la composicion de dos niveles de
-  la sub-marca oficial de Sky Mavis (mismo lockup que "Axie Infinity
-  Homeland"/"Axie Infinity Classic"). La Seccion 6 de las Official Rules
-  reserva "Axie names... marks" a Sky Mavis, y el RIGHTS.md del propio kit
-  oficial que usa este proyecto dice explicitamente que las marcas "are not
-  licensed except as needed to identify an approved Axie project" -deletrear
-  el nombre completo del producto de Sky Mavis como si fuera nuestro propio
-  lockup de marca va mas alla de "identificar" el proyecto. La identificacion
-  como proyecto del Vibeathon ya vive aparte, en `.cover-credit`
-  (CoverScreen.jsx: "Prototipo para el Axie Vibeathon 2026, Ronda 1."), asi
-  que no hace falta repetirla aqui.
-  El logo pasa a ser solo el nombre del juego, "TACTIC DICE", en dos lineas
-  -mismas letras <path> ya dibujadas a mano (ver ch-* mas abajo, reutilizadas
-  tal cual de la version anterior, solo reposicionadas/reescaladas), mismo
-  tratamiento visual (contorno grueso, relleno a cuadros, zarcillos
-  decorativos). Sigue autocontenido: sin <image>, sin fuentes externas.
+  logo.svg — lockup del NOMBRE DEL JUEGO. No deletrea "AXIE INFINITY": la
+  Seccion 6 de las Official Rules del Axie Vibeathon reserva "Axie names...
+  marks" a Sky Mavis, y el RIGHTS.md del kit oficial que usa este proyecto
+  dice explicitamente que las marcas "are not licensed except as needed to
+  identify an approved Axie project" -deletrear el nombre completo del
+  producto de Sky Mavis como lockup de marca propio iria mas alla de
+  "identificar" el proyecto. Esa identificacion como proyecto del Vibeathon
+  vive aparte, en `.cover-credit` (CoverScreen.jsx: "Prototipo para el Axie
+  Vibeathon 2026, Ronda 1."), asi que no hace falta repetirla aqui.
+  El logo es solo el nombre del juego, "TACTIC DICE", en dos lineas -letras
+  <path> dibujadas a mano (ver ch-* mas abajo), con contorno grueso, relleno a
+  cuadros y zarcillos decorativos. Autocontenido: sin <image>, sin fuentes
+  externas.
 -->
 <svg
   xmlns="http://www.w3.org/2000/svg"

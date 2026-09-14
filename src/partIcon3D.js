@@ -1,7 +1,6 @@
 // partIcon3D.js — pictogramas 3D de las 6 partes del cuerpo del Axie, para las
-// caras del dado del dashboard (el usuario pidio que cada cara lleve el logo de
-// la parte; la fuente son "los resources que nos da Axie en el Vibeathon", el
-// mismo pack 3D oficial que ya usa el tablero: public/assets/axie).
+// caras del dado del dashboard: la fuente es el pack 3D oficial del Vibeathon
+// que ya usa el tablero (public/assets/axie).
 //
 // Cada parte es un .glb SOLO de geometria (sin material propio: el mixer le pone
 // la textura compartida), asi que lo que se dibuja es la silueta real del modelo,

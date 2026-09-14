@@ -1,6 +1,6 @@
 // VictoryBanner.jsx — banner de victoria/derrota flotando SOBRE el tablero
-// (position:fixed centrado, no consume altura del layout -sesion "ganar espacio
-// al tablero"). El fondo es interactivo detras (la partida ya termino), el
+// (position:fixed centrado, no consume altura del layout). El fondo es
+// interactivo detras (la partida ya termino), el
 // banner y su boton si reciben clics.
 export default function VictoryBanner({ status, onReset }) {
   if (status === 'playing') return null

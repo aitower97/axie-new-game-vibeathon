@@ -139,8 +139,7 @@ export default function Portrait3D({ descriptor, genes, size = 44, className }) 
       }
       // Bug real (StrictMode remonta el efecto en dev: monta, desmonta,
       // vuelve a montar): sin quitar el canvas aqui, el segundo montaje
-      // anadia OTRO canvas al mismo host y quedaban dos apilados -pedido
-      // explicito 2026-09-10 al depurar el rediseno de las cartas compactas.
+      // anadia OTRO canvas al mismo host y quedaban dos apilados.
       if (canvas.parentNode === host) host.removeChild(canvas)
     }
   }, [descriptor, genes, size])

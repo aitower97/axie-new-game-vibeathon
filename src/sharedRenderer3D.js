@@ -16,9 +16,8 @@
 // recorre las cartas registradas, dibuja cada una en el canvas compartido y
 // vuelca el resultado (drawImage) sobre el <canvas 2D> visible de esa carta.
 //
-// ATLAS en vez de redimensionar+leer por carta (sesión 2026-09-11, "se ha
-// perdido la fluidez del tablero"): la version anterior hacia, para cada
-// carta, `setSize` + `render` + `drawImage` SEGUIDOS -leer (drawImage) el
+// ATLAS en vez de redimensionar+leer por carta: hacer, para cada carta,
+// `setSize` + `render` + `drawImage` SEGUIDOS -leer (drawImage) el
 // canvas WebGL justo despues de renderizar fuerza una sincronizacion
 // GPU->CPU (flush) cada vez. Con 16 cartas registradas eso son 16
 // sincronizaciones seguidas cada frame: medido con un trace de Performance

@@ -1,38 +1,26 @@
 // LunaciaBackdrop.jsx — fondo ambiental 2D, puramente decorativo, detras del
 // tablero (el canvas WebGL de Board3D usa alpha:true sin setClearColor, asi
-// que su margen transparente deja ver esta capa por debajo -confirmado en
-// vivo, ver CLAUDE.md).
+// que su margen transparente deja ver esta capa por debajo).
 //
-// CUARTA VUELTA (2026-09-14, "desde cero otra vez, dibuja tus propias
-// escenas en vez de reciclar sprites de Kenney"): las tres vueltas
-// anteriores mejoraron color, contraste y conexion (camino+corral en SVG)
-// pero seguian usando los MISMOS sprites 3D genericos de Kenney -recoloreados-
-// para el cristal, la flor y (nunca hubo) una choza. Comparado contra las
-// referencias reales (Homeland/Terrariums, ver titulo/fondo-refs/), un cono
-// generico con un filtro de color nunca iba a leerse como un cristal
-// incrustado en roca ni como un arbol de flor magenta: el problema era la
-// FORMA, no el tono.
-//
-// Cambio de tecnica en esta vuelta: los 3 elementos PROTAGONISTAS de la
-// escena (el santuario de cristal, el arbol de flor, la choza) se dibujan
-// como SVG propio -mismo enfoque que ya funciono bien en public/brand/logo.svg
-// (formas vectoriales originales, inspiradas en la referencia, nunca un
-// calco): poligonos para la roca y los cristales (con un glow SVG real via
-// feGaussianBlur+feMerge, no solo drop-shadow), circulos superpuestos para
-// la copa de flor (mismo lenguaje "blob redondeado" que VineIcon), y un
-// trapecio+triangulo con patron a rayas para la choza. Los arboles/arbustos
-// genericos de Kenney SIGUEN usandose, pero solo como masa de bosque de
-// relleno en el perimetro -ya no intentan hacer de cristal ni de flor.
-// El camino de tierra y el corral de valla (SVG, geometria exacta) de la
-// vuelta anterior se conservan tal cual: ya conectaban bien de verdad.
+// Los 3 elementos PROTAGONISTAS de la escena (el santuario de cristal, el
+// arbol de flor, la choza) se dibujan como SVG propio -mismo enfoque que
+// public/brand/logo.svg (formas vectoriales originales, inspiradas en la
+// referencia, nunca un calco): un sprite generico con un filtro de color no
+// se lee como un cristal incrustado en roca ni como un arbol de flor
+// magenta, el problema es la FORMA, no el tono. Poligonos para la roca y los
+// cristales (con un glow SVG real via feGaussianBlur+feMerge, no solo
+// drop-shadow), circulos superpuestos para la copa de flor (mismo lenguaje
+// "blob redondeado" que VineIcon), y un trapecio+triangulo con patron a
+// rayas para la choza. Los arboles/arbustos genericos de Kenney SIGUEN
+// usandose, pero solo como masa de bosque de relleno en el perimetro -no
+// intentan hacer de cristal ni de flor. El camino de tierra y el corral de
+// valla son SVG de geometria exacta.
 //
 // Composicion por lado (izquierda = principal, derecha = eco mas corto):
 // 1. Bosque de borde (Kenney, arriba) -limite exterior del claro.
-// 2. Santuario de cristal (SVG propio) + arbol de flor (SVG propio) pegado,
-//    igual que en las 2 referencias homeland-*.
+// 2. Santuario de cristal (SVG propio) + arbol de flor (SVG propio) pegado.
 // 3. Camino de tierra (SVG) bajando desde el santuario.
-// 4. Una choza (SVG propio) junto al camino -lo que las 3 vueltas
-//    anteriores no tenian ("no hay casas").
+// 4. Una choza (SVG propio) junto al camino.
 // 5. Corral de valla (SVG) con cajones reales de Kenney dentro, al final
 //    del camino.
 import { useEffect, useState } from 'react'

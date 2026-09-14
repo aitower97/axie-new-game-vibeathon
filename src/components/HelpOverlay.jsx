@@ -1,6 +1,5 @@
-// HelpOverlay.jsx — ayuda real al hacer clic en la mano (🖐️) del tablero
-// (pedido 2026-09-12, "cuando pinchas la mano o te pones encima no pasa nada"):
-// la burbuja de hover ya no bastaba, ahora el clic abre un panel con lo minimo
+// HelpOverlay.jsx — ayuda real al hacer clic en la mano (🖐️) del tablero: la
+// burbuja de hover no bastaba, el clic abre un panel con lo minimo
 // para jugar: objetivo, rondas, turno, energia y controles. UI local de
 // BoardRegion (estado propio), no toca el estado de partida.
 export default function HelpOverlay({ onClose }) {

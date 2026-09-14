@@ -1,7 +1,5 @@
 // UnitDetailPanel.jsx — panel COMPARTIDO debajo de las 3 cartas mini de un
-// bando (pedido explicito 2026-09-10, "hacer una carta mas pequena... y
-// cuando me ponga encima o cuando este seleccionando se despliega el detalle
-// de las partes"): las 3 cartas se quedaron solo con retrato+stats+HP+cubo
+// bando: las 3 cartas se quedaron solo con retrato+stats+HP+cubo
 // (UnitCard.jsx), y el detalle en texto de las 6 ranuras (antes apretado
 // dentro de cada carta a 66px de ancho) vive aqui, con todo el ancho de la
 // columna disponible -mismas clases base .die-list/.face-card que ya usaba

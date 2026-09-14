@@ -1,5 +1,5 @@
-// LordDie3D.jsx — dado fisico 3D del Lord (pedido "dado del Lord"): igual que
-// Die3D para las unidades (cubo redondeado Three.js en el renderer WebGL
+// LordDie3D.jsx — dado fisico 3D del Lord: igual que Die3D para las unidades
+// (cubo redondeado Three.js en el renderer WebGL
 // compartido, mismo tumble/landing), pero sus 6 caras NO son partes del cuerpo
 // sino los 6 mandos de LORD_DIE. El cubo es puramente visual: la lista plana
 // de la carta (lord-die-list) se mantiene debajo como leyenda interactiva con
@@ -67,11 +67,10 @@ function makeFaceCanvas(face) {
   ctx.fillStyle = vg
   ctx.fillRect(0, 0, FACE_TEX, FACE_TEX)
 
-  // Glifo grande del mando (pedido 2026-09-11: que las partes/emojis ocupen
-  // lo maximo de la cara sin salirse y destaquen sobre la base): sube de K*34
-  // a K*52 y se centra en la mitad superior de la cara, con una sombra beis
-  // que lo despega del blanco. Linea media (middle), no alphabetic: los emojis
-  // se recortan si se miden desde la linea base.
+  // Glifo grande del mando: ocupa lo maximo de la cara sin salirse y destaca
+  // sobre la base (K*52), centrado en la mitad superior de la cara, con una
+  // sombra beis que lo despega del blanco. Linea media (middle), no
+  // alphabetic: los emojis se recortan si se miden desde la linea base.
   ctx.save()
   ctx.shadowColor = 'rgba(40,28,12,0.7)'
   ctx.shadowBlur = K * 3.5
@@ -250,8 +249,8 @@ export default function LordDie3D({ rolling, rolledEffect, size = 78 }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [size])
 
-  // Mismo fix que en Die3D (bug real 2026-09-11): rollTick es un contador
-  // global que sube cuando CUALQUIER bando tira; fuera de la lista de deps el
+  // Mismo fix que en Die3D: rollTick es un contador global que sube cuando
+  // CUALQUIER bando tira; fuera de la lista de deps el
   // dado del Lord no vuelve a girar sobre la cara ya aterrizada cuando el otro
   // bando lanza. Aterriza solo en su propio commit (ventana de tumble previa o
   // cambio real de efecto).

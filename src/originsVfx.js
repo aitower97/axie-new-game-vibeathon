@@ -29,8 +29,8 @@ function frameAt(clip, time) {
   return Math.min(clip.frames - 1, Math.max(0, Math.floor(time * clip.fps)))
 }
 
-// AFIADIDO 2026-09-14 (recurso oficial del Vibeathon, Axie Origins Battle Kit):
-// indice por clase de Axie para elegir el clip de skill del kit. El kit trae 7
+// Indice por clase de Axie para elegir el clip de skill del kit (recurso
+// oficial del Vibeathon, Axie Origins Battle Kit). El kit trae 7
 // skills (aquatic/beast x4/bug/plant) + 2 buffs (shield, summon_on_cast); 'bird'
 // no tiene clip propio en el kit, asi que cae al slash generico. El Lord (sin
 // clase) usa el mismo fallback. Los buffs del dado del Lord mapean a sus clips

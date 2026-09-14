@@ -1,7 +1,7 @@
 // Controls.jsx — botonera de turno: tirar dados, pasar turno, reiniciar.
 // `busy` congela la botonera mientras la secuencia animada del rival (enemyTurnRunning
 // en App.jsx) esta en marcha, para que no se pueda interrumpir a mitad.
-// `timer` (2026-09-14): cronometro del turno PVP (35 s). Solo se muestra en las
+// `timer`: cronometro del turno PVP (35 s). Solo se muestra en las
 // arenas mientras es el turno del jugador; al agotarse App.jsx tira por ti y
 // pasa el turno sin mover/atacar.
 export default function Controls({ status, rolled, rolling, busy, activeSide, timer, onRoll, onPass, onReset }) {

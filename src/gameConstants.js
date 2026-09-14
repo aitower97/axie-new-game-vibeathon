@@ -5,7 +5,7 @@
 // de refactor: solo se mueve lo que un componente de presentacion necesita.
 
 // Filas impares (7, no 6): el Lord cae exacto en la fila central en vez de
-// quedar descentrado un lado, a peticion del usuario.
+// quedar descentrado un lado.
 export const ROWS = 7
 export const COLS = 8
 export const PLAYER_LORD = { r: 3, c: 0 }

@@ -206,7 +206,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('pointerdown', unlockHandler, { capture: true, once: true })
   window.addEventListener('keydown', unlockHandler, { capture: true, once: true })
   window.addEventListener('touchstart', unlockHandler, { capture: true, once: true })
-  // Hook de debug (verificacion en vivo por CDP, no toca la logica).
+  // Hook de debug (no toca la logica).
   window.__musicDebug = () => ({
     key: current,
     muted,

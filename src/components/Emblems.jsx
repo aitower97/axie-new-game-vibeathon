@@ -4,10 +4,10 @@
 import { SLOT_ICON_URL } from '../slotIcons'
 import { SLOT_LABEL_MVP1 } from '../axie'
 
-// Barra de HP con semaforo (pedido explicito): verde entera, naranja por
-// debajo de la mitad, roja por debajo del 25% -sustituye al numero suelto
-// que habia antes en el overlay del tablero. Corazon a la izquierda (pedido
-// explicito), mismo patron que el escudo de abajo (icono + barra). En las
+// Barra de HP con semaforo: verde entera, naranja por debajo de la mitad,
+// roja por debajo del 25% -sustituye al numero suelto que habia antes en el
+// overlay del tablero. Corazon a la izquierda, mismo patron que el escudo de
+// abajo (icono + barra). En las
 // cartas del dashboard se pasa showValue para que ademas se lean los numeros
 // del momento de la batalla (hp actual / vida maxima).
 export function HpBar({ hp, maxHp, showValue }) {
@@ -24,7 +24,7 @@ export function HpBar({ hp, maxHp, showValue }) {
   )
 }
 
-// Barra de escudo (pedido explicito, mismo patron que la de HP): azul, debajo
+// Barra de escudo (mismo patron que la de HP): azul, debajo
 // de la vida, icono de escudo a la izquierda. El escudo no tiene un tope
 // maximo real en las reglas del MVP1 (lo dan varias caras con valores
 // distintos segun nivel) -en vez de inventarme un maximo para calcular un
@@ -43,8 +43,7 @@ export function ShieldBar({ value }) {
   )
 }
 
-// Emblema 2D por clase para el overlay del tablero (pedido explicito, en vez
-// de las dos letras de antes). No hay ningun set de iconos de clase real de
+// Emblema 2D por clase para el overlay del tablero. No hay ningun set de iconos de clase real de
 // Axie en los recursos que tenemos localmente (ni en @axieinfinity/mixer, que
 // solo trae datos de genes en JSON, ni en el pack del mixer 3D, que solo trae
 // modelos/texturas 3D) -son iconos propios, sencillos y tematicos por clase,
@@ -72,8 +71,8 @@ export function ClassEmblem({ klass }) {
   )
 }
 
-// Emblema de corona para el Lord (pedido explicito), mismo espiritu que
-// ClassEmblem: icono propio simple, no arte de Axie real.
+// Emblema de corona para el Lord, mismo espiritu que ClassEmblem: icono
+// propio simple, no arte de Axie real.
 export function CrownEmblem() {
   return (
     <svg className="class-emblem crown-emblem" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
@@ -82,8 +81,8 @@ export function CrownEmblem() {
   )
 }
 
-// Icono de escudo sin numero (pedido explicito: nada de numeros sueltos en
-// el overlay) -solo indica "esta unidad tiene escudo activo ahora mismo".
+// Icono de escudo sin numero (nada de numeros sueltos en el overlay) -solo
+// indica "esta unidad tiene escudo activo ahora mismo".
 export function ShieldEmblem() {
   return (
     <svg className="stat-emblem shield-emblem" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
@@ -94,19 +93,17 @@ export function ShieldEmblem() {
 
 // Pictograma de la ranura: el emblema OFICIAL de Axie para esa ranura (ver
 // slotIcons.js) -el mismo para boca, cuerno, etc. sea cual sea el Axie o la
-// parte concreta, pedido explicito del usuario. El PNG del marketplace es gris
-// metalico CON degradado real (borde oscuro ~53,53,48, relieve claro
-// ~140-158) -pedido explicito: "un color generico bonito distinto al del
-// marketplace" PERO sin perder ese relieve. Un mask-image + relleno plano
-// (intento anterior) aplana borde y relieve al MISMO tono y la forma
-// desaparece; aqui se usa un filtro CSS (mismo que Die3D.jsx en canvas, ver
-// ICON_FILTER) que solo cambia el tono, conservando el claroscuro original.
+// parte concreta. El PNG del marketplace es gris metalico CON degradado real
+// (borde oscuro ~53,53,48, relieve claro ~140-158): un mask-image + relleno
+// plano aplanaria borde y relieve al MISMO tono y la forma desapareceria;
+// aqui se usa un filtro CSS (mismo que Die3D.jsx en canvas, ver ICON_FILTER)
+// que solo cambia el tono, conservando el claroscuro original.
 export function PartLogo({ slot }) {
   const url = SLOT_ICON_URL[slot]
   return <img className="face-logo" src={url} alt={SLOT_LABEL_MVP1[slot]} draggable={false} />
 }
 
-// Corazon junto a la barra de HP (pedido explicito).
+// Corazon junto a la barra de HP.
 export function HeartEmblem() {
   return (
     <svg className="stat-emblem heart-emblem" viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">

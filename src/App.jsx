@@ -46,18 +46,11 @@ import LaboratoryScreen from './components/meta/LaboratoryScreen'
 // gameConstants.js (los necesitan tambien los componentes de presentacion).
 
 // Tablero en 3D real (Board3D.jsx, Three.js vanilla + bloques GLB de Kenney,
-// Platformer Kit CC0 -kenney.nl/assets/platformer-kit): se paso por CSS 3D puro
-// (una losa, sin bug de profundidad, pero sin volumen "de verdad") antes de
-// llegar aqui; ver la nota de estado en CLAUDE.md para el porque de cada paso.
+// Platformer Kit CC0 -kenney.nl/assets/platformer-kit).
 // De momento solo hay pieza 3D para "abierto" (block-grass.glb, un bloque de
-// cesped por celda); piedra/agua/zona lenta se quedan con su tinte CSS plano
-// hasta que el usuario elija que pieza de Kenney usar para cada una.
-// Reconstruccion "poco a poco" del tablero 3D: terreno -> Axies reales
-// encima -> interactividad, cada pieza validada antes de encender la
-// siguiente (bloques, luego roster+Lords con genoma real, ahora el grid
-// interactivo). Ningun codigo se borra, estos flags solo controlan que se
-// renderiza, para poder desactivar una pieza sin reconstruir nada si hiciera
-// falta.
+// cesped por celda); piedra/agua/zona lenta se quedan con su tinte CSS plano.
+// Estos flags solo controlan que se renderiza, para poder desactivar una
+// pieza sin reconstruir nada si hiciera falta.
 const SHOW_BOARD = true
 const SHOW_DASHBOARD = true
 const SHOW_OVERLAY = true
@@ -65,17 +58,17 @@ const BOARD3D_BLOCK_URL = '/models/block-grass.glb'
 // Piezas de Kenney por tipo de terreno: el bloque de cesped se queda SIEMPRE
 // debajo (nunca se sustituye), y encima va una decoracion propia por terreno.
 // "stone": rocks.glb (Platformer Kit, CC0) como prop suelto, a 62% de la celda.
-// "slow": patch-dirt.glb (Mini Forest, CC0) -tierra/desierto, no nieve, a
-// peticion del usuario- casi a tamano completo de celda (fit 0.92) para que
-// lea como una capa de tierra encima del bloque, no como un objeto suelto.
-// Constantes a nivel de modulo a proposito -si fueran objetos literales inline
+// "slow": patch-dirt.glb (Mini Forest, CC0) -tierra/desierto- casi a tamano
+// completo de celda (fit 0.92) para que lea como una capa de tierra encima
+// del bloque, no como un objeto suelto.
+// Constantes a nivel de modulo a proposito: si fueran objetos literales inline
 // en el JSX, Board3D recrearia toda la escena en cada render (ver Board3D.jsx).
 const TERRAIN_BLOCK_URLS = {}
-// "water": no hay ninguna pieza de agua en los packs de Kenney descargados -a
-// peticion del usuario, un "laguito" dibujado a mano en Three.js (ver makePond
-// en Board3D.jsx: un poligono redondeado e irregular, material azul brillante),
-// no un modelo cargado. fit 0.44 = radio, no lado -queda un poco mas chico que
-// la celda para leer como una laguna, no como una baldosa cuadrada.
+// "water": no hay ninguna pieza de agua en los packs de Kenney descargados, asi
+// que es un "laguito" dibujado a mano en Three.js (ver makePond en Board3D.jsx:
+// un poligono redondeado e irregular, material azul brillante), no un modelo
+// cargado. fit 0.44 = radio, no lado -queda un poco mas chico que la celda
+// para leer como una laguna, no como una baldosa cuadrada.
 const TERRAIN_DECOR_URLS = {
   stone: '/models/rocks.glb',
   slow: { url: '/models/mini-forest/patch-dirt.glb', fit: 0.92 },
@@ -83,34 +76,24 @@ const TERRAIN_DECOR_URLS = {
   // Obstaculo bajo: bloquea el movimiento pero no la linea de tiro (regla del
   // MVP1) -una caja/crate del Platformer Kit se lee bien como "bulto que no
   // dejar pasar" sin confundirse con la roca de "stone" (que bloquea todo).
-  // Sustituye al icono 2D plano (terrain-obstacle-icon) que habia antes.
   obstacle: '/models/crate.glb',
 }
-// 16 medios-turno = 8 rondas (pedido 2026-09-11, "cambiaria los turnos a
-// rondas, unas 8 rondas" -antes eran 12 medios-turno = 6 rondas). Sigue
-// contando MEDIOS-turno (turnCount sube 1 por cada mitad, jugador y rival
-// por separado, ver passTurn()): Hud.jsx es el unico sitio que lo convierte
-// a rondas para mostrarlo.
+// 16 medios-turno = 8 rondas. Sigue contando MEDIOS-turno (turnCount sube 1
+// por cada mitad, jugador y rival por separado, ver passTurn()): Hud.jsx es
+// el unico sitio que lo convierte a rondas para mostrarlo.
 const TURN_CLOCK = 16
 
-// Banco de Energia (A3, docs/combate-dinamico-dado.md seccion 6.4; rediseno
-// 2026-09-12, "tiene que tener un sentido, no que sea 2 de inicio y cada turno
-// se acumule 1 de energia"): la Energia sale de LAS CARAS DEL DADO -cada cara
-// sin golpe de tu tirada (guardia/reposicion/utilidad, ver yieldsEnergy) mete
-// +1 al banco (tope 5)- y el banco PERSISTE toda la partida (ya NO se vacia al
-// cambiar de turno): dentro de las 8 rondas, guardar para el turno gordo o
-// gastar en cuanto llega es una decision real. Gastos: +10 al siguiente golpe
-// (2 E, boostArmed) o mover 1 casilla extra (2 E, moveBoostArmed). El "remate"
-// (3 E, tratar una cara sin golpe como el golpe basico de la clase) quedo
-// SUPERADO por el rediseno 2026-09-11: el Basico es ahora una opcion explicita
-// y gratuita del ActionPad (hasBasic/attackMode), asi que no hay nada que
-// comprar. La IA no gasta Energia todavia: su medidor es solo informativo.
+// Banco de Energia (A3, docs/combate-dinamico-dado.md seccion 6.4): la
+// Energia sale de LAS CARAS DEL DADO -cada cara sin golpe de tu tirada
+// (guardia/reposicion/utilidad, ver yieldsEnergy) mete +1 al banco (tope 5)- y
+// el banco PERSISTE toda la partida (no se vacia al cambiar de turno): dentro
+// de las 8 rondas, guardar para el turno gordo o gastar en cuanto llega es una
+// decision real. Gastos: +10 al siguiente golpe (2 E, boostArmed) o mover 1
+// casilla extra (2 E, moveBoostArmed). La IA no gasta Energia todavia: su
+// medidor es solo informativo.
 const ENERGY_CAP = 5
 const ENERGY_BOOST_COST = 2
 const ENERGY_MOVE_COST = 2
-
-// Jugabilidad 2026-09-14 (tres mecanicas nuevas): afinidad de clases, critico
-// genetico y muerte subita/prorroga PVP. Detalle de decision en CLAUDE.md.
 
 // Afinidad de clases, el triangulo oficial de Axie (Plant/Reptile/Dusk ->
 // Aqua/Bird/Dawn -> Beast/Bug/Mech, x1.15 a favor / x0.85 en contra con
@@ -137,14 +120,13 @@ function affinityMult(attackerKlass, defenderKlass) {
   return 1
 }
 
-// Critico genetico (pedido 2026-09-14): la prob. y el multiplicador salen de
-// la CLASE del Axie (su genoma) + la PARTE tirada -la cara que ataca aporta
-// +5% de rafaga y +0.25 al multiplicador sobre la base de clase. El golpe
-// basico (sin parte en el golpe) solo lleva la base de clase. Tabla base
-// confirmada con el usuario: Beast 20%/x2.0, Bird 25%/x2.5, Aqua 15%/x3.0,
-// Plant 5%/x1.5. `critFor` es puro (para preview/UI); `rollCrit` decide el
-// impacto real del golpe en el aplicador de dano (nunca en la preview, para
-// que la preview mantenga numeros deterministicos).
+// Critico genetico: la prob. y el multiplicador salen de la CLASE del Axie
+// (su genoma) + la PARTE tirada -la cara que ataca aporta +5% de rafaga y
+// +0.25 al multiplicador sobre la base de clase. El golpe basico (sin parte
+// en el golpe) solo lleva la base de clase: Beast 20%/x2.0, Bird 25%/x2.5,
+// Aqua 15%/x3.0, Plant 5%/x1.5. `critFor` es puro (para preview/UI);
+// `rollCrit` decide el impacto real del golpe en el aplicador de dano (nunca
+// en la preview, para que la preview mantenga numeros deterministicos).
 const CLASS_CRIT = {
   beast: { label: 'Beast', rate: 20, dmg: 2.0 },
   bird: { label: 'Bird', rate: 25, dmg: 2.5 },
@@ -161,12 +143,12 @@ function rollCrit(attacker, rolled) {
   return Math.random() * 100 < c.rate ? { ...c, hit: true } : { ...c, hit: false }
 }
 
-// Muerte subita / prorroga (pedido 2026-09-14, SOLO PVP): al agotar las 8
-// rondas, ambos bandos reciben +2 casillas de movimiento y +50% de dano
-// durante 2 rondas extra (~2 min), y despues tiebreak por vida de Lord igual
-// que hoy. `OVERTIME_ACTIVE` es un flag de MODULO como TERRAIN_LAYOUT: los
-// helpers de dano/movimiento puros (computeUnitAttack, computeCounterHit,
-// reachableCells) lo leen sin tener que recibirlo por parametro.
+// Muerte subita / prorroga (solo PVP): al agotar las 8 rondas, ambos bandos
+// reciben +2 casillas de movimiento y +50% de dano durante 2 rondas extra, y
+// despues tiebreak por vida de Lord igual que hoy. `OVERTIME_ACTIVE` es un
+// flag de MODULO como TERRAIN_LAYOUT: los helpers de dano/movimiento puros
+// (computeUnitAttack, computeCounterHit, reachableCells) lo leen sin tener
+// que recibirlo por parametro.
 const OVERTIME_ROUNDS = 2
 const OVERTIME_EXTRA = OVERTIME_ROUNDS * 2 // medios-turno: 2 rondas = 4
 const OVERTIME_MOVE = 2
@@ -178,20 +160,19 @@ function effectiveMove(klass) {
 }
 // Reloj de turno PVP: 35 segundos por medios-turno del jugador en las arenas
 // PVP (batallas de ~9 min). Al acabarse se tiran los dados automaticamente (si
-// aun no) y se pasa el turno sin mover/atacar -el usuario pidio mas holgura
-// tras probar 20s ("bastante corto"). En PVE no hay reloj.
+// aun no) y se pasa el turno sin mover/atacar. En PVE no hay reloj.
 const PVP_TURN_MS = 35000
 
-// Aqua entra en la composicion de prueba para poder verificar la regla del agua
-// ("el Aqua entra en el agua y los demas no", comprobable del paso 4). El equipo
-// del JUGADOR es fijo para toda la app (beast/bird/aqua); lo que cambia por
-// zona de partida es el de los ASEDIANTES (matchConfig.enemyClasses).
+// Aqua entra en la composicion de prueba para poder verificar la regla del
+// agua (comprobable del paso 4). El equipo del JUGADOR es fijo para toda la
+// app (beast/bird/aqua); lo que cambia por zona de partida es el de los
+// ASEDIANTES (matchConfig.enemyClasses).
 const PLAYER_TEAM = ['beast', 'bird', 'aqua']
 
-// Mapa de prueba para el paso 4 (los 3 mapas VERSIONADOS del hub llegan cuando
-// el usuario elige la zona; el mapa real por defecto sigue siendo este):
-// un muro de piedra, una zona lenta, un obstaculo bajo en la fila del Lord (fila 3,
-// ahora que el tablero es 8x7) y un canal de agua exclusivo para Aqua justo debajo,
+// Mapa de prueba para el paso 4 (los 3 mapas VERSIONADOS del hub llegan segun
+// la zona elegida; el mapa real por defecto sigue siendo este): un muro de
+// piedra, una zona lenta, un obstaculo bajo en la fila del Lord (fila 3, ahora
+// que el tablero es 8x7) y un canal de agua exclusivo para Aqua justo debajo,
 // con una fila libre de terreno arriba y abajo para que quede simetrico.
 const TEST_TERRAIN = {
   '1,3': 'stone',
@@ -269,20 +250,17 @@ function makeUnit(side, klass, id, pos, opts) {
   // golpe con ventaja de relacion, la unidad no puede contraatacar esta vuelta
   // ni la siguiente accion (se limpia en su siguiente tirada). energyMove/
   // energyBoost (banco de Energia, A3): gastos de la banca del turno.
-  // `moved` (rediseno 2026-09-11, "mover no gasta la accion y despues poder
-  // atacar eligiendo basico/especial"): true = la unidad ya se movio este turno
-  // (solo puede atacar, no volver a moverse). Se resetea en la siguiente tirada
-  // del bando como acted/shield/broken. `dealtDamage` (rediseno 2026-09-11):
-  // true = esta unidad ya hizo daño real este turno -en su dia alimentaba la
-  // Energia del turno siguiente; desde el rediseno 2026-09-12 la Energia sale
-  // de las caras sin golpe de la tirada (rollDice) y este campo queda como
-  // registro inerte (se sigue marcando/reseteando como antes, sin lectura).
-  // `name` (starters rivales, sesion 2026-09-12): las unidades del bando
-  // enemigo son los starters oficiales con nombre propio (Buba/Momo/Puffy,
-  // STARTER_INFO en axieGeneCatalog.js) -solo identidad de UI, no toca
-  // stats/combate. En el PVP el rival es "axies normales" (starterEnemy
-  // false) y no llevan nombre de starter. Los clones y la reserva heredan la
-  // misma config de su bando.
+  // `moved`: true = la unidad ya se movio este turno (solo puede atacar, no
+  // volver a moverse). Se resetea en la siguiente tirada del bando como
+  // acted/shield/broken. `dealtDamage`: true = esta unidad ya hizo daño real
+  // este turno -la Energia sale de las caras sin golpe de la tirada (rollDice),
+  // asi que este campo queda como registro inerte (se sigue
+  // marcando/reseteando como antes, sin lectura).
+  // `name`: las unidades del bando enemigo son los starters oficiales con
+  // nombre propio (Buba/Momo/Puffy, STARTER_INFO en axieGeneCatalog.js) -solo
+  // identidad de UI, no toca stats/combate. En el PVP el rival es "axies
+  // normales" (starterEnemy false) y no llevan nombre de starter. Los clones
+  // y la reserva heredan la misma config de su bando.
   return {
     id,
     side,
@@ -472,12 +450,11 @@ function basicAttackTargets(unit, units, lords) {
   return targets
 }
 
-// Ataques de la cara tirada (el "especial" de cada face). REDISENO 2026-09-11:
-// las caras de guardia y Swallow ya NO devuelven el ataque basico como
-// respaldo -antes lo hacian y eso hacia que "ponerse en guardia" equivaliera a
-// poder pegar con el basico sin elegir nada. Ahora el basico es una OPCION
-// explicita del jugador (boton "Basico" en el ActionPad) y de la IA, asi que
-// estas caras no traen especial propio y solo se banquea (+1 Energia).
+// Ataques de la cara tirada (el "especial" de cada face). Las caras de
+// guardia y Swallow no devuelven el ataque basico como respaldo: el basico es
+// una OPCION explicita del jugador (boton "Basico" en el ActionPad) y de la
+// IA, asi que estas caras no traen especial propio y solo se banquea (+1
+// Energia).
 function attackTargetsForFace(unit, rolled, units, lords) {
   if (!rolled) return []
   if (!unit || !unit.pos) return []
@@ -539,10 +516,9 @@ function lordSummonTargets(side, units, lords, reserveKlass) {
   return cells
 }
 
-// Habilidades de apoyo del Lord (rediseño 2026-09-10, dos veces el mismo dia
-// -ver el comentario largo junto a LORD_DIE en axie.js para el porque de
-// cada version). Las 5 comparten alcance 3 desde la casilla fija del Lord:
-// es apoyo, no el ataque corto del Lord, asi que llega mas lejos.
+// Habilidades de apoyo del Lord: las 5 comparten alcance 3 desde la casilla
+// fija del Lord -es apoyo, no el ataque corto del Lord, asi que llega mas
+// lejos.
 const LORD_SUPPORT_RANGE = 3
 
 // Aliado propio VIVO en el tablero a alcance 3 -misma forma para Muro, Cura,
@@ -604,8 +580,8 @@ const sideLabel = (side) => (side === 'player' ? 'propio' : 'rival')
 // entre el boton manual de Player y el resolutor automatico de Enemy (paso 10).
 function rollSideDice(units, side, lords) {
   // A1: la Rotura se limpia cuando la unidad rota de nuevo (la siguiente vez
-  // que tira, ya puede contraatacar). Equal para player (rollDice) y enemy.
-  // dealtDamage (registro inerte desde el rediseno 2026-09-12, ver makeUnit).
+  // que tira, ya puede contraatacar). Igual para player (rollDice) y enemy.
+  // dealtDamage es un registro inerte (ver makeUnit).
   let next = units.map((u) => (u.side === side ? { ...u, shield: 0, broken: false, moved: false, dealtDamage: false } : u))
   const newRolls = {}
   const lines = []
@@ -650,13 +626,13 @@ function rollSideDice(units, side, lords) {
 // funcion attack() del componente (perforante, remate de Imp, combos, autoefectos),
 // pero sin tocar el estado de React -asi la puede usar tambien el resolutor de IA.
 //
-// Orden de aplicacion de los multiplicadores (2026-09-14): base -> prorroga
-// (+50%, ambos bandos) -> afinidad (x1.15/x0.85, solo contra unidades) ->
-// critico (solo si `critMult` se pasa, nunca en la preview) -> flats de
-// Marca/Templanza/Energia (se SUMAN despues, limpias: un buff de +20 es +20
-// siempre, los multiplicadores solo hinchen el golpe de la parte en si).
-// `critMult` se pasa desde applyUnitAttackLocal con el resultado de rollCrit;
-// describeExchange lo omite y deja la preview determinista en el dano base.
+// Orden de aplicacion de los multiplicadores: base -> prorroga (+50%, ambos
+// bandos) -> afinidad (x1.15/x0.85, solo contra unidades) -> critico (solo si
+// `critMult` se pasa, nunca en la preview) -> flats de Marca/Templanza/Energia
+// (se SUMAN despues, limpias: un buff de +20 es +20 siempre, los
+// multiplicadores solo hinchen el golpe de la parte en si). `critMult` se pasa
+// desde applyUnitAttackLocal con el resultado de rollCrit; describeExchange lo
+// omite y deja la preview determinista en el dano base.
 function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyLordHp, critMult = 1) {
   let damage
   let actionName
@@ -694,8 +670,8 @@ function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyL
         break
     }
   }
-  // 2026-09-14: multiplicadores sobre el dano del golpe. Prórroga PVP (+50% a
-  // ambos bandos), afinidad por clases (triangulo oficial) y critico genetico.
+  // Multiplicadores sobre el dano del golpe: prorroga PVP (+50% a ambos
+  // bandos), afinidad por clases (triangulo oficial) y critico genetico.
   damage = Math.floor(damage * (OVERTIME_ACTIVE ? 1 + OVERTIME_DMG : 1))
   const defenderKlass = target.kind === 'unit' ? units.find((u) => u.id === target.id)?.klass : null
   const affinity = affinityMult(attacker.klass, defenderKlass)
@@ -813,11 +789,11 @@ function canCounterWith(face) {
 // de Serious, sin auto-dano de Risky Fish): la respuesta es un golpe, no una
 // repeticion de la accion.
 //
-// 2026-09-14: la vuelta si es "un golpe de unidad" como cualquier otro, asi
-// que lleva prorroga (+50% ambos bandos), afinidad (desde el punto de vista
-// del DEFENSOR que contesta contra el atacante original) y critico genetico
-// del que contesta (critMult, pasado por applyCounterLocal -nunca por la
-// preview, misma regla que computeUnitAttack).
+// La vuelta es "un golpe de unidad" como cualquier otro, asi que lleva
+// prorroga (+50% ambos bandos), afinidad (desde el punto de vista del
+// DEFENSOR que contesta contra el atacante original) y critico genetico del
+// que contesta (critMult, pasado por applyCounterLocal -nunca por la preview,
+// misma regla que computeUnitAttack).
 function computeCounterHit(defender, rolled, attacker, critMult = 1) {
   if (!defender || !defender.alive) return null
   if (defender.broken) return null
@@ -861,9 +837,9 @@ function computeCounterHit(defender, rolled, attacker, critMult = 1) {
 function applyCounterLocal(state, defender, rolled, attackerId) {
   const attacker = state.units.find((u) => u.id === attackerId)
   if (!attacker || !attacker.alive) return { ...state, lines: [], floatEvents: [] }
-  // Critico genetico de la vuelta (2026-09-14): el defensor que contesta es el
-  // golpeador, asi que su cara/parte tambien puede criticar. Tirada solo aqui,
-  // nunca en la preview (misma regla que applyUnitAttackLocal).
+  // Critico genetico de la vuelta: el defensor que contesta es el golpeador,
+  // asi que su cara/parte tambien puede criticar. Tirada solo aqui, nunca en
+  // la preview (misma regla que applyUnitAttackLocal).
   const crit = rollCrit(defender, rolled)
   const hit = computeCounterHit(defender, rolled, attacker, crit.hit ? crit.dmg : 1)
   if (!hit) return { ...state, lines: [], floatEvents: [] }
@@ -969,8 +945,8 @@ function describeExchange(attacker, rolled, target, units, playerLordHp, enemyLo
     killed,
     relation,
     broke,
-    // 2026-09-14: preview de afinidad y critico. La afinidad YA esta en el
-    // dano (computeUnitAttack la aplico); el critico solo se MUESTRA como
+    // Preview de afinidad y critico. La afinidad YA esta en el dano
+    // (computeUnitAttack la aplico); el critico solo se MUESTRA como
     // probabilidad/multiplicador (la tirada real la decide rollCrit en el
     // aplicador de dano, nunca aqui).
     affinity: primary.affinity,
@@ -984,9 +960,10 @@ function describeExchange(attacker, rolled, target, units, playerLordHp, enemyLo
 // y devuelve el siguiente estado mas las lineas de log, sin usar setState -para
 // poder encadenar varias acciones de la IA en un solo turno antes de confirmar nada.
 function applyUnitAttackLocal(state, attacker, rolled, target) {
-  // Critico genetico (2026-09-14): se tira AQUI, en el aplicador de dano real,
-  // nunca en la preview -describeExchange (que comparte computeUnitAttack) pide
-  // el gusto con critMult=1 para que la preview mantenga numeros deterministas.
+  // Critico genetico: se tira AQUI, en el aplicador de dano real, nunca en la
+  // preview -describeExchange (que comparte computeUnitAttack) pide el
+  // resultado con critMult=1 para que la preview mantenga numeros
+  // deterministas.
   const crit = rollCrit(attacker, rolled)
   const { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit, affinity } = computeUnitAttack(
     attacker, rolled, target, state.units, state.playerLordHp, state.enemyLordHp, crit.hit ? crit.dmg : 1
@@ -999,14 +976,13 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
   const victimPos = target.kind === 'lord' ? (attacker.side === 'player' ? ENEMY_LORD : PLAYER_LORD) : state.units.find((u) => u.id === target.id)?.pos || castPos
   // A1: relacion de este golpe con la cara tirada del defensor. Solo entre
   // unidades; contra el Lord todo es neutral (6.2.4). Se calcula ANTES de
-  // cualquier float (bug real 2026-09-11: estaba declarado al final del bloque,
-  // tras usarse aqui -> ReferenceError (TDZ) que hacia fallar CADA ataque de
-  // unidad en silencio: la preview/asistencia del rival nunca llegaba a aplicar).
+  // cualquier float: declararlo mas abajo causa un ReferenceError de TDZ al
+  // usarse aqui, que hace fallar CADA ataque de unidad en silencio.
   const relation = relationFor(rolled, target, state.rolls)
   floatEvents.push({ text: actionName === 'un golpe basico' ? `Ataque basico (${CLASS_STATS[attacker.klass].label})` : actionName, variant: 'cast', ...castPos })
-  // 2026-09-14: afinidad por clases y critico, ambos solo contra unidades (al
-  // Lord no hay afinidad; el critico es del golpeador y aplica a cualquier
-  // objetivo, pero se anuncia igual sobre el atacante).
+  // Afinidad por clases y critico, ambos solo contra unidades (al Lord no hay
+  // afinidad; el critico es del golpeador y aplica a cualquier objetivo, pero
+  // se anuncia igual sobre el atacante).
   if (affinity !== 1 && target.kind === 'unit') {
     floatEvents.push({ text: affinity > 1 ? 'Afinidad +' : 'Afinidad -', variant: 'relation', ...castPos })
   }
@@ -1016,8 +992,7 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
   }
   // A1: si la relacion de este golpe es ventajosa o desventajosa, se anuncia
   // sobre el atacante -es la pieza que hace visible el PORQUE del triangulo
-  // Perforar > Guardar > Golpear> Perforar (REDISENO 2026-09-11, animaciones:
-  // antes la ventaja solo se veia en la preview del intercambio).
+  // Perforar > Guardar > Golpear > Perforar.
   if (relation === 'advantage' && target.kind === 'unit') floatEvents.push({ text: 'Ventaja', variant: 'relation', ...castPos })
   if (relation === 'disadvantage' && target.kind === 'unit') floatEvents.push({ text: 'Desventaja', variant: 'relation', ...castPos })
   let units = state.units
@@ -1085,7 +1060,7 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
   units = units.map((u) => {
     if (u.id !== attacker.id) return u
     // dealtDamage: marca que esta unidad ataco de verdad este turno (registro
-    // inerte desde el rediseno de Energia 2026-09-12, ver makeUnit).
+    // inerte, ver makeUnit).
     let next = { ...u, acted: true, buffed: false, energyBoost: false, dealtDamage: true }
     if (target.landing && (target.landing.r !== next.pos.r || target.landing.c !== next.pos.c)) next.pos = target.landing
     if (attackerShieldGain > 0) next.shield = Math.max(next.shield, attackerShieldGain)
@@ -1120,13 +1095,13 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
     }
   }
 
-  // Impacto visual (REDISENO 2026-09-11, animaciones de combate): celdas que
-  // reciben anillo de impacto + sacudida -el golpe primario sobre el objetivo y,
-  // si hay contragolpe, el golpe de vuelta sobre el atacante. BoardRegion los
-  // consume como feedback (ring + shake), igual que lineas y floats. AFIADIDO
-  // 2026-09-14: cada impacto lleva ademas la class+efecto del golpeador y la
-  // casilla del atacante, para que el overlay de VFX del Axie Origins Battle
-  // Kit elija el clip y ancle el origen (ver originsVfx.js/vfxIdFor).
+  // Impacto visual: celdas que reciben anillo de impacto + sacudida -el golpe
+  // primario sobre el objetivo y, si hay contragolpe, el golpe de vuelta sobre
+  // el atacante. BoardRegion los consume como feedback (ring + shake), igual
+  // que lineas y floats. Cada impacto lleva ademas la clase+efecto del
+  // golpeador y la casilla del atacante, para que el overlay de VFX del Axie
+  // Origins Battle Kit elija el clip y ancle el origen (ver
+  // originsVfx.js/vfxIdFor).
   const strikeKlass = attacker.klass
   const counterDefenderKlass = state.units.find((u) => u.id === target.id)?.klass
   const impacts = [
@@ -1176,8 +1151,8 @@ function pickWeakestTarget(options, units) {
 // bloquea") ya queda cubierta por la 1a: la regla 2.1 garantiza que cualquier
 // enemigo adyacente es siempre un objetivo valido de ataque basico, asi que un
 // bloqueador nunca llega a la fase de movimiento sin haber sido ya atacado antes.
-// REDISENO 2026-09-11: la IA favorece el especial de su cara tirada y, si no
-// tiene targets, cae al ataque basico explicito (misma regla que el jugador).
+// La IA favorece el especial de su cara tirada y, si no tiene targets, cae al
+// ataque basico explicito (misma regla que el jugador).
 function decideUnitAction(unit, rolled, units, lords) {
   let target = pickWeakestTarget(attackTargetsForFace(unit, rolled, units, lords), units)
   if (target) return { kind: 'attack', target }
@@ -1193,10 +1168,9 @@ function decideUnitAction(unit, rolled, units, lords) {
 // confirma el resultado. Enemy ya no se juega a mano (paso 10). Devuelve
 // `steps`: la secuencia ordenada de pasos { units, playerLordHp, enemyLordHp,
 // reserve, lines, fx } (paso 0 = la tirada) para que passTurn() la reproduzca
-// de uno en uno con su pausa visible, en vez de confirmar todo de un tiron
-// (pedido del usuario: "que el turno del rival se vea"). `lines`/`fx` globales
-// se mantienen porque algunos pasos se capturan a mitad de rama y conviene que
-// sigan siendo la acumulacion total para el log final.
+// de uno en uno con su pausa visible, en vez de confirmar todo de un tiron.
+// `lines`/`fx` globales se mantienen porque algunos pasos se capturan a mitad
+// de rama y conviene que sigan siendo la acumulacion total para el log final.
 function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLordHp, startRolls = {}) {
   const lords = { player: PLAYER_LORD, enemy: ENEMY_LORD }
   const { next: rolledUnits, newRolls, lines: rollLines, lordFace } = rollSideDice(startUnits, 'enemy', lords)
@@ -1215,8 +1189,8 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
   let victory = null
   const fxEvents = []
   const floatEvents = []
-  // Impactos de combate del rival (REDISENO 2026-09-11, animaciones): misma
-  // acumulacion que floatEvents, para reproducirse por paso en passTurn().
+  // Impactos de combate del rival: misma acumulacion que floatEvents, para
+  // reproducirse por paso en passTurn().
   const impacts = []
   // Floats de la tirada del rival: caras de guardia que se aplican solas
   // (escudo ganado / cura inmediata) visibles en el paso 0.
@@ -1279,9 +1253,9 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
     }
     if (decision.kind === 'move') {
       const mark = lines.length
-      // REDISENO 2026-09-11: mover no gasta la accion (mismo cambio que en el
-      // jugador). Tras avanzar, la IA intenta un ataque -primero con su cara
-      // tirada (especial) y si no hay objetivo, con el basico explicito.
+      // Mover no gasta la accion (mismo cambio que en el jugador). Tras
+      // avanzar, la IA intenta un ataque -primero con su cara tirada
+      // (especial) y si no hay objetivo, con el basico explicito.
       units = units.map((x) => (x.id === current.id ? { ...x, pos: decision.cell } : x))
         lines.push(`${labelOf(current)} avanza.`)
       const movedUnit = units.find((x) => x.id === current.id)
@@ -1421,8 +1395,8 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
   } else if (!victory && lordFace.effect === 'lord-clone') {
     // Duplicar: al aliado propio con MAS vida al alcance -refuerza la punta de
     // lanza, para reponer al herido ya esta Cura/Muro. Si no hay a quien
-    // clonar, cae a la reserva (misma cara cubre las dos, rediseño
-    // 2026-09-10 -ver el comentario largo junto a LORD_DIE en axie.js).
+    // clonar, cae a la reserva (misma cara cubre las dos, ver LORD_DIE en
+    // axie.js).
     const choices = lordCloneTargets('enemy', units, lords)
     if (choices.length > 0) {
       const strongest = choices.reduce((best, c) =>
@@ -1456,13 +1430,12 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
   // ataque, una habilidad aplicada o un "no tiene a quien" informativo).
   if (lines.length > lordMark || fxEvents.length > lordMarkFx) stepFrom(lordMark, lordMarkFx, 'lord-enemy')
 
-  // rolls: bug real encontrado con logging (reportado como "el dado cae con
-  // la cara al reves") -newRolls SI se calculaba aqui (rollSideDice, arriba)
-  // y se usaba para decidir la IA y armar `lines`, pero nunca salia de la
-  // funcion. passTurn() nunca llamaba a setRolls con el resultado del rival,
-  // asi que rolls[u.id] del rival se quedaba siempre null: Die3D nunca
-  // recibia un rolledSlot valido y el cubo nunca llegaba a "aterrizar" de
-  // verdad en la cara correcta (se quedaba con la pose que tuviera de antes).
+  // rolls: newRolls SI se calculaba aqui (rollSideDice, arriba) y se usaba
+  // para decidir la IA y armar `lines`, pero si no sale de la funcion,
+  // passTurn() nunca puede llamar a setRolls con el resultado del rival -y
+  // rolls[u.id] del rival se queda siempre null: Die3D nunca recibe un
+  // rolledSlot valido y el cubo nunca llega a "aterrizar" de verdad en la cara
+  // correcta (se queda con la pose que tuviera de antes).
   return { units, reserve, playerLordHp, enemyLordHp, lines, victory, fx: fxEvents, rolls: newRolls, steps, lordFace, enemyEnergyGained }
 }
 
@@ -1499,8 +1472,8 @@ export default function App() {
   const [matchSeq, setMatchSeq] = useState(0)
   const { route, navigate } = useHashRoute()
   const isMeta = route !== 'partida'
-  // Portada (sesion 2026-09-14): pantalla de titulo, sin la barra de la app
-  // encima (ni HUD ni pestanas de MetaNav tienen sentido antes de "entrar").
+  // Portada: pantalla de titulo, sin la barra de la app encima (ni HUD ni
+  // pestanas de MetaNav tienen sentido antes de "entrar").
   const isCover = route === 'portada'
   const collect = (key) => setMeta((m) => ({ ...m, [key]: (m[key] || 0) + 1 }))
   const invest = (key) =>
@@ -1555,11 +1528,10 @@ export default function App() {
     navigate('partida')
   }
   const goPlay = () => startMatch(MATCH_DEFAULT)
-  // PVP "Emparejar" (fix 2026-09-14): el boton de la sala abierta lanzaba una
-  // partida PVE (goPlay -> MATCH_DEFAULT.mode:'pve') y el usuario nunca veia el
-  // timer de turno ni la prorroga en el PVP. Ahora construye una config PVP
-  // real (modo pvp + rival normal, sin starters) con el mismo rival/equipo del
-  // PVE clasico.
+  // PVP "Emparejar": el boton de la sala abierta lanzaba una partida PVE
+  // (goPlay -> MATCH_DEFAULT.mode:'pve'), asi que nunca se veia el timer de
+  // turno ni la prorroga en el PVP. Construye una config PVP real (modo pvp +
+  // rival normal, sin starters) con el mismo rival/equipo del PVE clasico.
   const goPlayPvp = () => startMatch({
     zone: 'pvp-libre',
     mode: 'pvp',
@@ -1683,10 +1655,10 @@ export default function App() {
       setFloats((prev) => prev.filter((f) => !ids.has(f.id)))
     }, COMBAT_FLOAT_MS)
   }
-  // Impactos de combate (REDISENO 2026-09-11, animaciones): celdas que reciben
-  // anillo de impacto y sacudida del tablero (golpe primario, contragolpe,
-  // ataque del Lord). Canal aparte de floats: viven mas poco (IMPACT_MS) y
-  // disparan la clase .board-shake en BoardRegion.
+  // Impactos de combate: celdas que reciben anillo de impacto y sacudida del
+  // tablero (golpe primario, contragolpe, ataque del Lord). Canal aparte de
+  // floats: viven mas poco (IMPACT_MS) y disparan la clase .board-shake en
+  // BoardRegion.
   const IMPACT_MS = 650
   const [impacts, setImpacts] = useState([])
   const impactIdRef = useRef(1)
@@ -1710,14 +1682,13 @@ export default function App() {
   // para que el siguiente golpe de la unidad seleccionada haga +10 (se consume
   // al impactar igual que marked/buffed).
   const [energyBank, setEnergyBank] = useState(0)
-  // Banco de Energia del RIVAL (pedido 2026-09-11, "el menu de energia tiene
-  // que haber 2, uno para el rival y otro para mi equipo"): mismo calculo
-  // (+1 por cara sin golpe) pero sobre la tirada del enemigo dentro de
-  // runEnemyTurn, ver `enemyEnergyGained` en su retorno. Solo informativo -la
-  // IA no gasta Energia en nada todavia (A3 solo cubre el gasto del
-  // jugador), asi que este numero no se consume, solo se vuelve a calcular
-  // entero en cada turno del rival (se resetea a 0 en su tirada, igual que
-  // el del jugador se resetea en la suya).
+  // Banco de Energia del RIVAL: mismo calculo (+1 por cara sin golpe) pero
+  // sobre la tirada del enemigo dentro de runEnemyTurn, ver
+  // `enemyEnergyGained` en su retorno. Solo informativo -la IA no gasta
+  // Energia en nada todavia (A3 solo cubre el gasto del jugador), asi que
+  // este numero no se consume, solo se vuelve a calcular entero en cada turno
+  // del rival (se resetea a 0 en su tirada, igual que el del jugador se
+  // resetea en la suya).
   const [enemyEnergyBank, setEnemyEnergyBank] = useState(0)
   const [boostArmed, setBoostArmed] = useState(false)
   // `moveBoostArmed`: el jugador gasta 2 Energia para que la unidad
@@ -1729,33 +1700,32 @@ export default function App() {
   // objetivo se calcula el desglose del ActionPad (no es estado de partida).
   const [hoverCell, setHoverCell] = useState(null)
   const [selected, setSelected] = useState(null)
-  // REDISENO 2026-09-11 ("poder atacar eligiendo ataque basico o especial"):
-  // que ataque se resuelve al tocar un objetivo. 'special' = la cara tirada de
-  // la unidad; 'basic' = el golpe basico de su clase (regla 2.1). El modo
+  // Que ataque se resuelve al tocar un objetivo. 'special' = la cara tirada
+  // de la unidad; 'basic' = el golpe basico de su clase (regla 2.1). El modo
   // efectivo cae a basic si la cara no trae especial (guardia/reposicion).
   const [attackMode, setAttackMode] = useState('special')
   const [status, setStatus] = useState('playing')
-  // Fase de "lanzamiento de dados": las caras se ven barajandose un instante
-  // (recreacion visual pedida) y al commit cae la cara ganadora con la animacion
-  // de aterrizaje. rollPendingRef guarda el timeout para poder cancelarlo si se
-  // reinicia la partida a mitad de tirada.
+  // Fase de "lanzamiento de dados": las caras se ven barajandose un instante y
+  // al commit cae la cara ganadora con la animacion de aterrizaje.
+  // rollPendingRef guarda el timeout para poder cancelarlo si se reinicia la
+  // partida a mitad de tirada.
   const [rolling, setRolling] = useState(false)
   const rollPendingRef = useRef(null)
   // Turno del rival en vivo (secuencia animada): mientras pasa, toda la UI
-  // interactiva queda congelada (paso 10, "que el turno del rival se vea").
+  // interactiva queda congelada (paso 10).
   const [enemyTurnRunning, setEnemyTurnRunning] = useState(false)
   const [enemyActing, setEnemyActing] = useState(null)
   // Token de cancelacion: reiniciar la partida a mitad de la secuencia del
   // rival aborta la cola de pasos pendientes (mismo patron que rollPendingRef).
   const enemyTurnTokenRef = useRef(0)
-  // Referencia a las versiones MAS RECIENTES de passTurn/rollDice (2026-09-14):
-  // el cronometro PVP las llama desde un setInterval que se crea una sola vez
-  // por turno; si capturara las funciones directamente, ejecutaria el auto-pase
-  // con estado obsoleto (una partida que cambio durante los 20 s de espera).
+  // Referencia a las versiones MAS RECIENTES de passTurn/rollDice: el
+  // cronometro PVP las llama desde un setInterval que se crea una sola vez
+  // por turno; si capturara las funciones directamente, ejecutaria el
+  // auto-pase con estado obsoleto (una partida que cambio durante la espera).
   const autoPassRef = useRef(null)
-  // MUERTE SUBITA / prorroga PVP (2026-09-14): estado de UI (banner + HUD) que
-  // refleja el flag de modulo OVERTIME_ACTIVE -se activa al pasar de la ronda 8
-  // en partidas pvp y apaga al reiniciar. El flag real vive fuera de React para
+  // MUERTE SUBITA / prorroga PVP: estado de UI (banner + HUD) que refleja el
+  // flag de modulo OVERTIME_ACTIVE -se activa al pasar de la ronda 8 en
+  // partidas pvp y apaga al reiniciar. El flag real vive fuera de React para
   // que effectiveMove() y el daño lo lean sin re-render (mismo patron que
   // TERRAIN_LAYOUT).
   const [overtime, setOvertime] = useState(false)
@@ -1772,16 +1742,12 @@ export default function App() {
   const selectedUnit = selected && selected !== 'lord' ? units.find((u) => u.id === selected && u.alive && u.pos) : null
   const selectedRoll = selectedUnit ? rolls[selectedUnit.id] : null
   const isReposition = selectedRoll?.effect === 'reposition-ally'
-  // REDISENO 2026-09-11 ("mover no gasta la accion"): una unidad que YA se
-  // movio este turno (`moved`) no puede volver a moverse -solo atacar. La
-  // seleccion no se cierra al moverse, asi que el ataque basico o especial se
-  // decide con la unidad ya en su casilla nueva.
+  // Una unidad que YA se movio este turno (`moved`) no puede volver a
+  // moverse -solo atacar. La seleccion no se cierra al moverse, asi que el
+  // ataque basico o especial se decide con la unidad ya en su casilla nueva.
   //
-  // REGLA 2026-09-12 ("ninguna carta bloquea el mover"): se quito el
-  // `!isReposition` que vetaba el movimiento a las caras de reposicion
-  // (Swallow). Ahora cualquier unidad puede moverse con cualquier cara; la
-  // reposicion (mover a un aliado) es una opcion ADEMAS del propio movimiento,
-  // no en su lugar.
+  // Cualquier unidad puede moverse con cualquier cara: la reposicion (mover a
+  // un aliado) es una opcion ADEMAS del propio movimiento, no en su lugar.
   const moveCells =
     selectedUnit && selectedRoll && !selectedUnit.moved
       ? reachableCells(selectedUnit, units, lords, effectiveMove(selectedUnit.klass) + (moveBoostArmed ? 1 : 0))
@@ -1791,10 +1757,9 @@ export default function App() {
   const activeLordRoll = lordRoll[activeSide]
   const nextReserveKlass = reserve[activeSide][0]?.klass
   const lordAttackable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-attack'
-  // Muro/Cura/Templanza/Duplicar (rediseño 2026-09-10): apuntan a un aliado
-  // propio, igual que Swallow -por eso comparten el mismo resaltado que
-  // `allyChoices` mas abajo, en vez de inventar un color de casilla nuevo
-  // por cada una.
+  // Muro/Cura/Templanza/Duplicar apuntan a un aliado propio, igual que
+  // Swallow -por eso comparten el mismo resaltado que `allyChoices` mas
+  // abajo, en vez de inventar un color de casilla nuevo por cada una.
   const lordShieldable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-shield'
   const lordMarkable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-mark'
   const lordHealable = lordSelected && !lordActed[activeSide] && activeLordRoll?.effect === 'lord-heal'
@@ -1805,12 +1770,11 @@ export default function App() {
     : lordMarkable
       ? lordMarkTargets(activeSide, units, lords)
       : []
-  // Duplicar (rediseño 2026-09-10, "el que haya invocacion solo sea en la de
-  // duplicar"): la UNICA cara que puede meter una unidad nueva en el
+  // Duplicar es la UNICA cara que puede meter una unidad nueva en el
   // tablero. Cubre tanto clonar un aliado (allyChoices, abajo) como sacar de
-  // la reserva (estas celdas) -el jugador elige con el click cual de las
-  // dos quiere. Por eso lordSummonCells ya NO depende de una cara de
-  // invocacion propia (ya no existe): depende de Duplicar.
+  // la reserva (estas celdas) -el jugador elige con el click cual de las dos
+  // quiere. Por eso lordSummonCells depende de Duplicar, no de una cara de
+  // invocacion propia.
   const lordSummonCells = lordCloneable ? lordSummonTargets(activeSide, units, lords, nextReserveKlass) : []
 
   // Aliado a elegir: reposicion (Swallow) si hay una unidad seleccionada
@@ -1830,11 +1794,11 @@ export default function App() {
               ? lordCloneTargets(activeSide, units, lords)
               : []
 
-  // Objetivos de ataque del jugador (REDISENO 2026-09-11): se calculan los dos
-  // juegos -la cara tirada (`specialTargets`, el "especial") y el golpe basico
-  // de la clase (`basicTgts`, regla 2.1)- y el modo elegido decide cual resaltar
-  // y contra cual atacar. Si la cara no trae especial (guardia/reposicion), el
-  // modo efectivo cae solo a basico para que nunca se cierre la posibilidad de
+  // Objetivos de ataque del jugador: se calculan los dos juegos -la cara
+  // tirada (`specialTargets`, el "especial") y el golpe basico de la clase
+  // (`basicTgts`, regla 2.1)- y el modo elegido decide cual resaltar y contra
+  // cual atacar. Si la cara no trae especial (guardia/reposicion), el modo
+  // efectivo cae solo a basico para que nunca se cierre la posibilidad de
   // actuar.
   const specialTargets = selectedUnit && selectedRoll ? attackTargetsForFace(selectedUnit, selectedRoll, units, lords) : []
   const basicTgts = selectedUnit ? basicAttackTargets(selectedUnit, units, lords) : []
@@ -1875,17 +1839,16 @@ export default function App() {
     } else {
       items.push('Sin vuelta.')
     }
-    // 2026-09-14: la preview ahora tambien entrega la afinidad ya aplicada y la
-    // estadistica de critico (probabilidad y multiplicador de la clase + parte
-    // del golpeador), para que el ActionPad las muestre como chips. La tirada
+    // La preview tambien entrega la afinidad ya aplicada y la estadistica de
+    // critico (probabilidad y multiplicador de la clase + parte del
+    // golpeador), para que el ActionPad las muestre como chips. La tirada
     // real del critico NO vive aqui (la decide rollCrit en el aplicador).
     return { lines: items, affinity: ex.affinity, crit: ex.crit }
   }, [hoverCell, selectedUnit, selectedRoll, effectiveMode, targets, units, playerLordHp, enemyLordHp, rolls])
 
   // Axies 3D reales del tablero (Board3D.jsx): todo el roster vivo + los dos
-  // Lords, cada uno en su celda real. Orientacion (regla pedida por el usuario):
-  // por defecto cada unidad mira hacia el Lord rival ("hacia el lado del
-  // rival"); si es la unidad seleccionada AHORA MISMO y tiene objetivos de
+  // Lords, cada uno en su celda real. Por defecto cada unidad mira hacia el
+  // Lord rival; si es la unidad seleccionada AHORA MISMO y tiene objetivos de
   // ataque disponibles (`targets`, ya calculado arriba para el resaltado del
   // grid), mira al mas cercano de esos objetivos en su lugar. Genes reales por
   // unidad (axieGeneCatalog.js, sacados en vivo del marketplace de Axie, no
@@ -1953,11 +1916,10 @@ export default function App() {
   // rival entero desde la ultima vez que tiro este bando, caducan aqui, antes de la
   // tirada nueva. Las caras de guardia se aplican solas, sin gastar la accion (regla 11).
   function rollDice() {
-    // Con el bando rival guardando su tirada en `rolls` ahora tambien
-    // (arreglo del dado 3D: antes su tirada nunca se exponia y su cubo nunca
-    // aterrizaba de verdad), `rolls` ya no se vacia entre turnos -asi que
-    // "ya ha tirado" hay que mirarlo SOLO para el bando activo, no para
-    // cualquier entrada que quede de un turno anterior del otro bando.
+    // El bando rival tambien guarda su tirada en `rolls`, asi que `rolls` no
+    // se vacia entre turnos -"ya ha tirado" hay que mirarlo SOLO para el
+    // bando activo, no para cualquier entrada que quede de un turno anterior
+    // del otro bando.
     if (status !== 'playing' || units.some((u) => u.side === activeSide && u.alive && rolls[u.id])) return
     setRollTick((t) => t + 1)
     let next = units.map((u) => (u.side === activeSide ? { ...u, shield: 0, broken: false, moved: false, dealtDamage: false } : u))
@@ -1999,8 +1961,7 @@ export default function App() {
     })
     // Revelado visual del lanzamiento: primero se ven las caras barajandose un
     // instante (estado `rolling`, animacion CSS de la tirada) y al hacer commit
-    // encaja la cara ganadora con su animacion de aterrizaje (recreacion visual
-    // explicita del lanzamiento de dados pedida por el usuario).
+    // encaja la cara ganadora con su animacion de aterrizaje.
     setRolling(true)
     rollPendingRef.current = window.setTimeout(() => {
       rollPendingRef.current = null
@@ -2008,12 +1969,11 @@ export default function App() {
       setUnits(next)
       setRolls(newRolls)
       pushLog(lines.join(' · '))
-      // Banco de Energia (rediseno 2026-09-12, "tiene que tener un sentido, no
-      // que sea 2 de inicio y cada turno se acumule 1"): la Energia vuelve a
-      // salir de LA TIRADA -cada cara sin golpe de este turno (guardia o
-      // reposicion, ver yieldsEnergy) mete +1- pero el banco YA NO se vacia al
-      // cambiar de turno: persiste toda la partida (tope ENERGY_CAP) para que
-      // guardar de un turno a otro sea una decision real dentro de las 8 rondas.
+      // La Energia sale de LA TIRADA -cada cara sin golpe de este turno
+      // (guardia o reposicion, ver yieldsEnergy) mete +1- y el banco no se
+      // vacia al cambiar de turno: persiste toda la partida (tope ENERGY_CAP)
+      // para que guardar de un turno a otro sea una decision real dentro de
+      // las 8 rondas.
       const energyGained = next.filter((u) => u.side === activeSide && u.alive && yieldsEnergy(newRolls[u.id]?.effect)).length
       if (energyGained > 0) {
         setEnergyBank((b) => Math.min(ENERGY_CAP, b + energyGained))
@@ -2035,17 +1995,14 @@ export default function App() {
     }, 700)
   }
 
-  // REDISENO 2026-09-11 ("mover no gasta la accion"): si una unidad ya no tiene
-  // nada util que hacer este turno (no puede moverse mas, no tiene objetivos de
-  // basico ni de especial, o su cara de reposicion no ve a ningun aliado), se le
-  // acaba el turno en el acto en vez de quedarse seleccionable/atascada: al
-  // seleccionarla (selectUnit) o justo tras moverse (moveTo) se marca acted y se
-  // cierra la seleccion -reclamo explicito del usuario (2026-09-11).
+  // Si una unidad ya no tiene nada util que hacer este turno (no puede
+  // moverse mas, no tiene objetivos de basico ni de especial, o su cara de
+  // reposicion no ve a ningun aliado), se le acaba el turno en el acto en vez
+  // de quedarse seleccionable/atascada: al seleccionarla (selectUnit) o justo
+  // tras moverse (moveTo) se marca acted y se cierra la seleccion.
   //
-  // REGLA 2026-09-12 ("ninguna carta bloquea el mover"): el movimiento se
-  // comprueba SIEMPRE primero, para cualquier cara (guardia, reposicion, ataque).
-  // Antes una cara de reposicion sin aliados a los que mover se auto-terminaba y
-  // el Axie ni siquiera podia moverse por si mismo -ese es el corte que se quita.
+  // El movimiento se comprueba SIEMPRE primero, para cualquier cara (guardia,
+  // reposicion, ataque): ninguna cara bloquea el mover.
   function unitCanAct(u) {
     const roll = rolls[u.id]
     if (!roll) return false
@@ -2134,20 +2091,19 @@ export default function App() {
       pushLog(`${labelOf(selectedUnit)} gasta 2 de Energia: +1 casilla.`)
       pushFloats([{ text: '+1 casilla', variant: 'buff', r, c }])
     }
-    // REDISENO 2026-09-11 ("mover no gasta la accion y despues poder atacar
-    // eligiendo basico o especial"): la unidad se mueve, queda marcada como
-    // moved y SIGUE seleccionada -el siguiente click sobre un objetivo resuelve
-    // el ataque (modo elegido en el ActionPad), sin pasos extra de remate.
+    // La unidad se mueve, queda marcada como moved y SIGUE seleccionada -el
+    // siguiente click sobre un objetivo resuelve el ataque (modo elegido en
+    // el ActionPad), sin pasos extra de remate.
     setUnits((us) => us.map((u) => (u.id === selectedUnit.id ? { ...u, pos: { r, c }, moved: true } : u)))
     // Si al llegar a la casilla nueva no tiene ningun objetivo (basico ni
     // especial) al alcance, no puede hacer nada mas este turno: se le acaba
-    // del tiron (reclamo explicito del usuario, 2026-09-11) en vez de quedar
-    // seleccionada y atascada hasta el final del turno.
+    // del tiron en vez de quedar seleccionada y atascada hasta el final del
+    // turno.
     const movedUnit = { ...selectedUnit, pos: { r, c }, moved: true }
     // Tras mover, la unidad se queda seleccionada si aun le queda algo (atacar
-    // con su cara, golpe basico, o reposicionar a un aliado si su cara lo dice).
-    // Solo se le acaba el turno si de verdad no queda nada -REGLA 2026-09-12:
-    // ninguna cara le corta el movimiento al Axie (ver unitCanAct).
+    // con su cara, golpe basico, o reposicionar a un aliado si su cara lo
+    // dice). Solo se le acaba el turno si de verdad no queda nada: ninguna
+    // cara le corta el movimiento al Axie (ver unitCanAct).
     if (!unitCanAct(movedUnit)) {
       endUnitTurn(movedUnit, 'se mueve pero no ve enemigos: se acaba su turno.')
       return
@@ -2202,9 +2158,9 @@ export default function App() {
   // Paso 8, cara 1: ataque del Lord. Mismo dano fijo del chasis del Lord, misma
   // absorcion de escudo que un ataque basico normal; el Lord no tiene partes.
   function lordAttack(target) {
-    // Prórroga PVP (2026-09-14): el Lord es parte del equipo, asi que sus
-    // tiros tambien suben +50% en muerte subita. Sin afinidad ni critico: el
-    // Lord no tiene clase ni partes.
+    // Prorroga PVP: el Lord es parte del equipo, asi que sus tiros tambien
+    // suben +50% en muerte subita. Sin afinidad ni critico: el Lord no tiene
+    // clase ni partes.
     let damage = Math.floor(LORD_STATS.atk * (OVERTIME_ACTIVE ? 1 + OVERTIME_DMG : 1))
     const lines = []
     // Igual que en attack(): hoisted para los floats fuera de los bloques.
@@ -2282,9 +2238,9 @@ export default function App() {
     setSelected(null)
   }
 
-  // Muro (rediseño 2026-09-10): 30 de escudo a un aliado propio a alcance 3.
-  // Mismo criterio de "no se acumula, sustituye si es mayor" que cualquier otro
-  // escudo (regla 12) -Math.max, no suma.
+  // Muro: 30 de escudo a un aliado propio a alcance 3. Mismo criterio de "no
+  // se acumula, sustituye si es mayor" que cualquier otro escudo (regla 12)
+  // -Math.max, no suma.
   function lordShield(target) {
     const ally = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, shield: Math.max(u.shield, 30) } : u)))
@@ -2294,9 +2250,9 @@ export default function App() {
     setSelected(null)
   }
 
-  // Marca (rediseño 2026-09-10): no hace dano por si misma, deja al objetivo
-  // marcado para el PROXIMO ataque que lo impacte (computeUnitAttack/attack()/
-  // lordAttack ya saben leer y consumir `marked`).
+  // Marca: no hace dano por si misma, deja al objetivo marcado para el
+  // PROXIMO ataque que lo impacte (computeUnitAttack/attack()/lordAttack ya
+  // saben leer y consumir `marked`).
   function lordMark(target) {
     const victim = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, marked: true } : u)))
@@ -2306,8 +2262,8 @@ export default function App() {
     setSelected(null)
   }
 
-  // Cura (rediseño 2026-09-10, sustituye a una de las 2 caras de Invocacion):
-  // 15 de vida a un aliado propio a alcance 3, sin pasar de su vida maxima.
+  // Cura (sustituye a una de las 2 caras de Invocacion): 15 de vida a un
+  // aliado propio a alcance 3, sin pasar de su vida maxima.
   function lordHeal(target) {
     const ally = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, hp: Math.min(u.maxHp, u.hp + 15) } : u)))
@@ -2317,10 +2273,10 @@ export default function App() {
     setSelected(null)
   }
 
-  // Templanza (rediseño 2026-09-10, sustituye a la otra cara de Invocacion):
-  // bendice a un aliado propio a alcance 3 -su PROXIMO ataque este turno (o
-  // el que sea, no caduca solo por pasar de turno) hace +15. Se consume al
-  // atacar (attack()/computeUnitAttack ya saben leer y limpiar `buffed`).
+  // Templanza (sustituye a la otra cara de Invocacion): bendice a un aliado
+  // propio a alcance 3 -su PROXIMO ataque este turno (o el que sea, no
+  // caduca solo por pasar de turno) hace +15. Se consume al atacar
+  // (attack()/computeUnitAttack ya saben leer y limpiar `buffed`).
   function lordBuff(target) {
     const ally = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, buffed: true } : u)))
@@ -2330,15 +2286,13 @@ export default function App() {
     setSelected(null)
   }
 
-  // Duplicar (rediseño 2026-09-10, "el que haya invocacion solo sea en la de
-  // duplicar"): clona a un aliado propio vivo a alcance 3 -el clon aparece
-  // junto al LORD (regla 16, misma logica que la invocacion), a vida llena,
-  // no comparte HP/escudo/acted con el original. Es una unidad nueva. La
-  // reserva sigue entrando por esta MISMA cara: si el jugador toca una
-  // casilla libre junto al Lord en vez de a un aliado, cellClick llama a
-  // lordSummon() en su lugar (ver mas abajo) -asi la reserva de 3 no se
-  // queda sin forma de entrar en juego pese a que ya no hay caras de
-  // Invocacion dedicadas.
+  // Duplicar clona a un aliado propio vivo a alcance 3 -el clon aparece junto
+  // al LORD (regla 16, misma logica que la invocacion), a vida llena, no
+  // comparte HP/escudo/acted con el original. Es una unidad nueva. La reserva
+  // sigue entrando por esta MISMA cara: si el jugador toca una casilla libre
+  // junto al Lord en vez de a un aliado, cellClick llama a lordSummon() en su
+  // lugar (ver mas abajo) -asi la reserva de 3 tiene forma de entrar en juego
+  // pese a que no hay caras de Invocacion dedicadas.
   function lordClone(target) {
     const original = units.find((u) => u.id === target.id)
     const cells = lordSummonTargets(activeSide, units, lords, original.klass)
@@ -2401,9 +2355,8 @@ export default function App() {
         }
         return
       }
-      // Muro/Cura/Templanza/Duplicar (rediseño 2026-09-10): mismo `allyChoices`
-      // que Swallow, solo activo cuando el Lord esta seleccionado con esa
-      // cara.
+      // Muro/Cura/Templanza/Duplicar: mismo `allyChoices` que Swallow, solo
+      // activo cuando el Lord esta seleccionado con esa cara.
       const ally = allyChoices.find((a) => a.pos.r === r && a.pos.c === c)
       if (ally) {
         if (lordShieldable) {
@@ -2452,8 +2405,8 @@ export default function App() {
   // Cierra el turno de Player y resuelve el turno de Enemy paso a paso (paso
   // 10: la IA ya no se juega a mano). Cada paso (tirada, y luego cada accion de
   // cada unidad y del Lord) se aplica a React con su pausa, para que se vea la
-  // secuencia en vez de confirmar todo de un tiron -pedido explicito del
-  // usuario. Al terminar, vuelve al turno de Player.
+  // secuencia en vez de confirmar todo de un tiron. Al terminar, vuelve al
+  // turno de Player.
   const ENEMY_ROLL_MS = 1150
   const ENEMY_STEP_MS = 900
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
@@ -2461,11 +2414,10 @@ export default function App() {
     if (status !== 'playing' || enemyTurnRunning) return
     const token = enemyTurnTokenRef.current
     let nextTurn = turnCount + 1
-    // Muerte subita / prorroga (2026-09-14, SOLO PVP): la primera vez que el
-    // reloj supera las 8 rondas (turnCount pasa de las 16 medias-turno) se
-    // activa AQUI, antes del corte: en PVP se amplia el techo a 8+2 rondas en
-    // vez de saltar al tiebreak, y en PVE el corte de abajo tira del reloj de
-    // siempre (mismo comportamiento que antes del cambio).
+    // Muerte subita / prorroga (solo PVP): la primera vez que el reloj supera
+    // las 8 rondas (turnCount pasa de las 16 medias-turno) se activa AQUI,
+    // antes del corte: en PVP se amplia el techo a 8+2 rondas en vez de saltar
+    // al tiebreak; en PVE el corte de abajo tira del reloj de siempre.
     if (!OVERTIME_ACTIVE && nextTurn > TURN_CLOCK && matchInfo.mode === 'pvp') {
       OVERTIME_ACTIVE = true
       setOvertime(true)
@@ -2485,11 +2437,10 @@ export default function App() {
       return
     }
 
-    // Energia del jugador (rediseno 2026-09-12): ya NO se calcula aqui. Se gana
-    // al tirar los dados (caras sin golpe de la tirada, ver rollDice) y el banco
-    // PERSISTE toda la partida en vez de vaciarse/recargarse cada turno -gastar
-    // ahora o guardar para el turno gordo es una decision real dentro de las 8
-    // rondas.
+    // Energia del jugador: no se calcula aqui. Se gana al tirar los dados
+    // (caras sin golpe de la tirada, ver rollDice) y el banco persiste toda la
+    // partida en vez de vaciarse/recargarse cada turno -gastar ahora o guardar
+    // para el turno gordo es una decision real dentro de las 8 rondas.
 
     const resetEnemyActed = units.map((u) => (u.side === 'enemy' ? { ...u, acted: false } : u))
     const result = runEnemyTurn(resetEnemyActed, reserve, playerLordHp, enemyLordHp, rolls)
@@ -2509,12 +2460,12 @@ export default function App() {
       setUnits(result.steps[0].units)
       setLordRoll((r) => ({ ...r, enemy: result.lordFace }))
       // Importante: reemplaza `rolls` entero (no mezcla) para que Die3D del
-      // rival aterrice en su cara correcta (ver comentario largo en la version
-      // anterior de esta funcion).
+      // rival aterrice en su cara correcta.
       setRolls(result.rolls)
       // Banco de Energia del rival (solo informativo, ver el estado arriba):
-      // mismo criterio que eljugador -se acumula desde su tirada de cada turno,
-      // no se resetea (la IA no gasta Energia todavia, A3 solo cubre al jugador).
+      // mismo criterio que el jugador -se acumula desde su tirada de cada
+      // turno, no se resetea (la IA no gasta Energia todavia, A3 solo cubre al
+      // jugador).
       setEnemyEnergyBank((b) => Math.min(ENERGY_CAP, b + result.enemyEnergyGained))
       pushLog(result.steps[0].lines.join(' · '))
       if (result.steps[0].floatEvents.length) pushFloats(result.steps[0].floatEvents)
@@ -2549,12 +2500,12 @@ export default function App() {
       return
     }
 
-    // Desgaste de la prorroga (2026-09-14, pedido del usuario: "muerte por
-    // descuento de vida"): cada ronda de prorroga, ambos Lords pierden vida
-    // tras terminar el turno del rival. Es lo que hace que la prorroga no
-    // termine en empate pasivo: si nadie remata, el RELOJ se come los Lords.
-    // Se aplica sobre las vidas FINALES del turno (result.*), despues de que
-    // la IA haya actuado, para no pisar su dano con un setState posterior.
+    // Desgaste de la prorroga: cada ronda de prorroga, ambos Lords pierden
+    // vida tras terminar el turno del rival. Es lo que hace que la prorroga
+    // no termine en empate pasivo: si nadie remata, el RELOJ se come los
+    // Lords. Se aplica sobre las vidas FINALES del turno (result.*), despues
+    // de que la IA haya actuado, para no pisar su dano con un setState
+    // posterior.
     let drainPHp = result.playerLordHp
     let drainEHp = result.enemyLordHp
     if (OVERTIME_ACTIVE) {
@@ -2619,13 +2570,13 @@ export default function App() {
   // siempre llama a las ultimas versiones (ver autoPassRef arriba).
   autoPassRef.current = { passTurn, rollDice }
 
-  // Cronometro PVP (2026-09-14): 20 s de reloj por turno del jugador en las
-  // arenas. Solo corre mientras es el turno jugable del jugador (no durante la
-  // reproduccion en vivo del turno rival ni fuera de partida). Al agotarse se
-  // tiran los dados si no se habia tirado y se pasa el turno sin mover/atacar.
-  // El conteo vive en turnSecondsRef (no re-render por segundo); el effect se
-  // recrea en cada cambio de estado relevante y limpia el interval al pasar el
-  // turno (enemyTurnRunning se vuelve true y el countdown se detiene).
+  // Cronometro PVP: reloj por turno del jugador en las arenas. Solo corre
+  // mientras es el turno jugable del jugador (no durante la reproduccion en
+  // vivo del turno rival ni fuera de partida). Al agotarse se tiran los dados
+  // si no se habia tirado y se pasa el turno sin mover/atacar. El conteo vive
+  // en turnSecondsRef (no re-render por segundo); el effect se recrea en cada
+  // cambio de estado relevante y limpia el interval al pasar el turno
+  // (enemyTurnRunning se vuelve true y el countdown se detiene).
   useEffect(() => {
     if (status !== 'playing' || matchInfo.mode !== 'pvp' || enemyTurnRunning) return
     const id = window.setInterval(() => {
@@ -2645,11 +2596,11 @@ export default function App() {
     return () => window.clearInterval(id)
   }, [status, matchInfo.mode, enemyTurnRunning, rolled, turnCount])
 
-  // Musica ambiental (2026-09-14): el motor de music.js elige pista segun el
-  // estado. Meta (hub/mapa/laboratorio...) -> hub; dentro de partida: PVE/PVP,
-  // y en la prorroga PVP la pista PVP sube a 1.35x (OVERTIME). Victorias y
-  // derrotas tienen su propia pieza. El motor guarda silencio sin muted y se
-  // desbloquea con el primer gesto del usuario (autoplay policy).
+  // Musica ambiental: el motor de music.js elige pista segun el estado. Meta
+  // (hub/mapa/laboratorio...) -> hub; dentro de partida: PVE/PVP, y en la
+  // prorroga PVP la pista PVP sube a 1.35x (OVERTIME). Victorias y derrotas
+  // tienen su propia pieza. El motor guarda silencio sin muted y se desbloquea
+  // con el primer gesto del usuario (autoplay policy).
   useEffect(() => {
     const key = isMeta
       ? 'hub'
@@ -2768,9 +2719,9 @@ export default function App() {
             rolling={rolling}
             busy={enemyTurnRunning}
             activeSide={activeSide}
-            // 2026-09-14: cronometro PVP solo visible en arenas mientras es el
-            // turno jugable del jugador (el rival reproduce su secuencia en
-            // vivo, no consume segundo del reloj).
+            // Cronometro PVP solo visible en arenas mientras es el turno
+            // jugable del jugador (el rival reproduce su secuencia en vivo,
+            // no consume segundo del reloj).
             timer={matchInfo.mode === 'pvp' && status === 'playing' && !enemyTurnRunning ? turnSecondsLeft : null}
             onRoll={rollDice}
             onPass={passTurn}
@@ -2855,9 +2806,9 @@ export default function App() {
           exchangeInfo: exchangeInfo && hoverCell ? { cell: hoverCell, lines: exchangeInfo.lines, affinity: exchangeInfo.affinity, crit: exchangeInfo.crit } : null,
           onCellClick: cellClick,
           onCellHover: setHoverCell,
-          // 2026-09-14: el recuerdo de turno y el timer viven TAMBIEN sobre el
-          // canvas (el chip del topbar se pierde jugando); la prorroga PVP se
-          // anuncia en el mismo banner para que se vea sin mirar el HUD.
+          // El recuerdo de turno y el timer viven TAMBIEN sobre el canvas (el
+          // chip del topbar se pierde jugando); la prorroga PVP se anuncia en
+          // el mismo banner para que se vea sin mirar el HUD.
           status,
           rolled,
           rolling,

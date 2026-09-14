@@ -1,5 +1,5 @@
-// gameMissions.js — contenido del hub/mapa (sesion 2026-09-12): el mundo
-// navegable estilo NFS Carbon del PVE (regiones con nodos -> partidas) y las
+// gameMissions.js — contenido del hub/mapa: el mundo navegable estilo NFS
+// Carbon del PVE (regiones con nodos -> partidas) y las
 // arenas PVP contra axies NORMALES (sin nombre de starter). Todo se resuelve
 // en configs de partida (matchConfig) que App.jsx aplica en resetMatch():
 // este modulo NO lleva logica de combate, solo datos. El mapa de prueba del

@@ -1,11 +1,10 @@
 // ActionPad.jsx — HUD flotante sobre el tablero que sustituye a la card
-// estatica bajo el canvas (reporte del usuario: "no sirve, sobra espacio").
+// estatica bajo el canvas, que dejaba sobrar espacio.
 //
-// REDISENO 2026-09-11, "mover no gasta la accion + poder atacar eligiendo
-// basico o especial": la cara ya tirada de la unidad seleccionada, la banca de
-// Energia (A3, con sus dos gastos de 2 E) y el selector de ataque Basico /
-// Especial -justo la decision que antes se tomaba solo (el click siempre usaba
-// el basico si la cara era de guardia). Ahora se decide aqui de forma visible.
+// Muestra la cara ya tirada de la unidad seleccionada, la banca de Energia
+// (A3, con sus dos gastos de 2 E) y el selector de ataque Basico / Especial
+// -la decision de que ataque usar se toma aqui de forma visible, nunca de
+// forma implicita.
 //
 // Es 100% posicion flotante (position:absolute sobre .board-col): NO consume
 // espacio de layout, asi que el tablero 3D nunca re-encuadra por su altura
@@ -74,7 +73,7 @@ export default function ActionPad({
 
       {!isLord && (
         <div className="action-pad-line action-pad-odds">
-          {/* 2026-09-14: afinidad (x1.15/x0.85 por clases) y critico genetico de la
+          {/* Afinidad (x1.15/x0.85 por clases) y critico genetico de la
               preview del objetivo bajo el cursor. Solo se muestran cuando hay un
               intercambio calculandose (exchangeAffinity/exchangeCrit llegan de
               describeExchange via App.jsx). */}

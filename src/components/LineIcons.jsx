@@ -1,8 +1,7 @@
-// LineIcons.jsx — iconos propios de trazo fino (sesion 2026-09-14, pedido
-// explicito: "los emojis en colores los evitaria, los haria con lineas finas y
-// con un color acorde", en respuesta a los emojis de color de la portada y el
-// HUB). Mismo espiritu que ClassEmblem/Emblems.jsx (iconos propios, no arte de
-// Axie real) pero de contorno en vez de silueta rellena: `stroke:currentColor`,
+// LineIcons.jsx — iconos propios de trazo fino, en vez del emoji de color que
+// llevaban antes la portada y el HUB. Mismo espiritu que ClassEmblem/
+// Emblems.jsx (iconos propios, no arte de Axie real) pero de contorno en vez
+// de silueta rellena: `stroke:currentColor`,
 // sin relleno de color, para que hereden el acento de cada tarjeta/chip via la
 // propiedad CSS `color` en vez de llevar su propio color fijo.
 const STROKE = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' }
@@ -103,8 +102,8 @@ export function SwordIcon({ size = 18, className }) {
   )
 }
 
-// Zarcillo decorativo (sesion 2026-09-14, portada): doodle de trazo fino tipo
-// enredadera, con dos "brotes" rellenos -mismo espiritu que el resto del set
+// Zarcillo decorativo (portada): doodle de trazo fino tipo enredadera, con
+// dos "brotes" rellenos -mismo espiritu que el resto del set
 // (stroke:currentColor, hereda el color via la propiedad CSS `color`), pero
 // pensado como adorno alrededor de un logotipo, no como icono de UI. Nunca se
 // anima (evita el loop decorativo infinito sin proposito real).

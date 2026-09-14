@@ -1,9 +1,9 @@
-// LordCard.jsx — carta del Lord (paso 8, seccion 4.2, rediseñado 2026-09-10
-// dos veces): no es un Axie de partes, asi que su dado NO es el cubo de
-// ranuras de cuerpo sino su propio dado de 6 caras (LORD_DIE): 1 ataque + 4
-// habilidades de apoyo (Muro/Marca/Cura/Templanza) + Duplicar, la UNICA
-// que mete una unidad nueva en el tablero. Sin ninguna mencion a "torre"
-// -pedido explicito del usuario, el Lord ya no se llama asi en ningun sitio.
+// LordCard.jsx — carta del Lord (paso 8, seccion 4.2): no es un Axie de
+// partes, asi que su dado NO es el cubo de ranuras de cuerpo sino su propio
+// dado de 6 caras (LORD_DIE): 1 ataque + 4 habilidades de apoyo
+// (Muro/Marca/Cura/Templanza) + Duplicar, la UNICA que mete una unidad nueva
+// en el tablero. Sin ninguna mencion a "torre": el Lord no se llama asi en
+// ningun sitio.
 import Portrait3D from '../Portrait3D'
 import LordDie3D from '../LordDie3D'
 import { AXIE_SAMPLE_GENES } from '../Board3D'
@@ -13,9 +13,8 @@ import { LORD_GLYPH } from '../gameConstants'
 import { HpBar, CrownEmblem } from './Emblems'
 
 // Color dorado del Lord, deliberadamente distinto del naranja de Beast
-// (#f0a04b) y del --amber de seleccion/HUD (#e3a857) -pedido explicito del
-// usuario: "meterle un color dorado llamativo que se diferencia del color
-// del beast que son iguales".
+// (#f0a04b) y del --amber de seleccion/HUD (#e3a857): un dorado llamativo
+// que se diferencia del de Beast, no el mismo tono.
 const LORD_ACCENT = '#ffc233'
 
 function lordFaceTip(face) {

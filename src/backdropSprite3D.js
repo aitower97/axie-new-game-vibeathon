@@ -2,10 +2,9 @@
 // proyecto para el tablero 3D (Platformer Kit + el pack Mini Forest, ambos
 // CC0, ver public/models/) congelados a PNG para poblar el fondo ambiental
 // (LunaciaBackdrop.jsx) con un ecosistema real en vez de bajar un pack de
-// sprites 2D nuevo -pedido 2026-09-11 ("Kenney tiene ecosistemas completos
-// para fondos, el que hay ahora son 3 arboles y 2 setas mal puestas"): ya
-// tenemos ese ecosistema completo instalado (arboles, arbustos, flores,
-// setas, rocas, valla, cesped/tierra), solo hace falta volcarlo a 2D.
+// sprites 2D nuevo: ya tenemos ese ecosistema completo instalado (arboles,
+// arbustos, flores, setas, rocas, valla, cesped/tierra), solo hace falta
+// volcarlo a 2D.
 //
 // A diferencia de partIcon3D.js (pictograma de catalogo: UN color solido por
 // clase, para que lea como icono), aqui interesa que el prop se vea como en

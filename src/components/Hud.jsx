@@ -1,15 +1,12 @@
-// Hud.jsx — chips compactos de la barra superior (sesion "ganar espacio al
-// tablero"): vida de ambos Lords, su reserva y el reloj de RONDAS, todo en
-// tres pastillas de una sola fila para que el canvas gane altura. El lado
-// activo queda resaltado con un borde que brilla.
+// Hud.jsx — chips compactos de la barra superior: vida de ambos Lords, su
+// reserva y el reloj de RONDAS, todo en tres pastillas de una sola fila para
+// que el canvas gane altura. El lado activo queda resaltado con un borde
+// que brilla.
 //
-// Rondas, no turnos sueltos (pedido 2026-09-11, "cambiaria los turnos a
-// rondas, unas 8 rondas, que seria un turno mio y otro del rival una
-// ronda"): `turnCount`/`turnClock` (App.jsx) siguen contando MEDIOS-turno
-// por debajo -TURN_CLOCK paso de 12 a 16, o sea 8 rondas- porque el resto de
-// la logica de partida (passTurn, el log "Turno N...") ya funciona sobre esa
-// unidad y tocarla habria sido un cambio mucho mayor del pedido ("simplemente
-// con eso es suficiente"). Aqui, en la UNICA pastilla que el jugador lee como
+// Rondas, no turnos sueltos: `turnCount`/`turnClock` (App.jsx) siguen
+// contando MEDIOS-turno por debajo -TURN_CLOCK=16, o sea 8 rondas- porque el
+// resto de la logica de partida (passTurn, el log "Turno N...") ya funciona
+// sobre esa unidad. Aqui, en la UNICA pastilla que el jugador lee como
 // "cuanto queda", se convierte a rondas solo para mostrar: 2 medios-turno = 1
 // ronda.
 export default function Hud({
