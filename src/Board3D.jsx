@@ -42,7 +42,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import { getSharedAxieMixer3D } from './axieMixer3D'
-import { SLOT_ATTACK_ANIM, FALLBACK_ATTACK_ANIM } from './axieMixer'
+import { SLOT_ATTACK_ANIM, FALLBACK_ATTACK_ANIM } from './attackAnimNames'
 
 // Corona real (OBJ+MTL, "Golden_Crown_v1_L2") elegida y descargada por el
 // usuario -no procedural. En public/models/crown/ (crown.obj + crown.mtl, sin

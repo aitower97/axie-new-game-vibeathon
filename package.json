@@ -10,10 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@axieinfinity/mixer": "^1.4.9",
     "@jaatster/threejs-axie-mixer3d-public": "file:vendor/jaatster-threejs-axie-mixer3d-public",
-    "pixi-spine": "^4.0.3",
-    "pixi.js": "^7.2.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "three": "^0.178.0"

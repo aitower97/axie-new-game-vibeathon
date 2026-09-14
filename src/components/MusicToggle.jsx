@@ -12,6 +12,7 @@ export default function MusicToggle() {
       type="button"
       className="music-toggle"
       title={muted ? 'Activar musica' : 'Silenciar musica'}
+      aria-label={muted ? 'Activar musica' : 'Silenciar musica'}
       aria-pressed={!muted}
       onClick={toggleMuted}
     >
