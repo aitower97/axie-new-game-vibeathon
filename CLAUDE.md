@@ -1,5 +1,61 @@
 # Vínculo de Lunacia — contexto del proyecto
 
+> **Muerte súbita PVP + afinidad de clases + crítico genético + timer de turno
+> (sesión 2026-09-14, rama `feat/jugabilidad-prorroga-afinidad-critico`; detalle
+> en `docs/jugabilidad-prorroga-afinidad-critico.md`):**
+> - **Pedido del usuario: "que la partida se sienta decidida por el jugador y no
+>   por suerte larga"** — tres mecánicas nuevas + un reloj para el PVP.
+>   **Afinidad**: triángulo oficial de Axie traído a las 4 clases del MVP1 — Beast
+>   gana a Plant y pierde con Aqua/Bird; Plant gana a Aqua/Bird y pierde con Beast;
+>   Aqua gana a Beast y pierde con Plant; Bird gana a Beast y pierde con Plant;
+>   Aqua/Bird y parejas sin relación neutras. `AFFINITY_STRONG/WEAK = 1.15/0.85`
+>   con `Math.floor`, aplicado en el especial, el básico y el **contragolpe** (que
+>   mira desde el defensor que contesta), en los 4 resolutores de ataque como una
+>   única fuente; contra el Lord es neutro (no tiene clase). **Crítico genético**:
+>   la prob. y el multiplicador salen de la CLASE (Beast 20 %/×2.0, Bird 25 %/×2.5,
+>   Aqua 15 %/×3.0, Plant 5 %/×1.5) + la parte TIRADA aporta +5 % de ráfaga y +0.25
+>   al multiplicador (el básico solo lleva la base de clase). Tirado en el
+>   resolutor real (`applyUnitAttackLocal`/`applyCounterLocal` con `rollCrit`),
+>   NUNCA en la preview: la preview (`describeExchange`) muestra la estadística
+>   vía `critFor` y sigue determinista. **Muerte súbita (solo PVP)**: tras la ronda
+>   8, +2 casillas de movimiento (`OVERTIME_MOVE`) y +50 % de daño (`OVERTIME_DMG`)
+>   para AMBOS bandos, 2 rondas extra = 4 medios-turno (`OVERTIME_ROUNDS`/`EXTRA`),
+>   luego tiebreak por vida de Lord. `OVERTIME_ACTIVE` es flag de MÓDULO (patrón
+>   `TERRAIN_LAYOUT`): lo leen los helpers puros (`effectiveMove`, daño) sin
+>   recibirlo por parámetro. Activación al INICIO de `passTurn` (antes del corte)
+>   con log "MUERTE SUBITA (PVP): prorroga de 2 rondas…" + impacto VFX sobre ambos
+>   Lords (`klass:'lord', effect:'overtime'`); techo de reloj dinámico
+>   `16 + OVERTIME_EXTRA`; el PVE corta en 16 como siempre. **Timer PVP 20 s**:
+>   `PVP_TURN_MS = 20000` solo en arenas PVP y solo durante el turno jugable
+>   (el turno rival se reproduce con pausa y no consume reloj); al agotarse,
+>   tirada automática (si aún no) + pase de turno sin mover/atacar. `setInterval`
+>   de 1 s con `turnSecondsRef` (sin re-render por segundo) + estado
+>   `turnSecondsLeft`; `autoPassRef` enlaza `passTurn`/`rollDice` vivos cada render
+>   (el lint de deps del `useEffect` exigía eso; alternativas re-creaban el
+>   interval por segundo — solución documentada). Reseteo al volver el turno al
+>   jugador y en `resetMatch` (que también apaga `OVERTIME_ACTIVE`).
+> - **UI:** `ActionPad.jsx` gana chips de preview `Afinidad x1.15/x0.85` (+ "Afinidad
+>   neutral") y `Critico N% xM`, que solo salen cuando hay objetivo en rango y no es
+>   el Lord; aviso de prórroga (+2 casillas / +50 %) solo para unidades. `Hud.jsx`:
+>   pastilla "MUERTE SUBITA" dinámica y contador `X/8` → `X/10` en prórroga.
+>   `Controls.jsx`: chip `⏱ Ns` (rojo con pulso ≤5 s). CSS nuevo en `App.css`:
+>   `.combat-float.variant-crit` (verde), `.odds-chip*`, `.turn-timer*`,
+>   `.hud-chip.turn.overtime`.
+> - **Bug real encontrado en la verificación en vivo y arreglado**: el chip de
+>   crítico pintaba "Critico 3000 %" porque `rate` ya viene en porcentaje y el chip
+>   lo multiplicaba por 100 (`Math.round(exchangeCrit.rate * 100)`) — corregido a
+>   `Math.round(exchangeCrit.rate)`.
+> - **Verificado en vivo** (CDP 9333 directo, drivers Node propios en la temp del
+>   opencode: `cdp-feature-check.mjs` → `cdp-attack3.mjs`): timer contando (17→16 s),
+>   auto-pase por tiempo agotado confirmado (el reloj reaparece en ~19-20 s); chips
+>   `Afinidad x1.15` y `Critico N% xM` visibles al pasar el cursor sobre un objetivo
+>   en rango; floats `CRITICO` y `Afinidad` ocurriendo en combate real; cero errores
+>   de consola y cero excepciones. `npm run build` + `npm run lint` (48 ficheros)
+>   limpios. Capturas simples: no hace falta la suite, el drive jugó partidas reales.
+>   **Pendiente de verificación en vivo**: la prórroga exige llegar a la ronda 9 con
+>   el Lord propio vivo — la IA gana en ~4 rondas si el jugador no defiende, así que
+>   el driver no la alcanza; lógica revisada por código y pendiente de partida manual.
+
 > **VFX de combate reales del Axie Origins Battle Kit + auditoría de recursos
 > del Vibeathon (sesión 2026-09-14):**
 > - **Pedido: "¿y si hacemos que cuando golpeen se vean las habilidades"?** Los
