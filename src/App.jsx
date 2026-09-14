@@ -23,7 +23,10 @@ import Roster from './components/Roster'
 import BoardRegion from './components/BoardRegion'
 import LunaciaBackdrop from './LunaciaBackdrop'
 import { useHashRoute } from './routes'
+import { setMusicKey } from './music'
+import MusicToggle from './components/MusicToggle'
 import MetaNav from './components/MetaNav'
+import CoverScreen from './components/meta/CoverScreen'
 import BaseScreen from './components/meta/BaseScreen'
 import ResourcesScreen from './components/meta/ResourcesScreen'
 import ResearchScreen from './components/meta/ResearchScreen'
@@ -172,11 +175,11 @@ let OVERTIME_ACTIVE = false
 function effectiveMove(klass) {
   return CLASS_STATS[klass].move + (OVERTIME_ACTIVE ? OVERTIME_MOVE : 0)
 }
-// Reloj de turno PVP: 20 segundos por medios-turno del jugador en las arenas
-// PVP (batallas de ~5 min). Al acabarse se tiran los dados automaticamente (si
-// aun no) y se pasa el turno sin mover/atacar -decision confirmada con el
-// usuario. En PVE no hay reloj.
-const PVP_TURN_MS = 20000
+// Reloj de turno PVP: 35 segundos por medios-turno del jugador en las arenas
+// PVP (batallas de ~9 min). Al acabarse se tiran los dados automaticamente (si
+// aun no) y se pasa el turno sin mover/atacar -el usuario pidio mas holgura
+// tras probar 20s ("bastante corto"). En PVE no hay reloj.
+const PVP_TURN_MS = 35000
 
 // Aqua entra en la composicion de prueba para poder verificar la regla del agua
 // ("el Aqua entra en el agua y los demas no", comprobable del paso 4). El equipo
@@ -1495,6 +1498,9 @@ export default function App() {
   const [matchSeq, setMatchSeq] = useState(0)
   const { route, navigate } = useHashRoute()
   const isMeta = route !== 'partida'
+  // Portada (sesion 2026-09-14): pantalla de titulo, sin la barra de la app
+  // encima (ni HUD ni pestanas de MetaNav tienen sentido antes de "entrar").
+  const isCover = route === 'portada'
   const collect = (key) => setMeta((m) => ({ ...m, [key]: (m[key] || 0) + 1 }))
   const invest = (key) =>
     setMeta((m) =>
@@ -1581,6 +1587,7 @@ export default function App() {
     setStatus(nextStatus)
   }
   const META_SCREENS = {
+    portada: <CoverScreen onEnter={() => navigate('base')} onPlay={goPlay} />,
     base: (
       <BaseScreen
         units={units}
@@ -2584,6 +2591,26 @@ export default function App() {
     return () => window.clearInterval(id)
   }, [status, matchInfo.mode, enemyTurnRunning, rolled, turnCount])
 
+  // Musica ambiental (2026-09-14): el motor de music.js elige pista segun el
+  // estado. Meta (hub/mapa/laboratorio...) -> hub; dentro de partida: PVE/PVP,
+  // y en la prorroga PVP la pista PVP sube a 1.35x (OVERTIME). Victorias y
+  // derrotas tienen su propia pieza. El motor guarda silencio sin muted y se
+  // desbloquea con el primer gesto del usuario (autoplay policy).
+  useEffect(() => {
+    const key = isMeta
+      ? 'hub'
+      : status !== 'playing'
+        ? status === 'player-won'
+          ? 'victory'
+          : 'defeat'
+        : matchInfo.mode === 'pvp'
+          ? overtime
+            ? 'overtime'
+            : 'pvp'
+          : 'pve'
+    setMusicKey(key)
+  }, [isMeta, route, status, matchInfo.mode, overtime])
+
   // Nueva partida desde cero (boton "Reiniciar partida", y cada "Jugar" desde el
   // hub/mapa): resetea todo el estado de combate. cfg (matchConfig) decide el
   // terreno VIVO (TERRAIN_LAYOUT, que el tablero 3D lee via terrainAt), las
@@ -2654,14 +2681,13 @@ export default function App() {
     <div className="app">
       <LunaciaBackdrop />
       <LoadingCurtain visible={!isMeta && !boardReady} />
-      {SHOW_DASHBOARD && (
+      {SHOW_DASHBOARD && !isCover && (
       <>
       <header className="topbar">
-        <div className="brand">
-          <span className="brand-kicker">Axie</span>
-          <h1 title="Axie: Forja de Lunacia">Forja de Lunacia</h1>
+        <a className="brand" href="#/portada" title="Volver a la portada">
+          <img src="/brand/logo.svg" alt="Axie Infinity — Tactic Dice" className="brand-logo-img" />
           {!isMeta && <span className="brand-sub">Asedio al mando</span>}
-        </div>
+        </a>
 
         {!isMeta && (
         <Hud
@@ -2678,6 +2704,7 @@ export default function App() {
         )}
 
         <MetaNav route={route} compressed={!isMeta} />
+        <MusicToggle />
 
         {!isMeta && (
         <div className="topbar-actions">

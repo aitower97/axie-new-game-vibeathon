@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  logo.svg — lockup de marca (sesion 2026-09-14, segunda vuelta de portada):
+  "AXIE INFINITY" (grande, arriba) + "TACTIC DICE" (nombre del juego, en la
+  cinta de abajo, mismo rol que "CLASSIC" en el logo oficial de Axie Infinity
+  Classic). Interpretacion ORIGINAL del estilo de /titulo/ejemplo1.png y
+  ejemplo2.png (letra de burbuja gruesa, contorno solido, relleno a cuadros,
+  zarcillos alrededor, cinta con puntas recortadas para el subtitulo) -no es
+  un calco: cada letra es una forma propia (trazo grueso + relleno mas fino a
+  cuadros encima, redondeado con stroke-linecap/linejoin), no el trazado real
+  de ninguna fuente ni logo oficial. Autocontenido: sin <image>, sin fuentes
+  externas -las letras son <path> vectoriales reutilizados via <use>.
+  Paleta identica a la de CoverScreen.jsx (variables cover ink / cover check
+  a y b, y el rojo de la cinta) para que el archivo y la pantalla se vean
+  como el mismo lenguaje visual.
+-->
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  xmlns:xlink="http://www.w3.org/1999/xlink"
+  viewBox="0 0 460 260"
+  width="460"
+  height="260"
+  role="img"
+  aria-labelledby="logoTitle"
+>
+  <title id="logoTitle">Axie Infinity — Tactic Dice</title>
+
+  <defs>
+    <!-- Letras: esqueleto monolinea en una caja local de 0-100 de alto
+         (0 arriba, 100 abajo). Se instancian dos veces por palabra (contorno
+         grueso + relleno a cuadros mas fino) via <use>, así el mismo trazado
+         sirve para las dos pasadas y para las tres palabras a distinta
+         escala sin redibujar nada. -->
+    <path id="ch-A" d="M6,100 L37,0 L68,100 M18,62 L56,62" />
+    <path id="ch-C" d="M45.7,89.9 L26,92.8 L9.4,77.2 L3,50 L9.4,22.8 L26,7.2 L45.7,10.1" />
+    <path id="ch-D" d="M8,5 L8,95 M8,5 L31,11 L47.8,27.5 L54,50 L47.8,72.5 L31,89 L8,95" />
+    <path id="ch-E" d="M10,4 L10,96 M10,4 L52,4 M10,50 L44,50 M10,96 L52,96" />
+    <path id="ch-F" d="M10,4 L10,96 M10,4 L48,4 M10,48 L40,48" />
+    <path id="ch-I" d="M15,4 L15,96 M5,4 L25,4 M5,96 L25,96" />
+    <path id="ch-N" d="M8,96 L8,4 L52,96 L52,4" />
+    <path id="ch-T" d="M6,4 L50,4 M28,4 L28,96" />
+    <path id="ch-X" d="M6,4 L54,96 M54,4 L6,96" />
+    <path id="ch-Y" d="M6,4 L30,50 L54,4 M30,50 L30,96" />
+
+    <!-- Zarcillo decorativo, mismo trazado que VineIcon (LineIcons.jsx) para
+         que la marca y la UI compartan el mismo doodle -reutilizado dos
+         veces (normal y espejado) via <use color="..."> + currentColor. -->
+    <g id="vine-shape">
+      <path d="M4 21c3-1 4-6 3-10-1-4 2-7 6-7" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" />
+      <path d="M8.5 9.4c2 .8 2.2 3.6 5 3.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" />
+      <circle cx="13" cy="3.4" r="1.5" fill="currentColor" />
+      <circle cx="6.6" cy="12.2" r="1.2" fill="currentColor" />
+    </g>
+
+    <pattern id="checker" width="20" height="20" patternUnits="userSpaceOnUse">
+      <rect width="20" height="20" fill="#fff8e4" />
+      <rect width="10" height="10" fill="#bfead2" />
+      <rect x="10" y="10" width="10" height="10" fill="#bfead2" />
+    </pattern>
+
+    <style>
+      .wd-shadow use { fill: none; stroke: #0e2d22; stroke-width: 34; stroke-linecap: round; stroke-linejoin: round; }
+      .wd-outline use { fill: none; stroke: #123a2b; stroke-width: 34; stroke-linecap: round; stroke-linejoin: round; }
+      .wd-fill use { fill: none; stroke: url(#checker); stroke-width: 20; stroke-linecap: round; stroke-linejoin: round; }
+    </style>
+  </defs>
+
+  <!-- Zarcillos flanqueando el titulo grande, igual que en CoverScreen.jsx -->
+  <use xlink:href="#vine-shape" color="#ffb0cf" transform="translate(50,6) rotate(-12) scale(2)" />
+  <use xlink:href="#vine-shape" color="#6fcf9a" transform="translate(430,10) scale(-2,2)" />
+
+  <!-- AXIE (grande, con relieve escalonado: sombra solida detras del
+       contorno+relleno, mismo lenguaje de sombra plana que el resto de la
+       app -nada de blur). -->
+  <g transform="translate(114,20)">
+    <g class="wd-shadow" transform="translate(0,7)">
+      <use xlink:href="#ch-A" />
+      <use xlink:href="#ch-X" x="80" />
+      <use xlink:href="#ch-I" x="146" />
+      <use xlink:href="#ch-E" x="184" />
+    </g>
+    <g class="wd-outline">
+      <use xlink:href="#ch-A" />
+      <use xlink:href="#ch-X" x="80" />
+      <use xlink:href="#ch-I" x="146" />
+      <use xlink:href="#ch-E" x="184" />
+    </g>
+    <g class="wd-fill">
+      <use xlink:href="#ch-A" />
+      <use xlink:href="#ch-X" x="80" />
+      <use xlink:href="#ch-I" x="146" />
+      <use xlink:href="#ch-E" x="184" />
+    </g>
+  </g>
+
+  <!-- INFINITY (mas pequeña, pegada debajo de AXIE) -->
+  <g transform="translate(150,140) scale(0.42)">
+    <g class="wd-outline">
+      <use xlink:href="#ch-I" />
+      <use xlink:href="#ch-N" x="38" />
+      <use xlink:href="#ch-F" x="102" />
+      <use xlink:href="#ch-I" x="162" />
+      <use xlink:href="#ch-N" x="200" />
+      <use xlink:href="#ch-I" x="264" />
+      <use xlink:href="#ch-T" x="302" />
+      <use xlink:href="#ch-Y" x="364" />
+    </g>
+    <g class="wd-fill">
+      <use xlink:href="#ch-I" />
+      <use xlink:href="#ch-N" x="38" />
+      <use xlink:href="#ch-F" x="102" />
+      <use xlink:href="#ch-I" x="162" />
+      <use xlink:href="#ch-N" x="200" />
+      <use xlink:href="#ch-I" x="264" />
+      <use xlink:href="#ch-T" x="302" />
+      <use xlink:href="#ch-Y" x="364" />
+    </g>
+  </g>
+
+  <!-- Cinta del nombre del juego, mismo recorte de puntas que
+       .cover-title-ribbon (clip-path polygon) hecho como <path> hexagonal,
+       con su propio escalon de sombra solida debajo. -->
+  <path d="M112,225 L132,200 L348,200 L368,225 L348,250 L132,250 Z" fill="#b23f3f" />
+  <path d="M112,219 L132,194 L348,194 L368,219 L348,244 L132,244 Z" fill="#ff6b6b" />
+
+  <g transform="translate(149,204) scale(0.28)">
+    <g class="wd-outline">
+      <use xlink:href="#ch-T" />
+      <use xlink:href="#ch-A" x="62" />
+      <use xlink:href="#ch-C" x="142" />
+      <use xlink:href="#ch-T" x="204" />
+      <use xlink:href="#ch-I" x="266" />
+      <use xlink:href="#ch-C" x="304" />
+    </g>
+    <g class="wd-fill">
+      <use xlink:href="#ch-T" />
+      <use xlink:href="#ch-A" x="62" />
+      <use xlink:href="#ch-C" x="142" />
+      <use xlink:href="#ch-T" x="204" />
+      <use xlink:href="#ch-I" x="266" />
+      <use xlink:href="#ch-C" x="304" />
+    </g>
+  </g>
+  <g transform="translate(265.5,204) scale(0.28)">
+    <g class="wd-outline">
+      <use xlink:href="#ch-D" />
+      <use xlink:href="#ch-I" x="68" />
+      <use xlink:href="#ch-C" x="106" />
+      <use xlink:href="#ch-E" x="168" />
+    </g>
+    <g class="wd-fill">
+      <use xlink:href="#ch-D" />
+      <use xlink:href="#ch-I" x="68" />
+      <use xlink:href="#ch-C" x="106" />
+      <use xlink:href="#ch-E" x="168" />
+    </g>
+  </g>
+</svg>

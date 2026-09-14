@@ -1,5 +1,166 @@
 # Vínculo de Lunacia — contexto del proyecto
 
+> **El nombre nuevo se convierte en logotipo real (mismo dia, "y el titulo?"
+> tras la vuelta anterior -el nombre habia cambiado pero seguia siendo texto
+> plano, sin el tratamiento de las capturas de referencia en `titulo/`):**
+> `CoverScreen.jsx` parte el `<h1>` en 4 piezas -kicker "Axie" (sin cambios),
+> palabra grande **"Dados"** (la mas brandeable, la que lleva el tratamiento de
+> logo), linea pequeña "de Lunacia" debajo, y una cinta/ribbon roja inclinada
+> "Tactico por turnos" (mismo patron que el "CLASSIC" de `ejemplo2.png`: color
+> solido, texto blanco, sombra solida sin difuminar). El efecto "letra de
+> burbuja" de `.cover-title-main` es CSS puro, sin imagen nueva:
+> `-webkit-text-stroke` para el contorno grueso + `paint-order:stroke fill`
+> (pinta el contorno DEBAJO del relleno para que no coma las curvas de Baloo 2)
+> + un `text-shadow` solido (no difuso) como escalon de relieve debajo -mismo
+> criterio de "nada translucido" de la vuelta anterior, el escalon es un color
+> opaco, no una sombra con alpha. Verificado en vivo (`claude-in-chrome`): el
+> lockup "Dados / DE LUNACIA / TACTICO POR TURNOS" se lee de un vistazo, sin
+> solaparse con el resto de la portada, cero errores de consola. `npm run
+> build` + `npm run lint` limpios.
+>
+> **Portada sin glassmorphism, iconos de trazo fino y nuevo nombre (mismo dia,
+> retoque inmediato sobre la entrada de arriba tras feedback directo del
+> usuario: "es muy importante que quitemos las cards redondas con colores
+> transparentes tipicas de diseño de claude... los emojis en colores los
+> evitaria, los haria con lineas finas y con un color acorde... el nombre dale
+> una vuelta que sea algo relacionado con los dados y el tectico [tactico]... el
+> mensaje es evoluciona tus axies y evoluciona tu dado"):**
+> - **Diagnostico**: la primera version de la portada (entrada de arriba) usaba
+>   el lenguaje visual tipico de un dashboard generado por IA -circulos/pildoras
+>   con fondo `rgba(255,255,255,.5-ish)` o `color-mix` translucido, blobs
+>   difuminados de fondo (`.cover-orb`, `filter:blur`), y emoji de color como
+>   icono (🤖🏆🔧🔬⚖⚔🎲🧬). El usuario dejo capturas reales del logo de Axie en
+>   `titulo/ejemplo1.png` y `titulo/ejemplo2.png` (letra de burbuja con contorno
+>   solido, relleno plano, nada de cristal) como referencia de hacia donde ir.
+> - **`src/components/LineIcons.jsx` (nuevo)**: set propio de iconos de trazo
+>   (`stroke:currentColor`, sin relleno de color fijo) -`DiceIcon`, `BoltIcon`,
+>   `DnaIcon`, `MapIcon`, `TrophyIcon`, `FlaskIcon`, `SearchIcon`, `ScaleIcon`,
+>   `SwordIcon`, `HomeIcon`- mismo espiritu que `ClassEmblem` (`Emblems.jsx`,
+>   iconos propios, no arte de Axie real) pero de contorno, para heredar el
+>   acento de cada tarjeta via la propiedad CSS `color` en vez de emoji de color
+>   fijo. Sustituyen los emoji en `CoverScreen.jsx` (pasos "Tira el dado/Juega
+>   la cara/Evoluciona una parte" + boton "Partida rapida") y en las tarjetas de
+>   `BaseScreen.jsx` (PVE/PVP/Laboratorio/Investigacion/Recursos/Partida libre).
+>   Fuera de alcance esta vuelta (no tocados): `MetaScreen.jsx` (icono grande de
+>   cabecera, compartido por PVE/PVP/Investigacion/Recursos/Laboratorio, ninguna
+>   de esas pantallas esta en el alcance acordado) y `MetaNav.jsx` (pestañas de
+>   la barra superior, visibles tambien durante la partida).
+> - **CSS de la portada y del HUB reescritos sin ningun `rgba`/`color-mix` de
+>   relleno translucido**: `.cover-kicker`/`.cover-class-chip`/`.cover-cta-ghost`/
+>   `.cover-step-icon` pasan de fondo blanco al 50-60% de opacidad a fondo
+>   solido (`--cover-card:#fdfdf6`) con borde solido de 1.5-2px en el color de
+>   acento -contorno en vez de cristal. `.cover-lord-frame` pierde el
+>   `radial-gradient` con paradas `rgba(...)` y el borde `rgba(255,255,255,.7)`:
+>   ahora es un circulo plano (`#ffedb0`) con borde solido de 4px. Se elimino
+>   `.cover-decor`/`.cover-orb` entero (los 3 blobs de clase difuminados y su
+>   `@keyframes cover-orb-float`) -sin blur, sin gradiente radial de fondo. En
+>   el HUB, `.hub3-card-icon` pasa de `color-mix(var(--card-accent) 22%,
+>   var(--panel))` (relleno tintado) a `background:var(--panel)` (el panel solido
+>   de siempre) + `border:1px solid var(--card-accent)` + `color:var(--card-accent)`
+>   -el propio SVG hereda el acento, ya no hace falta la regla `.hub3-play
+>   .hub3-card-icon{color:...}` de antes.
+> - **Nombre nuevo: "Dados de Lunacia"** (antes "Forja de Lunacia" -pedido
+>   explicito: "algo relacionado con los dados y el tactico"). Cambiado en los 4
+>   sitios donde aparecia el nombre: `index.html` (`<title>`), `App.jsx` (`<h1>`
+>   de la barra), `LoadingCurtain.jsx` (texto de la cortina de carga) y
+>   `CoverScreen.jsx` (titulo grande). "Lunacia" (el mundo) y el prefijo "Axie"
+>   se mantienen -es el nombre del juego el que cambia, no la marca ni el lore.
+> - **Mensaje de la portada reescrito** (`cover-pitch` en `CoverScreen.jsx`) para
+>   centrarse en el bucle de progresion en vez del pitch general de la seccion 1
+>   de este documento: "Evoluciona tus Axies y evoluciona tu dado. A medida que
+>   mejoras los genes de sus partes desbloqueas mejoras en el dado: caras nuevas
+>   y la opcion de bloquear las que ya tienes" -describe Investigacion+Laboratorio
+>   (mejorar genes -> nuevas caras/bloqueo) en vez de solo la mecanica base.
+> - **Verificado en vivo** (`claude-in-chrome`, `npm run dev`): recarga con HMR
+>   real de los archivos tocados, cero errores/warnings de consola; capturas de
+>   la portada y del HUB confirman fondo plano sin blobs, chips/circulos con
+>   contorno solido en vez de cristal, e iconos de linea en el color de acento
+>   de cada tarjeta. `npm run build` + `npm run lint` limpios.
+>
+> **Portada nueva + retoque de color del HUB (sesión 2026-09-14, pedido explícito:
+> "poner foco en rediseñar el formal sobre todo la pagina web, que tenga sentido
+> que tenga vibras axie y que tenga una portada"):**
+> - **Alcance acordado con el usuario** (dos preguntas antes de tocar codigo, para
+>   no repetir el patron de esta rama de ir y volver sobre decisiones visuales):
+>   portada nueva + retoque del HUB (sin tocar tablero/cartas/PVE/PVP/laboratorio) y
+>   direccion visual "estilo oficial Axie/Origins" (colores saturados, formas
+>   redondeadas, tipografia gruesa tipo mascota) en vez de evolucionar el bosque
+>   oscuro que ya tiene el resto del juego -deliberadamente en contraste, solo en
+>   la portada, para dar la primera impresion mas reconocible como "Axie".
+> - **Portada = nueva ruta `'portada'`** (`routes.js`, `DEFAULT_ROUTE` paso de
+>   `'base'` a `'portada'`, con `'base'` -el HUB- ahora detras del boton "Entrar
+>   al puesto de mando"). `CoverScreen.jsx` (nuevo, presentacional puro, sin
+>   estado propio): kicker "Axie Vibeathon · Ronda 1", titulo, el pitch de una
+>   frase de la seccion 1 de este documento, chips de las 3 clases del roster
+>   (Beast/Bird/Aqua, con `ClassEmblem` ya existente), 3 pasos "Tira el dado /
+>   Juega la cara que sale / Evoluciona una parte", y a la derecha el Lord y el
+>   roster en 3D real -mismo `Portrait3D`+mixer compartido que el HUD y el
+>   tablero (`LORD_DESCRIPTORS`/`ROSTER_DESCRIPTORS` de `axieGeneCatalog.js`),
+>   cero assets nuevos. Dos puertas: "Entrar al puesto de mando" (`navigate('base')`)
+>   y "Partida rapida" (`goPlay`, salta directo a una escaramuza para quien ya
+>   conoce el juego). En `App.jsx`, `isCover` (route==='portada') oculta la barra
+>   superior entera (HUD/MetaNav/Controles no pintan nada antes de "entrar"); la
+>   marca de la barra (`.brand`) paso de `div` a `<a href="#/portada">` para poder
+>   volver a la portada desde cualquier pantalla con un clic.
+> - **Portada con paleta propia, sin tocar variables globales**: todo vive dentro
+>   de `.cover-screen` (cielo claro, tinta oscura, botones "chunky" con relieve
+>   solido en vez de sombra difusa -mismo patron `:active{translateY}` que un
+>   boton fisico) para no alterar `--bg`/`--panel`/etc. del resto del juego.
+>   Tipografia nueva solo para la portada: **Baloo 2** (redondeada, mismo `@import`
+>   de Google Fonts que ya traia Fraunces/Manrope, no es una dependencia npm).
+> - **Retoque del HUB** (`BaseScreen.jsx`+CSS): las tarjetas de navegacion del
+>   riel (PVE/PVP/Laboratorio/Investigacion/Recursos/Partida libre) pasan de un
+>   panel plano identico a tener su propio color de acento por accion
+>   (`--card-accent` inline, mismo patron que ya usan `LordCard`/`UnitCard` para
+>   el borde izquierdo) -aqua para PVE, rojo para PVP, ambar para Laboratorio,
+>   menta para Investigacion, dorado apagado para Recursos, verde (mismo verde
+>   que el boton "Entrar" de la portada) para Partida libre. Es un retoque de
+>   color sobre la estructura existente, no un reskin -pedido explicito del
+>   usuario tras elegir el alcance mas acotado de las dos preguntas.
+> - **Verificado en vivo** (`claude-in-chrome`, `npm run dev`): recarga limpia en
+>   `#/portada` (cero errores/warnings de consola), clic en "Entrar al puesto de
+>   mando" lleva a `#/base` con las tarjetas ya coloreadas, clic en el logo de la
+>   barra vuelve a `#/portada`, "Partida rapida" arranca una escaramuza real sin
+>   romper nada del tablero/HUD existente. Responsive comprobado a 400px de ancho
+>   (`chrome-devtools`, `resize_page`): la portada colapsa a una columna (roster 3D
+>   arriba, texto+CTA debajo), sin scroll horizontal (`scrollWidth===clientWidth`
+>   verificado por script). `npm run build` + `npm run lint` limpios.
+>
+> **Música ambiental por estado del juego, libre de derechos (sesión 2026-09-14,
+> "tenemos que integrarle musica sin copyright al juego en funcion de lo que
+> corresponda en el juego"):**
+> - **Fuente**: el kit oficial del Vibeathon NO trae audio (verificado: solo
+>   VFX visual). FreePD (dominio público) cerró en 2025. Se usó **Kevin MacLeod
+>   (incompetech.com), CC-BY 4.0** — el estándar "royalty-free" de los juegos —
+>   con atribución obligatoria en el juego (panel de ayuda) y en
+>   `public/music/README.md`; los stings CC0 de Kenney quedan documentados como
+>   futura fuente de SFX. Mapeo estado→pista: `hub.mp3` (Enchanted Journey,
+>   pantallas meta), `pve.mp3` (Impact Alegretto, campaña), `pvp.mp3` (Heroic
+>   Age, arena), **prórroga = `pvp.mp3` a 1.35x** (playbackRate, no fichero
+>   extra), `victory.mp3` (Carefree) y `defeat.mp3` (Bittersweet). Pistas
+>   re-encodeadas a 112 kbps (~13 MB total) en `public/music/`.
+> - **`src/music.js` (nuevo, módulo singleton, cero dependencias)**: `setMusicKey`
+>   por estado, crossfade entre 2 `<audio>` de bucle (rampa 1.2 s vía interval),
+>   `unlock()` con listeners {once} de pointerdown/keydown/touchstart (autoplay
+>   policy), mute persistido en `localStorage 'lunacia-music-muted'`, `subscribe`
+>   para la UI, y hook de debug `window.__musicDebug` (patrón de `__boardDebug`).
+>   El desbloqueo arranca con la pista ya "precalentada" por el useEffect
+>   (preload del destino para que suene al instante del primer gesto).
+> - **`App.jsx`**: `useEffect` con `isMeta ? 'hub' : status→victory/defeat :
+>   mode→pve/pvp/overtime` (deps `[isMeta, route, status, matchInfo.mode,
+>   overtime]`; el lint exigía `isMeta` en deps). **`MusicToggle.jsx`** (nuevo):
+>   botón 🔊/🔇 en el topbar (siempre visible, meta y partida), suscrito al
+>   módulo. **`HelpOverlay.jsx`**: bloque "Musica" con el crédito CC-BY. CSS:
+>   `.music-toggle`, `.help-credits`.
+> - **Verificado en vivo** (CDP 9333, dev `http://localhost:5173`): los 5 mp3 +
+>   README sirven 200; sin gesto el módulo espera desbloqueo (pista precalentada,
+>   `paused:true`); un pointerdown real lo desbloquea y suena `hub.mp3` a 0.5;
+>   al entrar en partida crossfade hub→pve→pvp (volúmenes cruzados mid-fade);
+>   mute persiste (`lsMuted:'1'`, botón 🔇); **cero errores de consola** en el
+>   ciclo completo. `npm run lint` 0/0 (50 ficheros) y `npm run build` limpio.
+>   Pendiente de oído humano: la elección de pistas por estado (el driver solo
+>   verifica que la pista correcta carga y suena, no el gusto musical).
+
 > **Muerte súbita PVP + afinidad de clases + crítico genético + timer de turno
 > (sesión 2026-09-14, rama `feat/jugabilidad-prorroga-afinidad-critico`; detalle
 > en `docs/jugabilidad-prorroga-afinidad-critico.md`):**
@@ -1177,6 +1338,19 @@ exponer un hook de debug del renderer o forzar `render()`).
 Avisar al usuario de reiniciar opencode tras tocar `opencode.json` (no se recarga en frío).
 
 **Stack:** React 19 + Vite 8, sin librería de estado, sin router, sin TypeScript.
+
+**Hub de agentes (sesión 2026-09-14):** este repo usa
+[`hub-agentes-app`](https://github.com/aitower97/hub-agentes-app) como
+submodule en `.claude/agents-hub` (React+Vite+Tailwind, sin SEO/Next.js —
+el hub anterior, `hub-seo-web`, no encajaba con un juego SPA de hackathon).
+Los subagentes/comandos que ve Claude Code viven copiados en
+`.claude/agents/`/`.claude/commands/` (copia real, no symlink -en este
+checkout de Windows `ln -s` no deja symlinks de verdad); si el hub se
+actualiza, hay que repetir la copia. `spine-to-3d.md` es una pieza propia de
+este proyecto (Spine2D→GLB) que NO viene del hub -no la borres al
+actualizar. Las secciones de Supabase de `audit`/`backend-supabase` no
+aplican (el juego no tiene backend); `check-rls.sh` (hook de
+`.claude/settings.json`) es no-op sin `supabase/migrations`.
 
 **Estructura:**
 

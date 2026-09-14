@@ -60,6 +60,26 @@ reproduce el clip de su clase y auto-limpiar su canvas al terminar.
 | Kenney Platformer Kit (`public/models/*.glb`) | bloques de terreno del tablero 3D | `src/Board3D.jsx` |
 | Kenney Mini Forest (`public/models/mini-forest/`) | props del fondo 2D de Lunacia | `src/backdropSprite3D.js`, `src/LunaciaBackdrop.jsx` |
 
+## Música del juego (public/music, 2026-09-14)
+
+El kit oficial del Vibeathon **no incluye audio** — el plugin de audio de Origins se
+licencia aparte y los packs de audio propios de Axie son copyright de Sky Mavis. La
+banda sonora del juego se monta con música CC-BY + CC0 y se sirve local:
+
+| Fichero | Estado | Fuente / licencia | Consumido por |
+|---|---|---|---|
+| `public/music/hub.mp3` (Enchanted Journey) | ✅ integrado | Kevin MacLeod, CC-BY 4.0 | `src/music.js` (pantallas meta) |
+| `public/music/pve.mp3` (Impact Alegretto) | ✅ integrado | Kevin MacLeod, CC-BY 4.0 | `src/music.js` (campaña) |
+| `public/music/pvp.mp3` (Heroic Age) | ✅ integrado | Kevin MacLeod, CC-BY 4.0 | `src/music.js` (arena PVP; a 1.35x en prórroga) |
+| `public/music/victory.mp3` (Carefree) | ✅ integrado | Kevin MacLeod, CC-BY 4.0 | `src/music.js` (banner de victoria) |
+| `public/music/defeat.mp3` (Bittersweet) | ✅ integrado | Kevin MacLeod, CC-BY 4.0 | `src/music.js` (banner de derrota) |
+
+Todas las pistas se re-encodearon a 112 kbps desde incompetech.com (`src/music.js` elige
+pista por estado con crossfade; autoplay desbloqueado con el primer gesto; mute 🔇 en el
+topbar persistido en `localStorage`). **Atribución CC-BY obligatoria**: en el juego
+(panel de ayuda) y en `public/music/README.md`. Re-encode local (no se sube el mp3
+original); los mp3 originales no están versionados — solo los 112 kbps de `public/music/`.
+
 ## Notas
 
 - El pack es de contenido público de la librería Jaatster (`threejs-axie-mixer3d-public`),

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;700&family=Baloo+2:wght@600;700;800&display=swap');
 
 :root {
   --bg: #10201d;
@@ -82,6 +82,35 @@ body {
   font-family: 'Manrope', system-ui, sans-serif;
 }
 
+/* Red de seguridad de ErrorBoundary.jsx (auditoria 2026-09-14): pantalla de
+   recuperacion minima, sin depender de nada que pueda haber fallado (Three.js,
+   mixer 3D, musica) -solo HTML/CSS plano. */
+.error-boundary {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+  background: var(--bg);
+  color: var(--ink);
+}
+.error-boundary-title { margin: 0; font-family: 'Fraunces', Georgia, serif; font-weight: 700; font-size: 1.3rem; }
+.error-boundary-text { margin: 0; max-width: 46ch; color: var(--muted); font-size: 0.9rem; line-height: 1.5; }
+.error-boundary-retry {
+  margin-top: 6px;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--mint);
+  background: rgba(127, 231, 196, 0.12);
+  color: var(--ink);
+  font-weight: 700;
+  cursor: pointer;
+}
+.error-boundary-retry:hover { border-color: var(--ink); }
+
 /* position + z-index (no solo position) para que .app forme su propio contexto de
    apilamiento: así el z-index negativo del fondo 3D queda contenido aquí dentro en vez
    de escapar a la raiz, donde el fondo propagado del <body> lo taparia igualmente. */
@@ -103,14 +132,30 @@ body {
   overflow: hidden;
 }
 
-/* Fondo 3D ambiental de Lunacia, fijo y decorativo: nunca intercepta clics. */
+/* Fondo 3D ambiental de Lunacia, fijo y decorativo: nunca intercepta clics.
+   SEGUNDA VUELTA (2026-09-14, tras comparar contra capturas reales de
+   Homeland/Terrariums en titulo/fondo-refs/): el bug real de la vuelta
+   anterior no era el hue-rotate de cada familia (eso ya se habia corregido),
+   era que la BASE seguia siendo var(--panel) -un verde casi negro (~13% de
+   luminosidad medido)- por debajo de todo. Ninguna de las 3 referencias usa
+   un suelo oscuro: arena tostada en homeland-1-oasis-cristal, pantano
+   turquesa OSCURO PERO SATURADO (no apagado) en homeland-2-pantano-cristal,
+   cesped verde vivo en terrariums-1-aldea. Se sustituye var(--panel) por un
+   degradado propio, mas claro (~25-55% de luminosidad segun la zona, el
+   doble o el triple que antes) y con temperatura propia: verde-menta
+   saturado (familia de --mint, no generico) con un realce calido arriba
+   (simula luz de sol entrando, contraste de temperatura como los techos de
+   paja/estampados calidos de terrariums-1-aldea contra el verde). */
 .lunacia-backdrop {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   overflow: hidden;
-  background: var(--panel);
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 6%, rgba(255, 238, 190, 0.32) 0%, transparent 58%),
+    radial-gradient(ellipse 130% 90% at 50% 105%, #0c6b52 0%, transparent 58%),
+    linear-gradient(180deg, #5fd39a 0%, #34b57e 34%, #1f8f68 66%, #146b52 100%);
 }
 .lunacia-grass {
   position: absolute;
@@ -118,22 +163,159 @@ body {
   background-repeat: repeat;
   background-size: 48px 48px;
   image-rendering: pixelated;
-  opacity: 0.5;
+  opacity: 0.4;
+  /* Verde crudo del pack -> verde-menta saturado propio de Lunacia (mismo
+     tono que --mint, no el verde generico de Kenney). Brightness subida un
+     poco respecto a la vuelta anterior para que la textura se lea contra la
+     nueva base clara en vez de fundirse con ella. */
+  filter: saturate(1.55) hue-rotate(24deg) brightness(1.2);
 }
 .lunacia-grass-detail {
   background-size: 144px 144px;
   background-position: 24px 12px;
-  opacity: 0.22;
+  opacity: 0.2;
+  /* Verificado por muestreo de pixel real (canvas + getImageData): esta
+     textura es sobre todo verde de fondo con motas pequenas -rotar su hue
+     hacia "magenta" solo recoloreaba el FONDO entero (acababa en rojo, no en
+     magenta, el promedio lo domina el verde). El acento magenta real lo dan
+     las flores 3D de mas abajo; aqui basta el mismo tinte que .lunacia-grass
+     para que la base y el detalle compartan tono. */
+  filter: saturate(1.55) hue-rotate(24deg) brightness(1.2);
 }
-.lunacia-vignette {
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(ellipse at center, transparent 35%, var(--panel) 92%);
-}
+
+/* Recoloreo por FAMILIA de prop (sesion 2026-09-14, "no aparece un mundo
+   alienigena y verde"): antes cada especie se pintaba con el color CRUDO de
+   su textura Kenney -sin cohesion entre si, leia a bosque generico. Mismo
+   truco que --icon-filter (sepia+hue-rotate para tenir conservando el
+   relieve/sombreado real, no una mascara plana). El drop-shadow base se
+   mantiene para las tres familias vegetales/roca; village y foliage llevan
+   ademas su propio tono. */
 .lunacia-decor {
   position: absolute;
   image-rendering: pixelated;
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+  filter: var(--decor-tint, none) drop-shadow(0 5px 7px rgba(0, 0, 0, 0.4));
+}
+/* Follaje: verde alienigena saturado, mas brillante que el original -copas
+   que "laten" un poco de luz propia, no un bosque apagado realista. */
+.lunacia-decor-foliage { --decor-tint: saturate(2.2) hue-rotate(26deg) brightness(1.24); }
+/* Follaje "de sombra": copia mas oscura y ligeramente mas azulada del mismo
+   verde, para las instancias que hacen de CAPA TRASERA de un cluster de
+   arboles (mismo patron visual que terrariums-1-aldea/homeland-1-oasis-
+   cristal: dentro de UNA misma masa de copas se ven varios tonos de verde
+   dando volumen, no un verde plano repetido). No es una familia nueva, es la
+   misma familia 'foliage' con menos luz -se coloca DEBAJO en el DOM. */
+.lunacia-decor-foliage-shade { --decor-tint: saturate(2.4) hue-rotate(34deg) brightness(0.74) contrast(1.05); }
+/* Roca: gris frio con un velo violeta. FIX (verificado por muestreo de pixel
+   real, canvas+getImageData): la version anterior (sepia+hue-rotate 215)
+   daba un gris CASI SIN saturacion (~7%, se leia plano, no violeta) -el
+   modelo real de roca de Kenney ya tiene un tono base frio (hue ~245, no
+   necesita sepia para "entrar" en la familia fria); sepia lo desviaba hacia
+   marron antes de rotar. Sin sepia, solo saturar+rotar un poco, sale un gris
+   violeta real (medido: rgb(109,86,137), ~23% saturacion). */
+.lunacia-decor-rock { --decor-tint: saturate(2) hue-rotate(20deg) brightness(1) contrast(1.05); }
+/* Flor: el UNICO acento magenta de la escena -deliberadamente el tinte mas
+   fuerte de todos, y solo aparece PEGADA al landmark de cada lado (nunca
+   suelta en su propio prado aparte: en las 3 referencias el arbol de flor
+   rosa/magenta SIEMPRE crece junto al cristal/roca, es una pareja visual, no
+   dos acentos independientes -homeland-1-oasis-cristal y homeland-2-pantano-
+   cristal lo muestran identico). FIX (verificado por muestreo de pixel
+   real): hue-rotate(200deg) partia de un promedio de color base del modelo
+   real ~225 (azul, no rojo/rosa como se asumio a ojo) y aterrizaba en ~65
+   (oliva/amarillo-verde) -justo la razon por la que no se veia ningun acento
+   magenta. hue-rotate(85deg) desde esa misma base mide rgb(224,79,183) ~hue
+   320, magenta real. */
+.lunacia-decor-flower { --decor-tint: saturate(2.6) hue-rotate(85deg) brightness(1.18); }
+/* Seta: toque calido natural, sin desviar de mas -contraste de color por si
+   sola contra el verde, sin competir con el acento magenta de las flores. */
+.lunacia-decor-mushroom { --decor-tint: saturate(1.6) brightness(1.06); }
+/* Seta "luminiscente": mismo modelo, tinte a --mint -las 4 unidades del pack
+   que hacen de musgo/hongo del santuario, el detalle memorable del cluster. */
+.lunacia-decor-glow {
+  --decor-tint: sepia(0.5) saturate(3.2) hue-rotate(120deg) brightness(1.35);
+  filter: var(--decor-tint) drop-shadow(0 0 10px rgba(127, 231, 196, 0.55));
+}
+/* Piedra del santuario/cairn: el LANDMARK de cada lado. En las 3 referencias
+   el foco no es "una roca con tinte", es un CRISTAL que brilla de verdad
+   (amarillo y morado incrustados en piedra gris, ver los dos homeland-*).
+   No hay asset de cristal en el pack, asi que el brillo se simula con
+   drop-shadow de color apilados sobre la silueta real de la roca -igual que
+   un halo emisivo, no un tinte plano. Se suma al aura de fondo (mas abajo)
+   para reforzar el mismo par de colores desde dos capas distintas. */
+.lunacia-decor-landmark {
+  --decor-tint: saturate(2.1) hue-rotate(20deg) brightness(0.94) contrast(1.18);
+  filter:
+    var(--decor-tint)
+    drop-shadow(0 0 9px rgba(255, 214, 90, 0.65))
+    drop-shadow(0 0 18px rgba(178, 110, 255, 0.5))
+    drop-shadow(0 6px 8px rgba(0, 0, 0, 0.35));
+}
+/* Aldea (valla/cajones): madera calida con textura propia -mismo contraste
+   de temperatura que los techos de paja/estampados de terrariums-1-aldea
+   contra el verde. Un poco de sepia (ausente antes) para que se lea marron/
+   ocre de verdad, no solo "verde con menos saturacion". */
+.lunacia-decor-village { --decor-tint: sepia(0.22) saturate(1.7) hue-rotate(-8deg) brightness(1.08); }
+
+/* Aura de resplandor bajo los dos cairns (el elemento memorable de cada
+   lado): dos radial-gradient por lado -un nucleo AMARILLO ajustado (el
+   cristal calido de las referencias) mas un halo mas amplio VIOLETA/menta
+   por detras (el segundo color de cristal)- en vez de un solo tono plano
+   como la vuelta anterior. Se pinta DETRAS de los props en el DOM.
+   mix-blend-mode:screen para que sume luz en vez de tapar el cesped. */
+.lunacia-aura {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-30%, -20%);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  filter: blur(3px);
+}
+.lunacia-aura-left {
+  background:
+    radial-gradient(circle at 42% 46%, rgba(255, 214, 90, 0.6) 0%, rgba(255, 214, 90, 0.22) 24%, transparent 48%),
+    radial-gradient(circle, rgba(178, 110, 255, 0.36) 0%, rgba(127, 231, 196, 0.16) 46%, transparent 74%);
+}
+.lunacia-aura-right {
+  background:
+    radial-gradient(circle at 58% 46%, rgba(255, 214, 90, 0.55) 0%, rgba(255, 214, 90, 0.2) 24%, transparent 48%),
+    radial-gradient(circle, rgba(178, 110, 255, 0.34) 0%, rgba(190, 150, 255, 0.14) 46%, transparent 74%);
+}
+
+/* Vignette mas suave que la vuelta anterior: antes terminaba en var(--panel)
+   SOLIDO (volvia a apagar el borde a un verde casi negro, justo lo que se
+   queria evitar en toda la escena); ahora es un negro-verdoso translucido,
+   enmarca sin devolver la oscuridad plana de antes. */
+.lunacia-vignette {
+  position: absolute;
+  inset: 0;
+  /* FIX (sesion 2026-09-14, tercera pasada del fondo): el fondo base paso de
+     oscuro a muy claro/vivo (para leer como Lunacia de verdad), pero eso
+     rompio el contraste del texto que vive SIN tarjeta propia encima del
+     fondo (la cabecera de las pantallas meta, las notas del HUB) -antes el
+     fondo oscuro hacia de vignette "gratis", ahora hace falta una de verdad.
+     Oscurece fuerte ya desde el 20% (el area central donde vive el
+     contenido, no solo el borde) para que el texto vuelva a tener contraste;
+     los props vivos quedan en el margen exterior (0-20%/80-100%), donde este
+     degradado sigue transparente. */
+  background: radial-gradient(ellipse at center, transparent 20%, rgba(6, 20, 16, 0.88) 68%, rgba(6, 20, 16, 0.95) 100%);
+}
+/* Lavado atmosferico: unifica la temperatura de luz de TODA la escena (suelo
+   Y props, a diferencia de la vignette de arriba, que solo enmarca) -sin el
+   esto se veia como piezas sueltas con su propio color crudo pese al
+   recoloreo por familia; con esto comparten la misma "luz de Lunacia". Suma
+   un tercer realce calido arriba (sol entrando, contraste de temperatura
+   contra el verde -mismo principio que la arquitectura calida de
+   terrariums-1-aldea) a los dos halos de color que ya habia.
+   mix-blend-mode:soft-light para tenir sin aplanar contraste ni tapar nada. */
+.lunacia-atmosphere {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 226, 150, 0.16) 0%, transparent 46%),
+    radial-gradient(ellipse at 10% 20%, rgba(127, 231, 196, 0.16) 0%, transparent 55%),
+    radial-gradient(ellipse at 92% 45%, rgba(190, 150, 255, 0.14) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(60, 200, 170, 0.05) 0%, transparent 30%, rgba(10, 35, 28, 0.14) 100%);
+  mix-blend-mode: soft-light;
+  opacity: 0.75;
 }
 
 /* Barra superior moderna (sesion "ganar espacio al tablero"): titulo, HUD de
@@ -155,40 +337,18 @@ body {
   align-items: flex-start;
   line-height: 1;
   margin-right: 6px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
-.brand-kicker {
-  font-size: 0.55rem;
-  font-weight: 800;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: var(--mint);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--mint) 45%, transparent);
-  margin-bottom: 2px;
-}
-.topbar h1 {
-  font-family: 'Fraunces', Georgia, serif;
-  font-weight: 700;
-  font-size: 1.18rem;
-  margin: 0;
-  letter-spacing: -0.01em;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: linear-gradient(180deg, #ffe9a8 0%, #ffc233 48%, #d99a2b 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  color: transparent;
-  white-space: nowrap;
-}
-.topbar h1::before {
-  content: '⋮';
-  font-size: 1rem;
-  color: var(--amber);
-  opacity: 0.9;
-  text-shadow: 0 0 10px rgba(227, 168, 87, 0.6);
-  -webkit-text-fill-color: var(--amber);
-  transform: rotate(90deg);
+/* Logo real (public/brand/logo.svg, mismo lockup que la portada) en vez del
+   nombre escrito a mano -pedido explicito del usuario. Alto fijo pequeno
+   para que quepa en la barra compacta junto al HUD/nav/botonera; ancho auto
+   para respetar la proporcion del SVG (viewBox 460x260). */
+.brand-logo-img {
+  display: block;
+  height: 34px;
+  width: auto;
 }
 .brand-sub {
   margin-top: 3px;
@@ -248,6 +408,23 @@ body {
 
 /* Botonera dentro de la barra: botones algo mas apretados que fuera. */
 .topbar-actions { flex: none; margin-left: auto; }
+.music-toggle {
+  flex: none;
+  width: 34px;
+  height: 30px;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid color-mix(in srgb, var(--muted) 45%, transparent);
+  border-radius: 8px;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.music-toggle:hover { border-color: var(--mint); transform: translateY(-1px); }
+.music-toggle[aria-pressed="false"] { border-color: color-mix(in srgb, var(--mint) 60%, transparent); }
 .topbar .controls { gap: 8px; }
 .topbar .controls button { padding: 6px 12px; font-size: 0.78rem; }
 
@@ -2136,6 +2313,18 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
   color: var(--muted);
 }
 .help-block b { color: var(--ink); font-weight: 700; }
+.help-block.help-credits {
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 10px;
+  margin-top: 4px;
+  opacity: 0.85;
+}
+.help-credits-line code {
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1px 5px;
+  border-radius: 5px;
+}
 
 /* ---------------------------------------------------------------------------
    HUB ("Base", sesion 2026-09-12): equipo principal en el centro, accesos a
@@ -2206,6 +2395,232 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
   .hub3 { grid-template-columns: 1fr; }
   .hub3-rail { flex-direction: row; flex-wrap: wrap; }
   .hub3-card { flex: 1 1 220px; }
+}
+
+/* Acento de color por accion del hub (sesion 2026-09-14, "retoque del hub"
+   junto a la portada nueva): cada tarjeta de NAV lleva su propio color via
+   --card-accent (mismo patron que ya usan LordCard/UnitCard), en vez del
+   panel plano uniforme de antes -mas facil de escanear de un vistazo y mas
+   "vibra Axie" (cada accion es su propio color, como las clases del roster). */
+.hub3-card { --card-accent: var(--line); }
+.hub3-card { border-left: 4px solid var(--card-accent); }
+.hub3-card:hover { border-color: color-mix(in srgb, var(--card-accent) 70%, var(--mint)); }
+/* Iconos de trazo fino (retoque tras feedback: nada de emoji de color ni de
+   circulos con relleno translucido -el icono es una linea del color de la
+   propia tarjeta sobre el panel solido de siempre). */
+.hub3-card-icon {
+  background: var(--panel);
+  border: 1px solid var(--card-accent);
+  color: var(--card-accent);
+}
+
+/* ---------------------------------------------------------------------------
+   Portada (sesion 2026-09-14, "que tenga vibras axie y que tenga una
+   portada"; retocada la MISMA sesion tras feedback directo del usuario:
+   "quitemos las cards redondas con colores transparentes tipicas de diseño de
+   claude" -fuera glassmorphism (fondos rgba(255,255,255,.5-ish), glow
+   difuminado, bordes translucidos): todo aqui es plano y opaco, con contorno
+   solido en vez de sombra suave, en linea con las capturas oficiales de Axie
+   que dejo el usuario en /titulo (letras con relieve solido, no cristal). Los
+   emojis de color tambien fuera -ver LineIcons.jsx, trazo fino que hereda el
+   acento via `color`.
+
+   SEGUNDA PASADA (mismo dia): tratamiento de logotipo real a partir de las
+   capturas de /titulo -letra burbuja con relleno a cuadros (checkerboard via
+   `repeating-conic-gradient` recortado con `background-clip:text`, no una
+   imagen), contorno solido grueso (-webkit-text-stroke) + relieve escalonado
+   (text-shadow opaco, sin blur), zarcillos pastel sueltos alrededor
+   (VineIcon, SVG de trazo fino, estaticos -nada de loop decorativo) y una
+   cinta con las puntas recortadas (`clip-path`, no una pildora redondeada)
+   para el descriptor, igual que el "CLASSIC" del ejemplo. De paso, la
+   auditoria de tells encontro DOS versiones del mismo problema ("eyebrow en
+   versalitas sobre el titulo"): `.cover-kicker` (credito del evento, en
+   pildora+versalitas+letter-spacing encima del titulo) y `.cover-title-axie`
+   (la palabra "Axie" suelta, mismo patron, encima del titulo). Las dos se
+   quitaron: el credito del evento paso a nota al pie en frase normal (sin
+   pildora ni versalitas, `.cover-credit`), y "Axie" como palabra suelta del
+   logotipo desaparecio. Los dos retratos circulares (Lord y escuadra) pasan
+   de sombra difusa (rgba+blur, el "tell" de la tarjeta-cristal generica) a
+   sombra escalonada solida, igual que los botones -un unico lenguaje de
+   sombra en toda la pantalla.
+
+   TERCERA PASADA (mismo dia): el logotipo entero (texto+zarcillos+cinta) se
+   saco de aqui -ahora es `public/brand/logo.svg`, un archivo real e
+   independiente ("que se pueda meter en cualquier parte", pedido explicito),
+   cargado como `<img class="cover-logo-img">`. Todo el bloque CSS que
+   dibujaba el logotipo con texto+stroke+background-clip (`.cover-vine*`,
+   `.cover-title*`) se elimino: ya no hay texto real detras, el SVG lleva sus
+   propias formas. Solo queda `.cover-logo`/`.cover-logo-img` para el hueco
+   que ocupa en el layout de dos columnas.
+   Sigue sin tocar ninguna variable global (--bg, --panel...): todo vive
+   dentro de .cover-screen.
+--------------------------------------------------------------------------- */
+.cover-screen {
+  --cover-sky-top: #bff0ff;
+  --cover-sky-bottom: #eafff0;
+  --cover-ink: #123a2b;
+  --cover-muted: #3d6a58;
+  --cover-card: #fdfdf6;
+  --cover-check-a: #fff8e4;
+  --cover-check-b: #bfead2;
+  position: relative;
+  overflow: hidden;
+  min-height: calc(100dvh - 90px);
+  border-radius: 22px;
+  padding: 34px clamp(18px, 4vw, 56px) 26px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.8fr);
+  align-items: center;
+  gap: 28px;
+  background: linear-gradient(175deg, var(--cover-sky-top) 0%, var(--cover-sky-bottom) 78%);
+  color: var(--cover-ink);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
+}
+
+.cover-hero { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+
+/* Logotipo: ahora es el archivo real `public/brand/logo.svg` (lockup "AXIE
+   INFINITY" + cinta "TACTIC DICE", zarcillos y todo incluidos en el propio
+   SVG), cargado como imagen -el `<h1>` solo aporta el landmark semantico de
+   titulo de pagina, el nombre accesible vive en el `alt` de la imagen. */
+.cover-logo { margin: 0; line-height: 0; }
+.cover-logo-img {
+  display: block;
+  width: min(100%, 640px);
+  height: auto;
+}
+.cover-pitch {
+  margin: 0;
+  max-width: 56ch;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--cover-muted);
+  font-weight: 600;
+}
+.cover-classes { display: flex; flex-wrap: wrap; gap: 8px; }
+.cover-class-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: var(--chip-color);
+  background: var(--cover-card);
+  border: 2px solid var(--chip-color);
+}
+.cover-class-chip .class-emblem { width: 13px; height: 13px; }
+
+.cover-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 4px; }
+.cover-cta,
+.cover-cta-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Baloo 2', 'Fraunces', sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+  padding: 13px 26px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.cover-cta {
+  border: none;
+  color: #123a08;
+  background: linear-gradient(180deg, #a8ec7c, #5cc23a);
+  box-shadow: 0 5px 0 #3a8f22, 0 10px 20px rgba(58, 143, 34, 0.35);
+}
+.cover-cta:hover { transform: translateY(-1px); }
+.cover-cta:active { transform: translateY(4px); box-shadow: 0 1px 0 #3a8f22, 0 3px 8px rgba(58, 143, 34, 0.3); }
+.cover-cta-ghost {
+  border: 2px solid var(--cover-ink);
+  background: var(--cover-card);
+  color: var(--cover-ink);
+  box-shadow: 0 4px 0 var(--cover-ink);
+}
+.cover-cta-ghost:hover { transform: translateY(-1px); }
+.cover-cta-ghost:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--cover-ink); }
+
+.cover-steps { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-width: 60ch; }
+.cover-step { display: flex; gap: 10px; align-items: flex-start; }
+.cover-step-icon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--cover-card);
+  border: 1.5px solid var(--cover-ink);
+  color: var(--cover-ink);
+}
+.cover-step b { font-size: 0.86rem; color: var(--cover-ink); }
+.cover-step p { margin: 1px 0 0; font-size: 0.78rem; color: var(--cover-muted); line-height: 1.4; }
+
+/* Nota de credito del evento (antes era `.cover-kicker`, una pildora en
+   versalitas sobre el titulo -el "eyebrow generico" que senalo la auditoria).
+   Ahora es una frase normal, sin pildora ni letter-spacing, al pie del bloque
+   de texto: informacion de contexto, no una etiqueta decorativa. */
+.cover-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--cover-muted);
+}
+.cover-credit svg { flex: none; color: var(--cover-muted); }
+
+.cover-showcase { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+.cover-lord-frame {
+  position: relative;
+  width: 236px;
+  height: 236px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffedb0;
+  border: 4px solid var(--cover-ink);
+  box-shadow: 0 8px 0 var(--cover-ink);
+}
+.cover-lord-tag {
+  position: absolute;
+  bottom: -10px;
+  font-family: 'Baloo 2', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #123a08;
+  background: linear-gradient(180deg, #ffe9a8, #ffc233);
+  padding: 4px 14px;
+  border-radius: 999px;
+  box-shadow: 0 3px 0 #b9822a;
+}
+.cover-squad { display: flex; gap: 14px; }
+.cover-squad-portrait {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cover-card);
+  border: 3px solid var(--chip-color);
+  box-shadow: 0 5px 0 var(--chip-color);
+}
+@media (max-width: 860px) {
+  .cover-screen { grid-template-columns: 1fr; padding: 26px 18px 22px; }
+  .cover-hero { align-items: center; text-align: center; }
+  .cover-logo-img { width: min(100%, 420px); }
+  .cover-classes, .cover-actions { justify-content: center; }
+  .cover-step { text-align: left; }
+  .cover-credit { justify-content: center; }
+  .cover-showcase { order: -1; }
 }
 
 /* ---------------------------------------------------------------------------

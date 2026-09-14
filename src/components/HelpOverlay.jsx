@@ -53,6 +53,15 @@ export default function HelpOverlay({ onClose }) {
             centrar la camara.
           </p>
         </section>
+
+        <section className="help-block help-credits">
+          <h3>Musica</h3>
+          <p className="help-credits-line">
+            Pistas de <b>Kevin MacLeod</b> (incompetech.com) con licencia <b>CC-BY 4.0</b> · Efectos
+            del kit de <b>Kenney</b> (CC0). El silencio y la musica se alternan con el boton 🔊 del
+            topbar. Lista completa y creditos en <code>public/music/README.md</code>.
+          </p>
+        </section>
       </div>
     </div>
   )

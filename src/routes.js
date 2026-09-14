@@ -1,12 +1,16 @@
 // routes.js — mini-routing por hash (sin dependencias, sin router: el repo
-// trabaja React+Vite sin libreria de estado/router). `#/partida` (o sin hash)
-// muestra la partida en vivo; las rutas meta muestran las pantallas del hub.
-// DEFAULT_ROUTE='base': la app aterriza en el HUB (equipo en el centro,
-// mundo a los lados), no en la partida -la partida es "la que eliges".
+// trabaja React+Vite sin libreria de estado/router). `#/partida` muestra la
+// partida en vivo; las rutas meta muestran las pantallas del hub.
+// DEFAULT_ROUTE='portada' (sesion 2026-09-14, pedido "que tenga una
+// portada"): la app aterriza en una pantalla de titulo con el pitch y el
+// Lord/roster en 3D -desde ahi se entra al HUB ('base', equipo en el centro,
+// mundo a los lados). La portada no tiene su propia entrada en MetaNav (no es
+// una pestaña del juego, es la puerta de entrada); se vuelve a ella con el
+// logo de la barra superior.
 import { useEffect, useState } from 'react'
 
-export const META_ROUTES = ['base', 'recursos', 'investigacion', 'evolucion', 'pve', 'pvp']
-export const DEFAULT_ROUTE = 'base'
+export const META_ROUTES = ['portada', 'base', 'recursos', 'investigacion', 'evolucion', 'pve', 'pvp']
+export const DEFAULT_ROUTE = 'portada'
 
 export function getHashRoute() {
   const h = window.location.hash.replace(/^#\/?/, '').trim().toLowerCase()

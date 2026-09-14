@@ -35,12 +35,14 @@ export function MetaUnitRow({ u }) {
 export default function MetaScreen({ icon, title, blurb, children }) {
   return (
     <section className="meta-screen">
-      <div className="meta-screen-head">
-        <span className="meta-screen-icon" aria-hidden="true">
+      <div className="meta-head">
+        <span className="meta-icon" aria-hidden="true">
           {icon}
         </span>
-        <h2>{title}</h2>
-        <p>{blurb}</p>
+        <div>
+          <h2 className="meta-title">{title}</h2>
+          <p className="meta-blurb">{blurb}</p>
+        </div>
       </div>
       {children}
     </section>
