@@ -38,6 +38,12 @@
   gap: 18px;
   background: radial-gradient(circle at 50% 30%, #1c332e, #0d1a18 70%);
 }
+/* No se muestra ningun frame incompleto del combate. Board3D puede estar
+   montando terreno, camara y Axies por debajo, pero todo el contenido queda
+   invisible hasta que onReady confirma que no quedan unidades pendientes. */
+.app-combat-loading > *:not(.loading-curtain) {
+  visibility: hidden;
+}
 .loading-die {
   display: grid;
   grid-template-columns: repeat(3, 44px);
@@ -636,7 +642,92 @@ body {
 }
 .cell3d.summon-zone { box-shadow: inset 0 0 0 3px rgba(127, 231, 196, 0.75); }
 .cell3d.in-range { background-color: rgba(227, 168, 87, 0.22); box-shadow: inset 0 0 0 3px rgba(227, 168, 87, 0.7); }
+.cell3d.projected-range { background-color: rgba(255, 120, 90, 0.16); box-shadow: inset 0 0 0 2px rgba(255, 150, 110, 0.72); }
+.cell3d.projected-cell { outline: 2px dashed rgba(255, 232, 160, 0.9); outline-offset: -5px; }
+.cell3d.projected-path { background-image: linear-gradient(135deg, transparent 45%, rgba(255, 232, 160, 0.42) 46%, rgba(255, 232, 160, 0.42) 54%, transparent 55%); }
+.projected-step {
+  position: absolute;
+  right: 7px;
+  top: 7px;
+  z-index: 4;
+  width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(48, 24, 20, 0.9);
+  border: 1px solid rgba(255, 232, 160, 0.85);
+  color: #ffe8a0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  pointer-events: none;
+}
+.app-village { max-width: none; }
+.app-village .lunacia-backdrop { display: none; }
+.app-village > .meta-view { padding: 0; overflow: hidden; }
+.village-scene-screen {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  color: var(--text);
+  overflow: hidden;
+}
+.village-scene-head { position: absolute; z-index: 8; inset: 16px 18px auto; display: flex; justify-content: space-between; align-items: start; gap: 16px; pointer-events: none; }
+.village-scene-head h1 { margin: 3px 0; color: #d9f2b0; }
+.village-scene-head p { margin: 0; color: var(--muted); font-size: 0.78rem; }
+.village-resource-summary { display: flex; gap: 8px; flex-wrap: wrap; justify-content: end; pointer-events: auto; }
+.village-resource-summary span { padding: 7px 10px; border: 1px solid rgba(170, 220, 120, 0.35); border-radius: 8px; background: rgba(22, 42, 25, 0.72); color: #cbe6a5; font-size: 0.72rem; }
+.village-resource-summary b { color: #fff0ae; margin-left: 4px; }
+.village-hud-nav { display: flex; gap: 5px; align-items: center; margin-left: auto; pointer-events: auto; }
+.village-hud-nav a { padding: 6px 9px; border: 1px solid rgba(170, 220, 120, 0.28); border-radius: 7px; background: rgba(20, 42, 25, 0.82); color: #cbe6a5; font-size: 0.68rem; font-weight: 700; text-decoration: none; }
+.village-hud-nav a:hover, .village-hud-nav a.active { border-color: #ffe08a; color: #fff0ae; background: rgba(84, 67, 30, 0.9); }
+.village-board-host { position: relative; flex: 1; min-height: 0; width: 100%; overflow: hidden; border: 0; border-radius: 0; background: #203b25; }
+.village-overlay { position: absolute; inset: 0; z-index: 12; transform-origin: 0 0; pointer-events: none; }
+.village-cell { position: absolute; z-index: 1; display: flex; align-items: center; justify-content: center; pointer-events: auto; cursor: pointer; touch-action: none; }
+.village-cell.selected-axie { outline: 2px solid rgba(255, 226, 110, 0.95); outline-offset: -4px; background: rgba(255, 220, 90, 0.16); }
+.village-selection { position: absolute; top: 3px; padding: 2px 5px; border-radius: 4px; background: rgba(25, 35, 25, 0.82); color: #ffe66d; font-size: 9px; font-weight: 700; white-space: nowrap; pointer-events: none; }
+.village-stop-floating { position: absolute; left: 50%; top: -25px; z-index: 6; transform: translateX(-50%); padding: 3px 7px; border: 1px solid rgba(255, 150, 110, 0.9); border-radius: 5px; background: rgba(83, 30, 24, 0.94); color: #ffd0be; font-size: 9px; font-weight: 800; white-space: nowrap; cursor: pointer; pointer-events: auto; }
+.village-stop-floating:hover { border-color: #fff0ae; color: #fff0ae; }
+.village-inspector { position: absolute; z-index: 9; left: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 3px; min-width: 170px; padding: 10px 12px; border: 1px solid rgba(170, 220, 120, 0.36); border-radius: 9px; background: rgba(20, 42, 25, 0.88); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); color: #cbe6a5; font-size: 0.7rem; pointer-events: none; }
+.village-inspector strong { color: #fff0ae; font-size: 0.82rem; }
+.village-work-panel { position: absolute; z-index: 9; right: 18px; bottom: 18px; display: flex; flex-direction: column; gap: 4px; min-width: 190px; padding: 10px 12px; border: 1px solid rgba(170, 220, 120, 0.36); border-radius: 9px; background: rgba(20, 42, 25, 0.88); box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); color: #cbe6a5; font-size: 0.68rem; }
+.village-work-row { display: flex; justify-content: space-between; gap: 12px; padding: 4px 5px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #cbe6a5; font-size: 0.68rem; cursor: pointer; text-align: left; }
+.village-work-row b { color: #fff0ae; font-size: 0.62rem; }
+.village-work-row:hover, .village-work-row.active { border-color: rgba(255, 226, 110, 0.58); background: rgba(84, 67, 30, 0.45); }
+.village-cell.road::after { content: ''; position: absolute; inset: 8px; border-radius: 5px; background: rgba(190, 150, 88, 0.16); }
+.village-building, .village-resource { position: relative; z-index: 2; padding: 3px 5px; border-radius: 5px; font-size: 0.55rem; font-weight: 800; white-space: nowrap; text-shadow: 0 1px 2px #102014; }
+.village-building { background: rgba(95, 58, 33, 0.82); border: 1px solid rgba(255, 220, 130, 0.8); color: #ffe4a2; }
+.building-town-hall { box-shadow: 0 0 12px rgba(255, 214, 105, 0.6); }
+.village-resource { background: rgba(22, 62, 38, 0.86); border: 1px solid rgba(180, 238, 130, 0.7); color: #d8f5ad; }
+.resource-stone { color: #d0d5da; border-color: rgba(210, 220, 230, 0.7); }
+.resource-food { color: #ffe69a; border-color: rgba(255, 220, 110, 0.7); }
+.village-resource.selected-resource { box-shadow: 0 0 12px rgba(255, 226, 110, 0.9); outline: 2px solid rgba(255, 226, 110, 0.72); }
+.village-resource.depleted-resource { opacity: 0.58; filter: grayscale(0.75); border-style: dashed; }
 .cell3d.selected::after { border-width: 3px; border-color: var(--amber); box-shadow: 0 0 14px rgba(227, 168, 87, 0.55); }
+.movement-projection-chip {
+  position: absolute;
+  left: 50%;
+  top: -18px;
+  transform: translateX(-50%);
+  z-index: 5;
+  width: max-content;
+  max-width: 210px;
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: rgba(35, 20, 18, 0.92);
+  border: 1px solid rgba(255, 150, 110, 0.75);
+  color: #ffd1bd;
+  font-size: 0.58rem;
+  line-height: 1.2;
+  pointer-events: none;
+  white-space: normal;
+  text-align: center;
+}
 /* Floats de combate (feedback visual): numeros de dano/escudo/cura y el nombre
    de la habilidad que se esta usando, flotando sobre su casilla para fundirse
    con la escena 3D. Viven dentro del overlay alineado por la matriz CSS del
@@ -2102,6 +2193,35 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 }
 .meta-title { margin: 0 0 4px; font-size: 1.3rem; color: var(--ink); }
 .meta-blurb { margin: 0; color: var(--muted); font-size: 0.86rem; line-height: 1.5; max-width: 70ch; }
+.game-header { display: flex; gap: 14px; align-items: center; }
+.game-header-logo {
+  flex: none;
+  width: 152px;
+  max-height: 46px;
+  object-fit: contain;
+  object-position: left center;
+  filter: drop-shadow(0 2px 0 rgba(7, 14, 10, .45));
+}
+.stat-ico svg { vertical-align: -2px; color: currentColor; }
+.log-ico { display: inline-flex; align-items: center; color: var(--amber); }
+.log-ico svg { display: block; }
+.game-header-copy { min-width: 0; }
+.game-header-copy .meta-title { color: #edcf82; }
+.combat-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow: hidden;
+}
+.combat-shell > .game-header {
+  flex: none;
+  width: min(1100px, 100%);
+  margin: 0 auto 2px;
+  padding: 5px 8px;
+}
+.combat-shell > .layout { flex: 1; min-height: 0; }
 
 .meta-grid {
   display: grid;
@@ -2848,3 +2968,519 @@ button.small { font-size: 0.7rem; padding: 3px 9px; margin-top: 3px; }
 }
 .arena-card-name { font-family: 'Fraunces', Georgia, serif; font-size: 1.05rem; font-weight: 700; color: var(--ink); }
 .arena-card-rival { font-size: 0.8rem; font-weight: 800; color: var(--rose); letter-spacing: 0.02em; }
+
+/* Axie-inspired frontend skin: bright game UI, chunky display type and
+   collectible-card edges. The 3D board keeps its own lighting; these rules
+   restyle only the non-canvas shell, menus and cards. */
+:root {
+  --bg: #102745;
+  --panel: #17395d;
+  --board: #20577c;
+  --line: #3e83a9;
+  --ink: #f5fbff;
+  --muted: #a9c9db;
+  --mint: #69e6d0;
+  --amber: #ffd45c;
+  --rose: #ff7181;
+  --ally: #66b6ff;
+  --enemy: #ff7b83;
+}
+body { background: linear-gradient(160deg, #09203d 0%, #123e5c 52%, #185f69 100%); }
+body, button, input, select { font-family: 'Manrope', system-ui, sans-serif; }
+h1, h2, h3, .brand-sub, .meta-tab, .card-title, .cover-cta, .cover-cta-ghost,
+.arena-card-name, .meta-title, .meta-panel-title { font-family: 'Baloo 2', 'Trebuchet MS', sans-serif; }
+.app { max-width: 1720px; }
+.topbar { padding: 8px 18px 10px; background: rgba(8, 28, 52, 0.48); border-bottom: 2px solid rgba(105, 230, 208, 0.2); }
+.brand-logo-img { height: 48px; max-width: 150px; object-fit: contain; object-position: left center; }
+.brand-sub { color: var(--amber); font-weight: 800; letter-spacing: 0.08em; text-shadow: 2px 2px 0 #12304b; }
+.meta-tab { border: 2px solid rgba(105, 230, 208, 0.3); border-radius: 10px; background: rgba(255, 255, 255, 0.06); box-shadow: 0 3px 0 rgba(4, 20, 38, 0.4); }
+.meta-tab.active { color: #17314d; background: linear-gradient(180deg, #ffe98a, #ffb84d); border-color: #fff0a4; box-shadow: 0 3px 0 #9b6327; }
+.card, .meta-panel, .hub3-card, .arena-card { border: 2px solid var(--line); border-left-width: 5px; border-radius: 14px; background: linear-gradient(150deg, rgba(43, 101, 133, 0.95), rgba(15, 43, 76, 0.98)); box-shadow: 0 5px 0 rgba(5, 23, 44, 0.65), 0 12px 24px rgba(2, 13, 28, 0.28); }
+.card-title strong, .meta-title, .meta-panel-title, .arena-card-name { color: #fff1a6; text-shadow: 1px 2px 0 #153653; }
+.card.selected, .card:hover, .meta-panel:hover, .hub3-card:hover { border-color: var(--amber); }
+.cover-screen { --cover-ink: #12304d; --cover-muted: #315f76; --cover-card: #fff9df; background: radial-gradient(circle at 82% 20%, rgba(255, 232, 122, 0.78), transparent 22%), linear-gradient(145deg, #59dcca 0%, #78c7ee 45%, #d8f2ba 100%); border: 3px solid #f8fbdb; box-shadow: 0 8px 0 rgba(5, 37, 67, 0.38), 0 22px 60px rgba(3, 20, 40, 0.42); }
+.cover-logo-img { width: min(100%, 680px); filter: drop-shadow(0 8px 0 rgba(9, 47, 80, 0.3)); }
+.cover-class-chip { border-width: 2px; border-radius: 12px; box-shadow: 0 3px 0 rgba(18, 48, 77, 0.28); }
+.cover-cta, .cover-cta-ghost { border-radius: 12px; box-shadow: 0 5px 0 #1b5572, 0 10px 18px rgba(19, 66, 97, 0.28); }
+.cover-cta { color: #12304d; background: linear-gradient(180deg, #fff087, #ffbf47); }
+.cover-cta-ghost { border: 2px solid #12304d; background: #fff9df; color: #12304d; }
+.meta-action, button { border-radius: 10px; }
+.meta-nav { align-items: center; gap: 6px; margin-top: 0; padding: 5px; border: 2px solid rgba(105, 230, 208, 0.18); border-radius: 14px; background: rgba(7, 25, 48, 0.7); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 4px 0 rgba(3, 16, 31, 0.45); }
+.meta-tab { min-height: 34px; padding: 5px 9px; gap: 6px; border: 1px solid transparent; border-radius: 9px; background: transparent; box-shadow: none; color: #b9d5e2; }
+.meta-tab-icon { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 7px; background: rgba(105, 230, 208, 0.14); color: var(--mint); font-family: 'Baloo 2', sans-serif; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.02em; }
+.meta-tab-label { font-size: 0.72rem; font-weight: 800; }
+.meta-tab:hover { color: #fff; border-color: rgba(105, 230, 208, 0.46); background: rgba(105, 230, 208, 0.1); }
+.meta-tab.active { color: #17314d; border-color: #fff0a4; background: linear-gradient(180deg, #fff09a, #ffb84d); box-shadow: 0 3px 0 #976027; }
+.meta-tab.active .meta-tab-icon { background: rgba(23, 49, 77, 0.16); color: #17314d; }
+.meta-nav.compressed .meta-tab-label { display: none; }
+.meta-nav.compressed .meta-tab { padding: 5px 6px; }
+.card { overflow: hidden; }
+.card::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; background: linear-gradient(90deg, var(--card-accent, var(--mint)), transparent 82%); opacity: 0.85; pointer-events: none; }
+.card-head { padding-top: 2px; }
+.card-id-line strong, .card-title strong { font-family: 'Baloo 2', sans-serif; letter-spacing: 0.02em; }
+.card-id-line strong { color: #fff2a6; }
+.face-card { border-radius: 9px; border-width: 1px; background: rgba(6, 25, 47, 0.46); }
+.face-card.active { border-color: var(--amber); background: rgba(255, 212, 92, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 212, 92, 0.2); }
+
+/* Shared village/combat strategy skin: framed, squared and material-led. */
+:root {
+  --bg: #17251f;
+  --panel: #24352b;
+  --board: #3b674d;
+  --line: #927243;
+  --ink: #f2e7c8;
+  --muted: #b8aa87;
+  --mint: #a9d66e;
+  --amber: #dfb65b;
+  --rose: #c76d57;
+  --ally: #7ebbd2;
+  --enemy: #d87565;
+}
+
+body { background: radial-gradient(circle at 50% -20%, #3c5a42 0, #1d3027 42%, #101b18 100%); }
+body, button, input, select { font-family: 'Trebuchet MS', 'Segoe UI', sans-serif; }
+h1, h2, h3, .brand-sub, .meta-tab, .card-title, .cover-cta, .cover-cta-ghost,
+.arena-card-name, .meta-title, .meta-panel-title { font-family: Georgia, 'Times New Roman', serif; }
+
+.topbar {
+  background: linear-gradient(180deg, rgba(28, 42, 32, .98), rgba(18, 28, 23, .98));
+  border-bottom: 3px solid #8c6c3d;
+  box-shadow: 0 3px 0 #0b1210, inset 0 1px rgba(255, 236, 170, .12);
+}
+.brand-logo-img { height: 46px; max-width: 158px; }
+.brand-sub { color: #d9b45c; text-shadow: 1px 1px 0 #0b1711; letter-spacing: .12em; }
+
+.meta-nav {
+  gap: 3px;
+  padding: 4px;
+  border: 2px solid #85653c;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #304333, #17251f);
+  box-shadow: inset 0 1px rgba(245, 224, 163, .13), 0 3px 0 #0b1210;
+}
+.meta-tab, .meta-tab.active {
+  min-height: 35px;
+  border-radius: 2px;
+  box-shadow: none;
+}
+.meta-tab { color: #c4b88e; border: 1px solid transparent; background: transparent; }
+.meta-tab:hover { color: #f5e8bf; border-color: #a98950; background: #3b5039; }
+.meta-tab.active {
+  color: #17251f;
+  border-color: #e0ba61;
+  background: linear-gradient(180deg, #e8c978, #a97a35);
+  box-shadow: inset 0 1px rgba(255, 245, 195, .55), 0 2px 0 #614522;
+}
+.meta-tab-icon { border-radius: 2px; background: #17251f; color: #b8d779; }
+.meta-tab.active .meta-tab-icon { background: #6b552f; color: #f7e7b1; }
+
+.card, .meta-panel, .hub3-card, .arena-card {
+  border: 2px solid #8e6d3d;
+  border-left-width: 4px;
+  border-radius: 3px;
+  background: linear-gradient(145deg, #2c4434, #1a2922);
+  box-shadow: inset 0 1px rgba(244, 219, 154, .1), 0 4px 0 #0c1511, 0 9px 18px rgba(0, 0, 0, .22);
+}
+.card::before { height: 4px; background: linear-gradient(90deg, #bd934c, transparent 78%); opacity: .9; }
+.card-title strong, .meta-title, .meta-panel-title, .arena-card-name { color: #edcf82; text-shadow: 1px 1px 0 #152119; }
+.card.selected, .card:hover, .meta-panel:hover, .hub3-card:hover { border-color: #d2ab5a; }
+.face-card { border-radius: 2px; background: rgba(12, 24, 18, .55); }
+.face-card.active { border-color: #d4ad58; background: rgba(190, 143, 57, .2); box-shadow: inset 0 0 0 1px rgba(238, 198, 105, .25); }
+.meta-action, button { border-radius: 3px; }
+
+.cover-screen {
+  --cover-ink: #1a2a20;
+  --cover-muted: #526747;
+  --cover-card: #e9dcae;
+  border: 3px solid #927243;
+  border-radius: 3px;
+  background: radial-gradient(circle at 75% 18%, rgba(219, 191, 102, .36), transparent 22%), linear-gradient(145deg, #516f4c, #233d30 60%, #16241e);
+  box-shadow: inset 0 0 0 2px rgba(242, 213, 137, .12), 0 8px 0 #0b1410, 0 20px 48px rgba(0, 0, 0, .36);
+}
+.cover-logo-img { filter: drop-shadow(0 5px 0 rgba(8, 18, 12, .5)); }
+.cover-class-chip, .cover-cta, .cover-cta-ghost { border-radius: 3px; }
+.cover-class-chip { box-shadow: 0 2px 0 rgba(16, 25, 18, .4); }
+.cover-cta, .cover-cta-ghost { box-shadow: 0 3px 0 #3c2b18, 0 7px 12px rgba(0, 0, 0, .2); }
+.cover-cta { color: #1e2b1e; background: linear-gradient(180deg, #e9cf79, #a97934); }
+.cover-cta-ghost { border: 2px solid #b89655; background: #263c2d; color: #f0dfad; }
+
+.village-inspector, .village-work-panel, .village-resource-summary span,
+.village-hud-nav { border-radius: 3px; }
+.village-inspector, .village-work-panel { border-color: #8e6d3d; background: linear-gradient(145deg, #2d4635, #192a21); box-shadow: inset 0 1px rgba(242, 214, 151, .1), 0 4px 0 #0c1511; }
+.village-hud-nav { border: 2px solid #85653c; background: #1c2c23; box-shadow: 0 3px 0 #0b1210; }
+
+/* Portada: fondo opaco propio y placa de lectura para que el texto no se
+   mezcle con el escenario ambiental que queda detras de la aplicacion. */
+.cover-screen {
+  isolation: isolate;
+  --cover-ink: #f4e5bb;
+  --cover-muted: #d2c39a;
+  --cover-card: #26382b;
+  background:
+    linear-gradient(90deg, rgba(12, 24, 18, .3) 1px, transparent 1px),
+    linear-gradient(0deg, rgba(12, 24, 18, .22) 1px, transparent 1px),
+    radial-gradient(circle at 78% 22%, rgba(202, 163, 75, .24), transparent 23%),
+    linear-gradient(135deg, #3f6547 0%, #263f31 48%, #14231c 100%);
+  background-size: 44px 44px, 44px 44px, auto, auto;
+}
+.cover-screen::before {
+  content: '';
+  position: absolute;
+  inset: 12px;
+  z-index: -1;
+  border: 1px solid rgba(227, 190, 104, .25);
+  background: linear-gradient(90deg, rgba(11, 22, 17, .28), transparent 62%);
+  pointer-events: none;
+}
+.cover-hero {
+  padding: 24px 26px;
+  border: 2px solid #8f7041;
+  border-radius: 3px;
+  background: linear-gradient(145deg, rgba(21, 38, 28, .96), rgba(20, 31, 24, .88));
+  box-shadow: inset 0 1px rgba(244, 218, 151, .12), 0 5px 0 rgba(8, 15, 11, .5);
+}
+.cover-pitch, .cover-step p, .cover-credit { color: var(--cover-muted); }
+.cover-step b { color: var(--cover-ink); }
+.cover-step-icon { border-radius: 3px; background: #344c36; border-color: #a1814a; color: #e5c773; }
+.cover-class-chip { background: #1b2d22; color: #f4e5bb; }
+.cover-showcase { filter: drop-shadow(0 7px 0 rgba(7, 14, 10, .35)); }
+
+/* La portada ocupa exactamente el hueco del viewport que deja la barra superior. */
+.cover-screen {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  padding: clamp(14px, 2.4vw, 30px) clamp(16px, 3.2vw, 46px);
+}
+.cover-hero {
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  text-align: center;
+}
+.cover-logo-img { max-height: 220px; object-fit: contain; }
+.cover-pitch { max-width: 50ch; }
+.cover-classes, .cover-actions { justify-content: center; }
+.cover-steps { width: min(100%, 560px); }
+
+/* Aldea a pantalla completa: el tablero es el lienzo y el HUD flota encima. */
+.app-village {
+  width: 100vw;
+  height: 100dvh;
+  padding: 0;
+}
+.app.app-village { max-width: none; }
+.app-village > .meta-view {
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+.village-scene-head {
+  inset: 14px 16px auto;
+  align-items: center;
+  padding: 10px 14px;
+  border: 2px solid #8f7041;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(27, 45, 32, .96), rgba(17, 29, 22, .91));
+  box-shadow: inset 0 1px rgba(244, 218, 151, .13), 0 4px 0 rgba(8, 15, 11, .45);
+}
+.village-game-header {
+  position: absolute;
+  z-index: 8;
+  inset: 14px 16px auto;
+  margin: 0;
+  padding: 10px 14px;
+  border: 2px solid #8f7041;
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(27, 45, 32, .96), rgba(17, 29, 22, .91));
+  box-shadow: inset 0 1px rgba(244, 218, 151, .13), 0 4px 0 rgba(8, 15, 11, .45);
+}
+.village-game-header .game-header-logo { width: 152px; }
+.village-game-header .village-resource-summary { margin-left: auto; }
+.village-game-header .village-hud-nav { margin-left: 8px; }
+.village-scene-head { display: none; }
+.app-village > .topbar {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  padding: 6px 14px 8px;
+}
+.topbar-village-resources {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+  padding-left: 8px;
+  border-left: 1px solid #81633b;
+}
+.topbar-village-resources span {
+  padding: 5px 8px;
+  border: 1px solid #81633b;
+  border-radius: 2px;
+  background: #1d3025;
+  color: #c7b991;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: .68rem;
+  white-space: nowrap;
+}
+.topbar-village-resources b { color: #edcf82; margin-left: 3px; }
+.topbar-village-label {
+  margin-left: 5px;
+  padding-left: 10px;
+  border-left: 1px solid #81633b;
+  color: #edcf82;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: .78rem;
+  letter-spacing: .04em;
+}
+
+/* Combate a pantalla completa: el 3D ocupa todo el campo disponible y los
+   rosters se convierten en paneles HUD superpuestos. */
+.app.app-combat {
+  max-width: none;
+  padding: 0;
+}
+.app-combat .lunacia-backdrop { display: none; }
+.app-combat .topbar { padding: 6px 14px 8px; }
+.app-combat .combat-shell { width: 100%; }
+.app-combat .combat-shell > .game-header {
+  width: min(1100px, 100%);
+  max-width: 1100px;
+  margin: 0 auto 16px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.app-combat .energy-gauge {
+  top: 12px;
+  left: calc(clamp(250px, 22vw, 360px) + 28px);
+  right: auto;
+  transform: none;
+  z-index: 30;
+  border-radius: 3px;
+  border-color: #8f7041;
+  background: rgba(20, 32, 24, .96);
+}
+.app-combat .energy-gauge.energy-enemy {
+  left: auto;
+  right: calc(clamp(250px, 22vw, 360px) + 28px);
+  transform: none;
+}
+.app-combat .energy-gauge-title { color: #edcf82; }
+.app-combat .energy-gauge.energy-enemy .energy-gauge-title { color: #d98978; }
+.app-combat .combat-shell > .layout {
+  position: relative;
+  display: block;
+  width: 100%;
+  overflow: hidden;
+}
+.app-combat .combat-shell .board-col {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.app-combat .combat-shell .roster-col {
+  position: absolute;
+  z-index: 20;
+  top: 12px;
+  bottom: 0;
+  width: clamp(250px, 22vw, 360px);
+  padding: 0;
+  overflow-y: auto;
+  pointer-events: none;
+}
+.app-combat .combat-shell .roster-col > * { pointer-events: auto; }
+.app-combat .combat-shell .roster-col:not(.enemy-col) { left: 12px; }
+.app-combat .combat-shell .roster-col.enemy-col { right: 12px; }
+.app-combat .combat-shell .roster-title {
+  border-radius: 3px;
+  border: 2px solid #8f7041;
+  background: rgba(21, 35, 26, .96);
+  box-shadow: 0 3px 0 rgba(8, 15, 11, .55);
+}
+.app-combat .combat-shell .card {
+  border-radius: 3px;
+  border-color: #8f7041;
+  background: linear-gradient(145deg, rgba(45, 68, 52, .97), rgba(21, 34, 27, .98));
+  box-shadow: inset 0 1px rgba(244, 218, 151, .1), 0 4px 0 rgba(8, 15, 11, .55);
+}
+.app-combat .combat-shell .die-unit {
+  margin: 4px 0;
+  padding: 6px;
+  gap: 8px;
+  border: 2px solid #8f7041;
+  border-radius: 3px;
+  background: linear-gradient(145deg, rgba(80, 91, 65, .92), rgba(24, 37, 28, .98));
+  box-shadow: inset 0 1px rgba(244, 218, 151, .18), 0 3px 0 rgba(8, 15, 11, .48);
+}
+.app-combat .combat-shell .die-3d {
+  filter: drop-shadow(0 5px 5px rgba(0, 0, 0, .6));
+}
+.app-combat .combat-shell .mini-die-unit { justify-content: center; }
+.app-combat .combat-shell .lord-die-unit { border-color: #b58b45; }
+.app-combat .combat-shell .unit-detail-panel {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: none;
+  padding: 6px 8px;
+  border-radius: 3px;
+  border-color: #81633b;
+  background: rgba(18, 30, 23, .9);
+}
+.app-combat .combat-shell .unit-detail-panel .face-card {
+  min-height: 20px;
+  padding: 1px 3px;
+}
+.app-combat .combat-shell .card.mini {
+  padding: 3px 6px;
+  cursor: pointer;
+}
+.app-combat .combat-shell .card.mini .die-unit.compact {
+  padding: 5px 3px;
+}
+.app-combat .combat-shell .card.lord-card {
+  padding: 4px 8px;
+}
+.app-combat .combat-shell .card.lord-card .card-head { margin-bottom: 1px; }
+.app-combat .hud-chip.turn { display: none; }
+.app-combat .action-pad { bottom: 72px; }
+.app-combat .canvas-controls {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 40;
+  transform: translateX(-50%);
+  padding: 4px;
+  border: 2px solid #8f7041;
+  border-radius: 3px;
+  background: rgba(20, 32, 24, .96);
+  box-shadow: 0 4px 0 rgba(8, 15, 11, .55), inset 0 1px rgba(244, 218, 151, .12);
+}
+.app-combat .canvas-controls .controls { gap: 6px; }
+.app-combat .canvas-controls button { border-radius: 3px; padding: 7px 12px; }
+.app-combat .canvas-controls .turn-timer { border-radius: 3px; }
+.app-combat .board-turn-status {
+  position: absolute;
+  left: 50%;
+  top: 43px;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 4px 9px;
+  border: 1px solid #8f7041;
+  border-radius: 3px;
+  background: rgba(20, 32, 24, .94);
+  color: #edcf82;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: .68rem;
+  letter-spacing: .04em;
+  pointer-events: none;
+}
+.app-combat .action-pad-line,
+.app-combat .action-pad-actions {
+  border-radius: 3px;
+  border-color: #8f7041;
+  background: rgba(20, 32, 24, .94);
+}
+.app-combat .attack-mode-btn,
+.app-combat .boost-btn,
+.app-combat .energy-chip { border-radius: 3px; }
+
+@media (max-width: 1050px) {
+  .app-combat .combat-shell .roster-col { width: 230px; }
+  .app-combat .energy-gauge { left: 258px; }
+  .app-combat .energy-gauge.energy-enemy { left: auto; right: 258px; }
+}
+.village-scene-head h1 {
+  margin: 1px 0 0;
+  color: #f3d47e;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.25rem, 2vw, 1.75rem);
+  letter-spacing: .02em;
+  text-shadow: 1px 2px 0 #101b14;
+}
+.village-brand-logo {
+  display: block;
+  width: min(190px, 24vw);
+  height: auto;
+  max-height: 42px;
+  object-fit: contain;
+  object-position: left center;
+  margin-bottom: 3px;
+  filter: drop-shadow(0 2px 0 rgba(7, 14, 10, .45));
+}
+.village-meta-heading {
+  position: relative;
+  min-width: 300px;
+  padding-left: 42px;
+}
+.village-meta-heading > .meta-icon {
+  position: absolute;
+  left: 0;
+  top: 22px;
+  color: #d9b45c;
+  font-size: 2rem;
+  line-height: 1;
+  filter: drop-shadow(0 2px 0 #101b14);
+}
+.village-meta-heading > .eyebrow,
+.village-meta-heading > .village-title-kicker { display: none; }
+.village-meta-heading > .meta-title {
+  margin: 0 0 3px;
+  color: #f3d47e;
+  font-size: clamp(1.2rem, 1.8vw, 1.55rem);
+  text-shadow: 1px 2px 0 #101b14;
+}
+.village-meta-heading > p {
+  margin: 0;
+  max-width: 52ch;
+  color: #c7b991;
+  font-size: .78rem;
+  line-height: 1.4;
+}
+.village-title-kicker {
+  display: block;
+  color: #b8d779;
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .15em;
+}
+.village-scene-head p { color: #c7b991; }
+.village-resource-summary { gap: 5px; }
+.village-resource-summary span {
+  padding: 6px 9px;
+  border-color: #81633b;
+  background: #1d3025;
+  color: #d9c99b;
+}
+.village-resource-summary b { color: #edcf82; }
+.village-hud-nav {
+  gap: 2px;
+  padding: 3px;
+  margin-left: 8px;
+  border-color: #81633b;
+}
+.village-hud-nav a {
+  padding: 6px 9px;
+  border-radius: 2px;
+  border-color: transparent;
+  color: #c7b991;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: .7rem;
+  letter-spacing: .03em;
+}
+.village-hud-nav a:hover, .village-hud-nav a.active {
+  border-color: #d2ab5a;
+  background: #765b32;
+  color: #fff0bb;
+}
+.village-board-host { min-height: 0; height: 100%; }
+
+@media (max-width: 980px) {
+  .village-game-header { align-items: flex-start; flex-wrap: wrap; }
+  .village-game-header .village-resource-summary { margin-left: 0; }
+  .village-game-header .village-hud-nav { margin-left: 0; }
+  .village-scene-head { align-items: flex-start; flex-wrap: wrap; }
+  .village-hud-nav { margin-left: 0; }
+}

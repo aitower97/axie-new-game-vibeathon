@@ -1,16 +1,10 @@
-// MetaNav.jsx — pestañas de navegacion del shell: Partida (la partida en vivo)
-// + las 5 pantallas meta first-approach (Base, Recursos, Investigacion, PVE,
-// PVP). Enlaces reales por hash; la ruta activa viene resuelta por el shim de
-// arriba. Idioma visual: pestañas planas con acento ambar en la activa, en
-// linea con el HUD; sin romper el layout de la partida.
+// Navegacion principal del shell: gestion, modos de juego y partida.
 const TABS = [
-  { key: 'base', label: 'Base', icon: '🏰' },
-  { key: 'pve', label: 'PVE', icon: '🤖' },
-  { key: 'pvp', label: 'PVP', icon: '🏆' },
-  { key: 'evolucion', label: 'Laboratorio', icon: '🔧' },
-  { key: 'partida', label: 'Partida', icon: '⚔' },
-  { key: 'recursos', label: 'Recursos', icon: '⚖' },
-  { key: 'investigacion', label: 'Investigacion', icon: '🔬' },
+  { key: 'aldea', label: 'Aldea', icon: 'AL' },
+  { key: 'evolucion', label: 'Laboratorio', icon: 'LA' },
+  { key: 'pve', label: 'PVE', icon: 'PV' },
+  { key: 'pvp', label: 'PVP', icon: 'VP' },
+  { key: 'partida', label: 'Combate', icon: 'CO' },
 ]
 
 export default function MetaNav({ route, compressed }) {
@@ -24,10 +18,8 @@ export default function MetaNav({ route, compressed }) {
           title={t.label}
           aria-label={t.label}
         >
-          <span className="meta-tab-icon" aria-hidden="true">
-            {t.icon}
-          </span>
-          {!compressed && t.label}
+          <span className="meta-tab-icon" aria-hidden="true">{t.icon}</span>
+          <span className="meta-tab-label">{t.label}</span>
         </a>
       ))}
     </nav>

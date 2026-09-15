@@ -45,13 +45,14 @@ async function spawnClipVfx(overlay, imp, canvases) {
 
 export default function BoardRegion({ board3d, overlay }) {
   const {
-    blockUrl, terrainAt, terrainBlockUrls, decorUrls, axieUnits, fx, onReady,
+    blockUrl, terrainAt, terrainBlockUrls, decorUrls, axieUnits, fx, onReady, arenaConfig,
   } = board3d
   const {
     visible, units, lords, activeSide, selected, lordSelected,
     moveCells, targets, allyChoices, lordSummonCells, lordRoll, lordActed,
+    projectedTargets, projectedMoveCell, projectedPath, projectedAttackInfo,
     playerLordHp, enemyLordHp, rollTick, floats, impacts,
-    enemyActing,
+    enemyActing, turnLabel,
     energyBank, enemyEnergyBank, energyCap, exchangeInfo, onCellClick, onCellHover,
   } = overlay
 
@@ -135,6 +136,7 @@ export default function BoardRegion({ board3d, overlay }) {
             axieUnits={axieUnits}
             fx={fx}
             onTween={handleUnitTween}
+            arenaConfig={arenaConfig}
           />
           {/* Icono de ayuda, centrado arriba (no chocar con los medidores de
               Energia). El texto completo NO va en `title`: el tooltip nativo
@@ -145,9 +147,10 @@ export default function BoardRegion({ board3d, overlay }) {
               sin depender del tooltip del sistema operativo. El CLIC abre el
               panel de ayuda real HelpOverlay: hover informa, clic explica. */}
           <div className="board-view-hint" onClick={() => setShowHelp(true)}>
-            🖐️
+            ?
             <span className="tip">Clic para ver como jugar · Arrastra para mover · rueda para zoom · R para centrar</span>
           </div>
+          {turnLabel && <div className="board-turn-status">{turnLabel}</div>}
           {showHelp && <HelpOverlay onClose={() => setShowHelp(false)} />}
           {visible && (
             <div className="board-overlay-3d" ref={overlayElRef}>
@@ -158,6 +161,8 @@ export default function BoardRegion({ board3d, overlay }) {
                   const unit = units.find((u) => u.alive && u.pos && u.pos.r === r && u.pos.c === c)
                   const canMoveHere = moveCells.some((cell) => cell.r === r && cell.c === c) || lordSummonCells.some((cell) => cell.r === r && cell.c === c)
                   const canAttackHere = targets.some((t) => t.pos.r === r && t.pos.c === c)
+                  const canProjectAttackHere = projectedTargets.some((t) => t.pos.r === r && t.pos.c === c)
+                  const projectedStep = projectedPath?.findIndex((cell) => cell.r === r && cell.c === c) ?? -1
                   const canReposHere = allyChoices.some((a) => a.pos.r === r && a.pos.c === c)
                   const isSelected = (unit && selected === unit.id) || (lordSelected && r === lords[activeSide].r && c === lords[activeSide].c)
                   return (
@@ -175,6 +180,9 @@ export default function BoardRegion({ board3d, overlay }) {
                         // Se queda solo para la leyenda (terrain-swatch, mas abajo).
                         canMoveHere || canReposHere ? 'summon-zone' : '',
                         canAttackHere ? 'in-range' : '',
+                        canProjectAttackHere ? 'projected-range' : '',
+                        projectedStep >= 0 ? 'projected-path' : '',
+                        projectedMoveCell && projectedMoveCell.r === r && projectedMoveCell.c === c ? 'projected-cell' : '',
                         isSelected ? 'selected' : '',
                       ]
                         .filter(Boolean)
@@ -242,6 +250,18 @@ export default function BoardRegion({ board3d, overlay }) {
                             <div key={i}>{line}</div>
                           ))}
                         </div>
+                      )}
+                      {projectedMoveCell && projectedMoveCell.r === r && projectedMoveCell.c === c && projectedTargets.length > 0 && (
+                        <div className="movement-projection-chip">
+                          {projectedAttackInfo.map((info) => (
+                            <div key={info.target}>
+                              {info.target}: -{info.dealt}{info.killed ? ' · cae' : info.counter > 0 ? ` · vuelta -${info.counter}` : ' · sin vuelta'}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {projectedStep > 0 && projectedMoveCell && (
+                        <span className="projected-step">{projectedStep}</span>
                       )}
                     </div>
                   )

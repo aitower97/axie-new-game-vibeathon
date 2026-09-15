@@ -102,6 +102,37 @@ export function SwordIcon({ size = 18, className }) {
   )
 }
 
+export function MoveIcon({ size = 14, className }) {
+  return (
+    <Icon size={size} className={className}>
+      <path d="M12 3v18M3 12h18" {...STROKE} />
+      <path d="m9 6 3-3 3 3M9 18l3 3 3-3M6 9l-3 3 3 3M18 9l3 3-3 3" {...STROKE} />
+    </Icon>
+  )
+}
+
+export function RangeIcon({ size = 14, className }) {
+  return (
+    <Icon size={size} className={className}>
+      <circle cx="12" cy="12" r="7.5" {...STROKE} />
+      <circle cx="12" cy="12" r="2" {...STROKE} />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" {...STROKE} />
+    </Icon>
+  )
+}
+
+export function CombatLogIcon({ kind = 'event', size = 14, className }) {
+  const paths = {
+    attack: <path d="m4 20 7-7m2-2 7-7M14 4h6v6M4 14l6 6" {...STROKE} />,
+    move: <path d="M12 3v18M3 12h18m-9-9 3 3m-3-3L9 6m3 15 3-3m-3 3-3-3" {...STROKE} />,
+    shield: <path d="m12 3 7 3v5c0 5-3 8-7 10-4-2-7-5-7-10V6l7-3Z" {...STROKE} />,
+    heal: <path d="M12 20S4 15.5 4 9a4 4 0 0 1 7-2 4 4 0 0 1 7 2c0 6.5-6 10-6 10Zm0-8V8m-2 2h4" {...STROKE} />,
+    target: <><circle cx="12" cy="12" r="7" {...STROKE} /><circle cx="12" cy="12" r="2" {...STROKE} /></>,
+    event: <><circle cx="12" cy="12" r="8" {...STROKE} /><path d="M12 8v5m0 3h.01" {...STROKE} /></>,
+  }
+  return <Icon size={size} className={className}>{paths[kind] || paths.event}</Icon>
+}
+
 // Zarcillo decorativo (portada): doodle de trazo fino tipo enredadera, con
 // dos "brotes" rellenos -mismo espiritu que el resto del set
 // (stroke:currentColor, hereda el color via la propiedad CSS `color`), pero

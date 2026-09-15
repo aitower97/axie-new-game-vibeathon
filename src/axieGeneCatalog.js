@@ -156,6 +156,7 @@ function starterDescriptor(klassMvp1, fallbackVariant) {
 // reales de esa clase (ver ROSTER_PARTS) + ojos/orejas por bando (2/4).
 export const ROSTER_DESCRIPTORS = {
   player: {
+    plant: rosterDescriptor('plant', 2),
     beast: rosterDescriptor('beast', 2),
     bird: rosterDescriptor('bird', 2),
     aqua: rosterDescriptor('aqua', 2),

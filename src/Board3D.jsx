@@ -44,6 +44,7 @@ import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js'
 import { getSharedAxieMixer3D } from './axieMixer3D'
 import { SLOT_ATTACK_ANIM, FALLBACK_ATTACK_ANIM } from './attackAnimNames'
+import { BATTLE_ARENA_CONFIG } from './arenaConfig'
 
 // Corona real (OBJ+MTL, "Golden_Crown_v1_L2") elegida y descargada por el
 // usuario -no procedural. En public/models/crown/ (crown.obj + crown.mtl, sin
@@ -148,6 +149,9 @@ export default function Board3D({
   axieUnits,
   fx,
   onTween,
+  arenaConfig = BATTLE_ARENA_CONFIG,
+  villageObjects = [],
+  onGridClick,
 }) {
   const hostRef = useRef(null)
   // onTransform en un ref: si el padre pasa una funcion nueva cada render (lo
@@ -179,6 +183,10 @@ export default function Board3D({
   useEffect(() => {
     onTweenRef.current = onTween
   }, [onTween])
+  const onGridClickRef = useRef(onGridClick)
+  useEffect(() => {
+    onGridClickRef.current = onGridClick
+  }, [onGridClick])
 
   // Siempre la lista mas reciente, para que una creacion async (mixer.
   // createFromGenes) que termina tarde compruebe contra el estado actual, no
@@ -219,25 +227,46 @@ export default function Board3D({
     // niebla la disuelve gradualmente ANTES de que se vea el borde: el horizonte
     // no se corta, se evapora. El tablero (a ~30-40 unidades de la camara) queda
     // fuera del radio de niebla, asi que no se le tiñe nada.
-    const SKY_COLOR = 0xa8c4b0
+    const sky = arenaConfig.sky
+    const lighting = arenaConfig.lighting
+    const cameraConfig = arenaConfig.camera
+    const islandConfig = arenaConfig.island
+    const boardConfig = arenaConfig.board
+    const worldConfig = arenaConfig.world
+    const SKY_COLOR = sky.color
     scene.background = new THREE.Color(SKY_COLOR)
-    scene.fog = new THREE.Fog(SKY_COLOR, 70, 340)
+    scene.fog = new THREE.Fog(SKY_COLOR, sky.fogNear, sky.fogFar)
 
-    const ambient = new THREE.AmbientLight(0xffffff, 0.9)
+    const ambient = new THREE.AmbientLight(lighting.ambientColor, lighting.ambientIntensity)
     scene.add(ambient)
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.9)
-    dirLight.position.set(4, 10, 6)
+    // Luz de cielo/suelo: conserva color en las caras en sombra y separa el
+    // tablero del fondo sin tener que iluminar cada modelo individualmente.
+    const hemisphere = new THREE.HemisphereLight(
+      lighting.hemisphereSkyColor,
+      lighting.hemisphereGroundColor,
+      lighting.hemisphereIntensity,
+    )
+    scene.add(hemisphere)
+    const dirLight = new THREE.DirectionalLight(lighting.directionalColor, lighting.directionalIntensity)
+    dirLight.position.set(...lighting.directionalPosition)
     scene.add(dirLight)
+    // Contraluz frío muy suave: dibuja el contorno de Axies y props contra el
+    // verde de la arena, especialmente en las casillas del borde.
+    const rimLight = new THREE.DirectionalLight(lighting.rimColor, lighting.rimIntensity)
+    rimLight.position.set(...lighting.rimPosition)
+    scene.add(rimLight)
 
     // Angulo "de mesa": 30 grados de inclinacion en el
     // eje X (elevationDeg) + un giro de 10 grados tipo peonza sobre el propio
     // plano del tablero (azimuthDeg, en boardGroup, no en la camara).
-    const elevationDeg = 30
+    const elevationDeg = cameraConfig.elevationDeg
     const elevRad = (elevationDeg * Math.PI) / 180
-    const azimuthDeg = -10
-    const dist = 30
+    const azimuthDeg = cameraConfig.azimuthDeg
+    const dist = cameraConfig.distance
 
     const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1200)
+    const pointerRaycaster = new THREE.Raycaster()
+    const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
     // Vista movible (T5): la camara es ortografica, asi que 3D->pantalla sigue
     // siendo una transformacion afin pase lo que pase; pan/zoom/rotacion de la
     // vista solo cambian la matriz CSS que se publica (publishTransform), y el
@@ -245,23 +274,29 @@ export default function Board3D({
     // el punto al que apunta la camara (camTarget) + un desplazamiento FIJO de
     // la camara respecto a el (camOffset); zoom = escala el frustum en resize().
     const camTarget = new THREE.Vector3(0, 0, 0)
+    const cameraNudge = new THREE.Vector3()
+    const cameraAim = new THREE.Vector3()
     const camOffset = new THREE.Vector3(0, dist * Math.sin(elevRad), dist * Math.cos(elevRad))
-    camera.position.copy(camTarget).add(camOffset)
-    camera.lookAt(camTarget)
-    let zoom = 1
+    cameraAim.copy(camTarget).add(cameraNudge)
+    camera.position.copy(cameraAim).add(camOffset)
+    camera.lookAt(cameraAim)
+    let zoom = cameraConfig.initialZoom ?? 1
+    let combatFocusUntil = 0
+    let combatFocusRestore = null
     // Zoom con suavizado: la rueda fija ZOOM objetivo y el bucle lo persigue con
     // interpolacion exponencial (en vez de saltar a golpe de evento), para que la
     // vista "respire" en vez de cortarse. Se sella a zoom cuando la diferencia es
     // despreciable para dejar de animar el frustum en cada frame.
-    let zoomTarget = 1
+    let zoomTarget = zoom
     // Ultima vista conocida para no necesitar host.clientWidth cada vez que se
     // mueve la camara (resize() mantiene estas variables al dia).
     let viewW = 0
     let viewH = 0
 
     function reposCamera(render = true) {
-      camera.position.copy(camTarget).add(camOffset)
-      camera.lookAt(camTarget)
+      cameraAim.copy(camTarget).add(cameraNudge)
+      camera.position.copy(cameraAim).add(camOffset)
+      camera.lookAt(cameraAim)
       camera.updateMatrixWorld()
       if (render) {
         renderOnce()
@@ -469,30 +504,14 @@ export default function Board3D({
     //    1-4 unidades con silueta irregular y picos nevados -lee como montaña
     //    Minecraft que ABRAZA el campo como las gradas de un coliseo. Un
     //    segundo anillo exterior mas alto y mas lejos da profundidad.
-    const SNOW_BLOCK_URL = '/models/block-snow.glb'
-    const DECOR_URLS = {
-      treeA: '/models/mini-forest/tree.glb',
-      treeB: '/models/mini-forest/tree-high.glb',
-      rockA: '/models/mini-forest/rocks-high.glb',
-      rockB: '/models/mini-forest/rocks-low.glb',
-      rockC: '/models/mini-forest/stones.glb',
-      plant: '/models/mini-forest/plant.glb',
-      patch: '/models/mini-forest/patch-grass.glb',
-      patchDirt: '/models/mini-forest/patch-dirt.glb',
-    }
+    const SNOW_BLOCK_URL = worldConfig.snowBlockUrl
+    const DECOR_URLS = worldConfig.decorUrls
 
     // Piezas del Platformer Kit (mismo pack, mismas rutas de textura relativas
     // `Textures/colormap.png`) para el mundo abierto: la pendiente
     // para los escalones de las llanuras, los pinos unicos de las cimas, y la
     // vegetacion baja que se pega a los bordes de las llanuras.
-    const WORLD_URLS = {
-      slopeSteep: '/models/block-grass-large-slope-steep.glb',
-      pine: '/models/tree-pine.glb',
-      pineSmall: '/models/tree-pine-small.glb',
-      grass: '/models/grass.glb',
-      flowers: '/models/flowers.glb',
-      mushrooms: '/models/mushrooms.glb',
-    }
+    const WORLD_URLS = worldConfig.worldUrls
     // Campo de llanuras voxel: radio hasta donde llega la malla de cubos
     // (mas alla lo disuelve la niebla), tamano del lattice del ruido de valor
     // en celdas (llanuras de ~4-12 bloques del mismo nivel) y cuantas alturas
@@ -500,9 +519,9 @@ export default function Board3D({
     // llega HASTA la niebla (70-340): asi el campo 3D cubre todo lo que la
     // camara puede ver al moverse/zoom, y la niebla solo disuelve voxels en el
     // horizonte lejano en vez de descubrir un vacio tras un borde cortado.
-    const WORLD_FIELD_R = 300
-    const WORLD_LATTICE = 5
-    const WORLD_LEVELS = 4
+    const WORLD_FIELD_R = worldConfig.fieldRadius
+    const WORLD_LATTICE = worldConfig.lattice
+    const WORLD_LEVELS = worldConfig.levels
 
     // Textura de sombra: un ANILLO difuminado (no un circulo solido que se
     // oscurece hacia el centro) -el centro de la mancha queda siempre tapado
@@ -603,6 +622,23 @@ export default function Board3D({
       boardGroup.add(backdrop)
     }
 
+    function makeVillageBackdrop(spacing2, cols2, rows2) {
+      // La aldea tiene su propio suelo visual: no comparte el campo lejano,
+      // las gradas ni la decoracion de la arena de combate.
+      backdropY = -spacing2 * 0.08
+      const width = (cols2 + 8) * spacing2
+      const depth = (rows2 + 8) * spacing2
+      const geometry = new THREE.PlaneGeometry(width, depth)
+      const material = new THREE.MeshStandardMaterial({
+        color: 0x8fce6a,
+        roughness: 0.96,
+      })
+      backdrop = new THREE.Mesh(geometry, material)
+      backdrop.rotation.x = -Math.PI / 2
+      backdrop.position.set(0, backdropY, 0)
+      boardGroup.add(backdrop)
+    }
+
     // Caminos de tierra: el pack no trae ningun modelo de sendero, asi que se
     // dibujan igual que el laguito (mancha irregular, radio con semilla
     // determinista por celda) pero ovalada y en tono tierra, encadenando
@@ -638,6 +674,75 @@ export default function Board3D({
     let pathGates = []
     let pathPoints = []
     let heapGeos = []
+
+    function addVillageObject(def) {
+      const kind = def.kind || (def.type === 'wood' || def.type === 'stone' || def.type === 'food' ? 'resource' : 'building')
+      const footprint = def.footprint || { rows: 1, cols: 1 }
+      const centerR = def.pos.r + (footprint.rows - 1) / 2
+      const centerC = def.pos.c + (footprint.cols - 1) / 2
+      const { x, z } = worldXZ(centerR, centerC)
+      const group = new THREE.Group()
+      const size = spacing
+      const material = (color, roughness = 0.82) => new THREE.MeshStandardMaterial({ color, roughness })
+      const add = (mesh, y = 0) => {
+        mesh.position.y = y
+        group.add(mesh)
+      }
+
+      if (kind === 'path') {
+        add(new THREE.Mesh(new THREE.BoxGeometry(size * 0.9, size * 0.035, size * 0.9), material(0xc7a06a, 0.95)), size * 0.02)
+      } else if (kind === 'resource') {
+        if (def.type === 'wood') {
+          add(new THREE.Mesh(new THREE.CylinderGeometry(size * 0.12, size * 0.16, size * 0.72, 8), material(0x7d4d2b)), size * 0.36)
+          add(new THREE.Mesh(new THREE.ConeGeometry(size * 0.46, size * 0.9, 8), material(0x2f9b4f)), size * 0.95)
+          add(new THREE.Mesh(new THREE.ConeGeometry(size * 0.34, size * 0.65, 8), material(0x55bd58)), size * 1.45)
+        } else if (def.type === 'stone') {
+          const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(size * 0.42, 0), material(0x8b9291))
+          rock.scale.set(1.2, 0.8, 0.9)
+          add(rock, size * 0.34)
+          const chip = new THREE.Mesh(new THREE.DodecahedronGeometry(size * 0.2, 0), material(0xb4bbb3))
+          chip.position.x = size * 0.42
+          chip.position.z = size * 0.1
+          add(chip, size * 0.18)
+        } else {
+          add(new THREE.Mesh(new THREE.BoxGeometry(size * 0.86, size * 0.12, size * 0.86), material(0xb58b4c)), size * 0.06)
+          for (let i = 0; i < 4; i++) {
+            const crop = new THREE.Mesh(new THREE.CylinderGeometry(size * 0.035, size * 0.05, size * 0.42, 5), material(0x5fae3d))
+            crop.position.x = (i % 2 ? 0.22 : -0.22) * size
+            crop.position.z = (i < 2 ? 0.22 : -0.22) * size
+            add(crop, size * 0.32)
+          }
+        }
+      } else {
+        const width = Math.max(1, footprint.cols) * size * 0.82
+        const depth = Math.max(1, footprint.rows) * size * 0.82
+        const bodyColor = {
+          'town-hall': 0xdca35f,
+          house: 0xd88964,
+          storage: 0x9d7444,
+          warehouse: 0x9d7444,
+          farm: 0xc7924f,
+          mine: 0x747d83,
+        }[def.type] || 0xb58b4c
+        add(new THREE.Mesh(new THREE.BoxGeometry(width, size * 0.82, depth), material(bodyColor)), size * 0.41)
+        const roofColor = def.type === 'town-hall' ? 0x4b91b6 : 0x9b4f3d
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(Math.max(width, depth) * 0.62, size * 0.58, 4), material(roofColor))
+        roof.rotation.y = Math.PI / 4
+        add(roof, size * 1.08)
+        if (def.type === 'farm') {
+          const field = new THREE.Mesh(new THREE.BoxGeometry(width * 0.78, size * 0.08, depth * 0.78), material(0x9bc55a))
+          add(field, size * 0.88)
+        }
+      }
+
+      group.position.set(x, topAt(def.pos.r, def.pos.c), z)
+      islandGroup.add(group)
+      worldPlaced.push({ obj: group, shared: false })
+    }
+
+    function makeVillageObjects() {
+      for (const def of villageObjects) addVillageObject(def)
+    }
 
     // Coloca un clon de un template con la base en (x, y, z) y reescalado para
     // que su mayor lado horizontal sea `fit`. Devuelve la altura ya escalada
@@ -1113,15 +1218,16 @@ export default function Board3D({
       }
     }
 
+    const isVillageWorld = arenaConfig.sceneProfile === 'village'
     const urlSet = new Set([
       blockUrl,
-      SNOW_BLOCK_URL,
+      ...(isVillageWorld ? [] : [SNOW_BLOCK_URL]),
       ...Object.values(terrainBlockUrls || {}),
       ...Object.values(decorUrls || {})
         .filter((entry) => decorEntryUrl(entry))
         .map(decorEntryUrl),
-      ...Object.values(DECOR_URLS),
-      ...Object.values(WORLD_URLS),
+      ...(isVillageWorld ? [] : Object.values(DECOR_URLS)),
+      ...(isVillageWorld ? [] : Object.values(WORLD_URLS)),
     ])
     const blocksReady = Promise.all([...urlSet].map((url) => loadModel(url).then((scene3d) => [url, scene3d]))).then((entries) => {
       if (disposed) return null
@@ -1137,9 +1243,9 @@ export default function Board3D({
       // donde el texto ya es verde sin lavar las caras de
       // tierra (ahi el map es oscuro y el brillo apenas actua). Un clon por
       // material base; se recogen para hacerles dispose al desmontar.
-      const BRIGHT_TINT = new THREE.Color(1.3, 1.5, 1.12)
-      const BRIGHT_GLOW = new THREE.Color(0x7fce5a)
-      const BRIGHT_GLOW_POWER = 0.3
+      const BRIGHT_TINT = new THREE.Color(boardConfig.tint)
+      const BRIGHT_GLOW = new THREE.Color(boardConfig.glow)
+      const BRIGHT_GLOW_POWER = boardConfig.glowPower
       const getBrightBoardMaterial = (base) => {
         for (const existing of brightBoardMaterials) {
           if (existing.userData.base === base) return existing
@@ -1167,11 +1273,17 @@ export default function Board3D({
       // correctos: primero el campo de hierba (mas abajo de la rejilla),
       // luego la sombra suave justo encima de el, y por ultimo la decoracion
       // dispersa del anillo exterior.
-      makeBackdrop(spacing)
+      if (isVillageWorld) {
+        makeVillageBackdrop(spacing, cols, rows)
+      } else {
+        makeBackdrop(spacing)
+      }
       makeShadow(spacing, cols, rows, backdropY + 0.02)
-      decorateSurroundings(spacing, cols, rows)
-      buildColosseumRing(spacing, cols, rows, templates)
-      buildOpenWorld(spacing, cols, rows, templates)
+      if (!isVillageWorld) {
+        decorateSurroundings(spacing, cols, rows)
+        buildColosseumRing(spacing, cols, rows, templates)
+        buildOpenWorld(spacing, cols, rows, templates)
+      }
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
           const terrain = terrainAtFn(r, c)
@@ -1230,9 +1342,10 @@ export default function Board3D({
             cellSurface = decor.position.y + decorSize.y * fit
           }
           cellTop[r * cols + c] = cellSurface
+          }
         }
-      }
-      terrainReady = true
+        if (isVillageWorld) makeVillageObjects()
+        terrainReady = true
       resize()
       return true
     })
@@ -1264,6 +1377,7 @@ export default function Board3D({
 
     const handles = new Map()
     const pending = new Set()
+    const impactBursts = []
 
     // Textura reutilizada por los sprites de flash (dano/heal): un degradado
     // radial blanco->transparente, tintado con el color del efecto en el
@@ -1344,6 +1458,36 @@ export default function Board3D({
     //  - casilla distinta: arranca (o reorienta) un tween de caminar, y el
     //    Axie entra en locomotion 'walk'. El loop de render avanza el tween y
     //    anima position; al llegar, vuelve a idle y aplica la cara final.
+    function startStepTween(handle, targetR, targetC, pendingFacing) {
+      const { x, z } = worldXZ(targetR, targetC)
+      const topY = topAt(targetR, targetC)
+      const currentR = handle.visualR ?? handle.cellR
+      const currentC = handle.visualC ?? handle.cellC
+      const prevTopY = topAt(currentR, currentC)
+      const from = handle.wrapper.position
+      const dur = 0.18 + 0.3 * (Math.hypot(x - from.x, z - from.z) / spacing)
+      const targetRotationY = Math.atan2(x - from.x, z - from.z)
+      handle.tween = {
+        fromX: from.x,
+        fromZ: from.z,
+        fromY: from.y,
+        toX: x,
+        toZ: z,
+        toY: topY - handle.boxMinY * handle.fit + spacing * 0.025,
+        fromRingY: prevTopY + 0.012,
+        toRingY: topY + 0.012,
+        targetR,
+        targetC,
+        fromRotationY: handle.wrapper.rotation.y,
+        toRotationY: targetRotationY,
+        t: 0,
+        dur,
+        pendingFacing,
+      }
+      handle.axie.setMoveSpeed(0.35, 0.2)
+      handle.axie.setLocomotion('walk', 0.2)
+    }
+
     function positionHandle(handle, unit) {
       handle.id = unit.id
       const { x, z } = worldXZ(unit.r, unit.c)
@@ -1361,6 +1505,10 @@ export default function Board3D({
       // Flash de dano/curacion por diff de HP (el HP llega en axieUnits).
       if (handle.lastHp != null && unit.hp != null && unit.hp !== handle.lastHp) {
         flashHandle(handle, unit.hp < handle.lastHp ? 0xff5540 : 0x57e36b)
+        if (unit.hp < handle.lastHp) {
+          handle.hitUntil = elapsedTime + 0.3
+          handle.hitSeed = Math.random() * Math.PI * 2
+        }
       }
       handle.lastHp = unit.hp
 
@@ -1368,6 +1516,8 @@ export default function Board3D({
       if (isNew) {
         handle.cellR = unit.r
         handle.cellC = unit.c
+        handle.visualR = unit.r
+        handle.visualC = unit.c
         handle.wrapper.position.set(x, baseY, z)
         if (handle.ring) handle.ring.position.set(x, topY + 0.012, z)
         applyCrown(handle, unit, x, z)
@@ -1385,7 +1535,6 @@ export default function Board3D({
         return
       }
 
-      const prevTopY = topAt(handle.cellR, handle.cellC)
       handle.cellR = unit.r
       handle.cellC = unit.c
       if (handle.tween) {
@@ -1398,26 +1547,12 @@ export default function Board3D({
         handle.tween.pendingFacing = unit.facing
         return
       }
-      const from = handle.wrapper.position
-      const dur = 0.18 + 0.3 * (Math.hypot(x - from.x, z - from.z) / spacing)
-      handle.tween = {
-        fromX: from.x,
-        fromZ: from.z,
-        fromY: from.y,
-        toX: x,
-        toZ: z,
-        toY: topY - handle.boxMinY * handle.fit + spacing * 0.025,
-        fromRingY: prevTopY + 0.012,
-        toRingY: topY + 0.012,
-        t: 0,
-        dur,
-        pendingFacing: unit.facing,
-      }
-      handle.axie.setMoveSpeed(0.35, 0.2)
-      handle.axie.setLocomotion('walk', 0.2)
-      const dx = x - from.x
-      const dz = z - from.z
-      if (Math.abs(dx) > 1e-6 || Math.abs(dz) > 1e-6) handle.wrapper.rotation.y = Math.atan2(dx, dz)
+      handle.route = Array.isArray(unit.movePath) && unit.movePath.length > 0
+        ? unit.movePath.map((cell) => ({ r: cell.r, c: cell.c }))
+        : [{ r: unit.r, c: unit.c }]
+      handle.routeFacing = unit.facing
+      const next = handle.route.shift()
+      startStepTween(handle, next.r, next.c, handle.route.length === 0 ? unit.facing : null)
     }
 
     async function createHandle(unit) {
@@ -1464,9 +1599,17 @@ export default function Board3D({
         ring: null,
         cellR: null,
         cellC: null,
+        visualR: null,
+        visualC: null,
+        route: null,
+        routeFacing: null,
         tween: null,
         flashSprite: null,
         flashUntil: 0,
+        hitUntil: 0,
+        hitSeed: 0,
+        attackPrepUntil: 0,
+        attackSeed: 0,
         lastHp: null,
       }
     }
@@ -1570,12 +1713,84 @@ export default function Board3D({
         if (!handle) continue
         if (ev.kind === 'attack') {
           const clip = SLOT_ATTACK_ANIM[ev.slot] ?? FALLBACK_ATTACK_ANIM
+          handle.attackPrepUntil = elapsedTime + 0.14
+          handle.attackSeed = Math.random() * Math.PI * 2
+          if (combatFocusRestore == null) combatFocusRestore = zoomTarget
+          zoomTarget = Math.min(4.5, zoomTarget * cameraConfig.combatFocusZoom)
+          combatFocusUntil = Math.max(combatFocusUntil, elapsedTime + cameraConfig.combatFocusDuration)
+          if (ev.targetR != null && ev.targetC != null) {
+            applyFacing(handle, { r: ev.targetR, c: ev.targetC }, handle.wrapper.position.x, handle.wrapper.position.z)
+          }
           handle.axie.setMoveSpeed(0, 0.15)
           handle.axie.playAnimation(clip, { transition: 0.12 })
+        }
+        if (ev.kind === 'camera-impact') {
+          cameraShakeUntil = Math.max(cameraShakeUntil, elapsedTime + 0.24)
+          cameraShakeStrength = Math.max(cameraShakeStrength, 0.045)
+        }
+        if (ev.kind === 'impact-particles' && ev.r != null && ev.c != null) {
+          spawnImpactBurst(ev)
         }
       }
     }
     syncFxRef.current = dispatchFx
+
+    function spawnImpactBurst(ev) {
+      const { x, z } = worldXZ(ev.r, ev.c)
+      const y = topAt(ev.r, ev.c) + spacing * 0.08
+      const count = ev.impactKind === 'counter' ? 18 : 24
+      const positions = new Float32Array(count * 3)
+      const velocities = []
+      const color = ev.impactKind === 'counter' ? 0xffc233 : ev.impactKind === 'lord' ? 0xffe08a : 0x9fffe0
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2
+        const spread = spacing * (0.8 + (i % 4) * 0.12)
+        velocities.push({
+          x: Math.cos(angle) * spread,
+          y: spacing * (0.55 + (i % 3) * 0.12),
+          z: Math.sin(angle) * spread,
+        })
+      }
+      const geometry = new THREE.BufferGeometry()
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+      const material = new THREE.PointsMaterial({
+        color,
+        // PointsMaterial expresa el tamaño en píxeles; con 0.13 las partículas
+        // resultaban prácticamente invisibles en la cámara ortográfica.
+        size: Math.max(5, spacing * 7),
+        transparent: true,
+        opacity: 0.9,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      })
+      const points = new THREE.Points(geometry, material)
+      points.position.set(x, y, z)
+      islandGroup.add(points)
+      impactBursts.push({ points, positions, velocities, age: 0, duration: 0.62 })
+    }
+
+    function updateImpactBursts(dt) {
+      for (let i = impactBursts.length - 1; i >= 0; i--) {
+        const burst = impactBursts[i]
+        burst.age += dt
+        const fade = Math.max(0, 1 - burst.age / burst.duration)
+        const position = burst.points.geometry.attributes.position.array
+        for (let p = 0; p < burst.velocities.length; p++) {
+          const velocity = burst.velocities[p]
+          position[p * 3] = velocity.x * burst.age
+          position[p * 3 + 1] = velocity.y * burst.age - spacing * 1.1 * burst.age * burst.age
+          position[p * 3 + 2] = velocity.z * burst.age
+        }
+        burst.points.geometry.attributes.position.needsUpdate = true
+        burst.points.material.opacity = fade * 0.9
+        if (burst.age >= burst.duration) {
+          islandGroup.remove(burst.points)
+          burst.points.geometry.dispose()
+          burst.points.material.dispose()
+          impactBursts.splice(i, 1)
+        }
+      }
+    }
 
     const ro = new ResizeObserver(() => resize())
     ro.observe(host)
@@ -1622,6 +1837,24 @@ export default function Board3D({
     // seco. vx/vy en px por segundo.
     const momentum = { vx: 0, vy: 0 }
     const MOMENTUM_DECAY = 3.2
+    function emitGridClick(e) {
+      if (!onGridClickRef.current) return
+      const rect = host.getBoundingClientRect()
+      if (!rect.width || !rect.height) return
+      const ndc = new THREE.Vector2(
+        ((e.clientX - rect.left) / rect.width) * 2 - 1,
+        -((e.clientY - rect.top) / rect.height) * 2 + 1,
+      )
+      pointerRaycaster.setFromCamera(ndc, camera)
+      groundPlane.constant = -baseHeight
+      const hit = new THREE.Vector3()
+      if (!pointerRaycaster.ray.intersectPlane(groundPlane, hit)) return
+      const local = boardGroup.worldToLocal(hit)
+      const c = Math.round(local.x / spacing + (cols - 1) / 2)
+      const r = Math.round(local.z / spacing + (rows - 1) / 2)
+      if (r >= 0 && r < rows && c >= 0 && c < cols) onGridClickRef.current(r, c)
+    }
+
     function onPointerDown(e) {
       dragState.active = true
       dragState.px = e.clientX
@@ -1662,6 +1895,7 @@ export default function Board3D({
       else {
         momentum.vx = 0
         momentum.vy = 0
+        emitGridClick(e)
       }
     }
     function onCaptureClick(e) {
@@ -1711,6 +1945,8 @@ export default function Board3D({
 
     const clock = new THREE.Clock()
     let elapsedTime = 0
+    let cameraShakeUntil = 0
+    let cameraShakeStrength = 0
     // Velocidad de giro y de flotado de la corona, en radianes/seg y unidades
     // de tablero/seg respectivamente -flota y rota sobre la cabeza del Lord.
     const CROWN_SPIN_SPEED = 0.6
@@ -1719,7 +1955,7 @@ export default function Board3D({
     // islandGroup mas arriba) sube y baja muy sutil y despacio, como si
     // flotase en el aire sobre el campo de fondo -que se queda fijo, es el
     // contraste el que hace notar el movimiento.
-const ISLAND_BOB_SPEED = 0.5
+    const ISLAND_BOB_SPEED = islandConfig.bobSpeed
     // espaciang todavia no es el real (blocksReady no ha resuelto) la primera
     // vez que se define loop() -se relee en cada frame, no se fija aqui, para
     // que la amplitud sea siempre relativa al tamano real de celda.
@@ -1748,11 +1984,31 @@ const ISLAND_BOB_SPEED = 0.5
       if (disposed) return
       const dt = clock.getDelta()
       elapsedTime += dt
-      islandGroup.position.y = Math.sin(elapsedTime * ISLAND_BOB_SPEED) * (spacing * 0.06)
+      islandGroup.position.y = Math.sin(elapsedTime * ISLAND_BOB_SPEED) * (spacing * islandConfig.bobAmplitude)
       // Vista fluida: perseguir el zoom objetivo y dejar que la inercia del pan
       // se desvanezca. Si algo de la camara ha cambiado este frame, hay que
       // volver a publicar la matriz CSS del overlay (antes del render de abajo).
       let camAnimated = false
+      if (combatFocusUntil > 0 && elapsedTime >= combatFocusUntil) {
+        zoomTarget = combatFocusRestore ?? zoomTarget
+        combatFocusRestore = null
+        combatFocusUntil = 0
+      }
+      if (cameraShakeUntil > elapsedTime) {
+        const remaining = cameraShakeUntil - elapsedTime
+        const intensity = Math.min(1, remaining / 0.24)
+        const phase = elapsedTime * 92
+        cameraNudge.set(
+          Math.sin(phase) * cameraShakeStrength * intensity,
+          Math.cos(phase * 1.17) * cameraShakeStrength * 0.35 * intensity,
+          0,
+        )
+        camAnimated = true
+      } else if (cameraNudge.lengthSq() > 0 || cameraShakeStrength > 0) {
+        cameraNudge.set(0, 0, 0)
+        cameraShakeStrength = 0
+        camAnimated = true
+      }
       if (zoomTarget !== zoom) {
         const diff = zoomTarget - zoom
         zoom += diff * (1 - Math.exp(-10 * dt))
@@ -1800,6 +2056,11 @@ const ISLAND_BOB_SPEED = 0.5
           handle.wrapper.position.x = x
           handle.wrapper.position.z = z
           handle.wrapper.position.y = y
+          const rotationDelta = Math.atan2(
+            Math.sin(handle.tween.toRotationY - handle.tween.fromRotationY),
+            Math.cos(handle.tween.toRotationY - handle.tween.fromRotationY),
+          )
+          handle.wrapper.rotation.y = handle.tween.fromRotationY + rotationDelta * ease
           publishUnitMove(handle, x, z)
           if (handle.ring) {
             handle.ring.position.x = x
@@ -1815,13 +2076,42 @@ const ISLAND_BOB_SPEED = 0.5
             const facing = handle.tween.pendingFacing
             const toX = handle.tween.toX
             const toZ = handle.tween.toZ
+            const stepR = handle.tween.targetR
+            const stepC = handle.tween.targetC
             handle.tween = null
-            clearUnitMove(handle)
-            handle.axie.setMoveSpeed(0, 0.25)
-            handle.axie.setLocomotion('idle', 0.25)
-            if (facing) applyFacing(handle, facing, toX, toZ)
+            handle.visualR = stepR
+            handle.visualC = stepC
+            if (handle.route && handle.route.length > 0) {
+              const next = handle.route.shift()
+              startStepTween(handle, next.r, next.c, handle.route.length === 0 ? handle.routeFacing : null)
+            } else {
+              handle.route = null
+              clearUnitMove(handle)
+              handle.axie.setMoveSpeed(0, 0.25)
+              handle.axie.setLocomotion('idle', 0.25)
+              if (facing || handle.routeFacing) applyFacing(handle, facing || handle.routeFacing, toX, toZ)
+              handle.routeFacing = null
+            }
           }
         }
+        // Reacción breve al recibir daño. Se aplica sobre la pose actual, por
+        // lo que no interfiere con el tween de movimiento ni con la celda lógica.
+        let poseRoll = 0
+        let poseScale = 1
+        if (handle.hitUntil > elapsedTime) {
+          const hitProgress = 1 - (handle.hitUntil - elapsedTime) / 0.3
+          const hitEnvelope = Math.sin(hitProgress * Math.PI)
+          poseRoll += Math.sin(elapsedTime * 78 + handle.hitSeed) * 0.08 * hitEnvelope
+          poseScale += 0.07 * hitEnvelope
+        }
+        if (handle.attackPrepUntil > elapsedTime) {
+          const prepProgress = 1 - (handle.attackPrepUntil - elapsedTime) / 0.14
+          const prepEnvelope = Math.sin(prepProgress * Math.PI)
+          poseRoll += Math.sin(handle.attackSeed) * 0.055 * prepEnvelope
+          poseScale -= 0.08 * prepEnvelope
+        }
+        handle.wrapper.rotation.z = poseRoll
+        handle.wrapper.scale.setScalar(handle.fit * poseScale)
         // Flash de dano/curacion: fade-out del sprite (material compartido no
         // toca la paleta del axie).
         if (handle.flashSprite && handle.flashSprite.visible) {
@@ -1834,6 +2124,7 @@ const ISLAND_BOB_SPEED = 0.5
           }
         }
       }
+      updateImpactBursts(dt)
       if (camAnimated) publishTransform(viewW, viewH)
       renderOnce()
       frameId = requestAnimationFrame(loop)
@@ -1915,6 +2206,12 @@ const ISLAND_BOB_SPEED = 0.5
         handle.axie.dispose()
       }
       handles.clear()
+      for (const burst of impactBursts) {
+        islandGroup.remove(burst.points)
+        burst.points.geometry.dispose()
+        burst.points.material.dispose()
+      }
+      impactBursts.length = 0
       // crownTemplate es la copia "maestra" -sus geometrias/materiales son
       // los que comparten todos los clones, asi que solo se hace dispose aqui,
       // una vez, nunca por clon (ver comentario en la limpieza de syncUnits).
@@ -1934,7 +2231,7 @@ const ISLAND_BOB_SPEED = 0.5
       if (renderer.domElement.parentNode === host) host.removeChild(renderer.domElement)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows, cols, blockUrl, cellSizePx, terrainBlockUrls, decorUrls])
+  }, [rows, cols, blockUrl, cellSizePx, terrainBlockUrls, decorUrls, arenaConfig, villageObjects])
 
   // Efecto de sincronizacion de unidades: NUNCA tira toda la escena, solo
   // dispara la funcion de sincronizacion del tablero VIVO actual (syncRef,

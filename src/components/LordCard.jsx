@@ -11,6 +11,7 @@ import { LORD_DESCRIPTORS } from '../axieGeneCatalog'
 import { LORD_DIE, LORD_STATS } from '../axie'
 import { LORD_GLYPH } from '../gameConstants'
 import { HpBar, CrownEmblem } from './Emblems'
+import { RangeIcon, SwordIcon } from './LineIcons'
 
 // Color dorado del Lord, deliberadamente distinto del naranja de Beast
 // (#f0a04b) y del --amber de seleccion/HUD (#e3a857): un dorado llamativo
@@ -80,7 +81,7 @@ export default function LordCard({
         <div className="lord-portrait-wrap">
           <Portrait3D
             className="axie-sprite"
-            size={56}
+            size={64}
             descriptor={LORD_DESCRIPTORS[side]}
             genes={AXIE_SAMPLE_GENES}
           />
@@ -96,10 +97,10 @@ export default function LordCard({
             Puesto de mando · Reserva {reserveCount}
             <span className="class-stats">
               <b className="stat-ico" title="Alcance: 2 casillas a distancia">
-                <span className="flat-emoji">🏹</span> {LORD_STATS.range}
+                <RangeIcon size={13} /> {LORD_STATS.range}
               </b>
               <b className="stat-ico" title="Ataque del Lord: 30 de dano">
-                <span className="flat-emoji">⚔</span> {LORD_STATS.atk}
+                <SwordIcon size={13} /> {LORD_STATS.atk}
               </b>
             </span>
           </span>

@@ -11,8 +11,10 @@ import { CLASS_STATS, DIE_SLOTS } from '../axie'
 import { diceTumbling } from '../diceTurn'
 import { HpBar, ShieldBar, ClassEmblem } from './Emblems'
 import FaceRow from './FaceRow'
+import { MoveIcon, RangeIcon } from './LineIcons'
+import { memo } from 'react'
 
-export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, enemyTurn, rollTick, selected, status, onSelect, onMouseEnter, onMouseLeave }) {
+function UnitCard({ unit: u, rolledFace, rolling, activeSide, enemyTurn, rollTick, selected, status, onSelect, onCardClick }) {
   const stats = CLASS_STATS[u.klass]
   // `rolling` es un unico flag global (vale para todo el turno, no por
   // bando), pero solo el bando activo tira dados ahora mismo. Con la
@@ -26,13 +28,13 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
     <div
       className={`card mini ${!u.alive ? 'down' : ''} ${selected === u.id ? 'selected' : ''} ${u.marked ? 'marked' : ''} ${u.buffed ? 'buffed' : ''}`}
       style={{ '--card-accent': stats.color }}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onClick={onCardClick}
     >
       <div className="card-head">
         <Portrait3D
           className="axie-sprite"
-          size={30}
+          size={42}
+          cacheKey={u.id}
           descriptor={ROSTER_DESCRIPTORS[u.side]?.[u.klass]}
           genes={AXIE_SAMPLE_GENES}
         />
@@ -42,11 +44,6 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
               <ClassEmblem klass={u.klass} />
             </span>
             <strong title={stats.label}>#{u.id.toUpperCase()}</strong>
-            {u.name && (
-              <span className="starter-name" title="Starter oficial de Axie">
-                {u.name}
-              </span>
-            )}
           </div>
           <span className="class-line">
             {stats.label}
@@ -55,7 +52,7 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
                 className="stat-ico"
                 title={`Movimiento: ${stats.move} paso${stats.move > 1 ? 's' : ''}`}
               >
-                <span className="flat-emoji">👣</span> {stats.move}
+                <MoveIcon size={13} /> {stats.move}
               </b>
               <b
                 className="stat-ico"
@@ -65,7 +62,7 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
                     : 'Alcance: cuerpo a cuerpo (1 casilla)'
                 }
               >
-                <span className="flat-emoji">{stats.range > 1 ? '🏹' : '🤜'}</span> {stats.range}
+                <RangeIcon size={13} /> {stats.range}
               </b>
             </span>
           </span>
@@ -103,7 +100,7 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
             </div>
           )}
           {u.side === activeSide && !u.acted && rolledFace && status === 'playing' && (
-            <button className="small" onClick={onSelect}>
+            <button className="small" onClick={(event) => { event.stopPropagation(); onSelect() }}>
               {selected === u.id ? 'Deseleccionar' : 'Seleccionar'}
             </button>
           )}
@@ -113,3 +110,14 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
     </div>
   )
 }
+
+export default memo(UnitCard, (prev, next) => (
+  prev.unit === next.unit &&
+  prev.rolledFace === next.rolledFace &&
+  prev.rolling === next.rolling &&
+  prev.activeSide === next.activeSide &&
+  prev.enemyTurn === next.enemyTurn &&
+  prev.rollTick === next.rollTick &&
+  prev.selected === next.selected &&
+  prev.status === next.status
+))

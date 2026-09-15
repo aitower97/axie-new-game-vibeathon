@@ -1,4 +1,4 @@
-// HelpOverlay.jsx — ayuda real al hacer clic en la mano (🖐️) del tablero: la
+// HelpOverlay.jsx — ayuda real al hacer clic en el signo de interrogación del tablero: la
 // burbuja de hover no bastaba, el clic abre un panel con lo minimo
 // para jugar: objetivo, rondas, turno, energia y controles. UI local de
 // BoardRegion (estado propio), no toca el estado de partida.

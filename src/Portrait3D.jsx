@@ -10,20 +10,31 @@
 // que ancho, cuerpo sumo de los Lords, giro en curso, etc.) sin margenes
 // adivinados. La camara es ortografica, igual que la del tablero: sin escorzo,
 // la figura nunca se deforma con el giro.
-import { useEffect, useRef } from 'react'
+import { memo, useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { getSharedAxieMixer3D } from './axieMixer3D'
 import { AXIE_SAMPLE_GENES } from './Board3D'
 import { registerRenderable, getSharedPixelRatio } from './sharedRenderer3D'
 
 let portraitSeed = 0
+const persistentPortraits = new Map()
 
-export default function Portrait3D({ descriptor, genes, size = 44, className }) {
+function Portrait3D({ descriptor, genes, size = 44, className, cacheKey }) {
   const hostRef = useRef(null)
 
   useEffect(() => {
     const host = hostRef.current
     if (!host) return
+    const persistentKey = cacheKey ? `${cacheKey}:${size}` : null
+    const cached = persistentKey ? persistentPortraits.get(persistentKey) : null
+    if (cached) {
+      host.appendChild(cached.canvas)
+      const unregister = registerRenderable(cached.id, cached.entry)
+      return () => {
+        unregister()
+        if (cached.canvas.parentNode === host) host.removeChild(cached.canvas)
+      }
+    }
     let disposed = false
     let axie = null
     let wrapper = null
@@ -102,7 +113,7 @@ export default function Portrait3D({ descriptor, genes, size = 44, className }) 
         console.error('Portrait3D: no se pudo cargar el Axie 3D', err)
       })
 
-    const unregister = registerRenderable(`portrait-${seed}`, {
+    const entry = {
       scene,
       camera,
       size,
@@ -128,12 +139,15 @@ export default function Portrait3D({ descriptor, genes, size = 44, className }) 
         camera.updateProjectionMatrix()
         camera.lookAt(center.x, center.y, center.z)
       },
-    })
+    }
+    const renderableId = `portrait-${cacheKey || seed}`
+    const unregister = registerRenderable(renderableId, entry)
+    if (persistentKey) persistentPortraits.set(persistentKey, { id: renderableId, entry, canvas })
 
     return () => {
-      disposed = true
+      if (!persistentKey) disposed = true
       unregister()
-      if (axie) {
+      if (axie && !persistentKey) {
         scene.remove(wrapper)
         axie.dispose()
       }
@@ -142,7 +156,21 @@ export default function Portrait3D({ descriptor, genes, size = 44, className }) 
       // anadia OTRO canvas al mismo host y quedaban dos apilados.
       if (canvas.parentNode === host) host.removeChild(canvas)
     }
-  }, [descriptor, genes, size])
+  }, [descriptor, genes, size, cacheKey])
 
-  return <span ref={hostRef} className={className} style={{ display: 'inline-block', width: size, height: size }} />
+  return (
+    <span
+      ref={hostRef}
+      className={className}
+      style={{
+        display: 'inline-block',
+        width: size,
+        height: size,
+        pointerEvents: 'none',
+        userSelect: 'none',
+      }}
+    />
+  )
 }
+
+export default memo(Portrait3D)

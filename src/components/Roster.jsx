@@ -8,13 +8,13 @@
 // vive aqui como useState local, no en App.jsx (que solo guarda estado de
 // partida). Selected SI viene de App.jsx (afecta a la partida) y actua como
 // resultado por defecto cuando no hay hover activo.
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import LordCard from './LordCard'
 import UnitCard from './UnitCard'
 import UnitDetailPanel from './UnitDetailPanel'
 import { diceTumbling } from '../diceTurn'
 
-export default function Roster({
+function Roster({
   side,
   title,
   titleClassName,
@@ -35,9 +35,9 @@ export default function Roster({
   onSelectUnit,
   onSelectLord,
 }) {
-  const [hoveredId, setHoveredId] = useState(null)
   const sideUnits = units.filter((u) => u.side === side)
-  const detailUnit = sideUnits.find((u) => u.id === hoveredId) || sideUnits.find((u) => u.id === selected) || null
+  const [detailId, setDetailId] = useState(null)
+  const detailUnit = sideUnits.find((u) => u.id === detailId) || sideUnits.find((u) => u.id === selected) || null
   const rollingHere = diceTumbling(rolling, activeSide, enemyTurn, side)
 
   return (
@@ -67,11 +67,15 @@ export default function Roster({
             activeSide={activeSide}
             enemyTurn={enemyTurn}
             rollTick={rollTick}
-            selected={selected}
+            selected={selected === u.id || detailId === u.id ? u.id : selected}
             status={status}
-            onSelect={() => onSelectUnit(u)}
-            onMouseEnter={() => setHoveredId(u.id)}
-            onMouseLeave={() => setHoveredId((id) => (id === u.id ? null : id))}
+            onSelect={() => {
+              setDetailId(u.id)
+              onSelectUnit(u)
+            }}
+            onCardClick={() => {
+              setDetailId(u.id)
+            }}
           />
         ))}
       </div>
@@ -79,3 +83,26 @@ export default function Roster({
     </div>
   )
 }
+
+// El tablero actualiza `hoverCell` en cada cambio de casilla. Ese estado no
+// pertenece al roster: las cards y sus canvas 3D no deben volver a renderizar
+// por mover el raton sobre el tablero.
+export default memo(Roster, (prev, next) => (
+  prev.side === next.side &&
+  prev.title === next.title &&
+  prev.titleClassName === next.titleClassName &&
+  prev.units === next.units &&
+  prev.rolls === next.rolls &&
+  prev.rolling === next.rolling &&
+  prev.activeSide === next.activeSide &&
+  prev.enemyTurn === next.enemyTurn &&
+  prev.rollTick === next.rollTick &&
+  prev.selected === next.selected &&
+  prev.status === next.status &&
+  prev.playerLordHp === next.playerLordHp &&
+  prev.enemyLordHp === next.enemyLordHp &&
+  prev.reservePlayerCount === next.reservePlayerCount &&
+  prev.reserveEnemyCount === next.reserveEnemyCount &&
+  prev.lordRoll === next.lordRoll &&
+  prev.lordActed === next.lordActed
+))

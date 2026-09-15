@@ -2,6 +2,7 @@
 // columna centrada con icono, titulo, resumen y contenido. Presentacional.
 import { HpBar, ClassEmblem } from '../Emblems'
 import { CLASS_STATS } from '../../axie'
+import GameHeader from './GameHeader'
 
 export function StatChip({ label, value, title }) {
   return (
@@ -35,15 +36,7 @@ export function MetaUnitRow({ u }) {
 export default function MetaScreen({ icon, title, blurb, children }) {
   return (
     <section className="meta-screen">
-      <div className="meta-head">
-        <span className="meta-icon" aria-hidden="true">
-          {icon}
-        </span>
-        <div>
-          <h2 className="meta-title">{title}</h2>
-          <p className="meta-blurb">{blurb}</p>
-        </div>
-      </div>
+      <GameHeader icon={icon} title={title} blurb={blurb} />
       {children}
     </section>
   )

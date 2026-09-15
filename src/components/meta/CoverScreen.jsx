@@ -32,8 +32,8 @@ export default function CoverScreen({ onEnter, onPlay }) {
       <div className="cover-hero">
         <h1 className="cover-logo">
           <img
-            src="/brand/logo.svg"
-            alt="Tactic Dice"
+            src="/brand/axie-infinity-tactics-dices.png"
+            alt="Axie Infinity Tactics Dices"
             className="cover-logo-img"
             width={460}
             height={220}
