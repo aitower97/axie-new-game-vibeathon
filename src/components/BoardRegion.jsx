@@ -121,7 +121,7 @@ export default function BoardRegion({ board3d, overlay }) {
             el ActionPad (seleccion de ataque basico/especial), que no puede
             compartir hueco. */}
         <EnergyGauge bank={energyBank} cap={energyCap} />
-        <EnergyGauge bank={enemyEnergyBank} cap={energyCap} side="enemy" label="Energía rival" />
+        <EnergyGauge bank={enemyEnergyBank} cap={energyCap} side="enemy" label="Enemy Energy" />
         <div className="board3d-host">
           <Board3D
             rows={ROWS}
@@ -148,7 +148,7 @@ export default function BoardRegion({ board3d, overlay }) {
               panel de ayuda real HelpOverlay: hover informa, clic explica. */}
           <div className="board-view-hint" onClick={() => setShowHelp(true)}>
             ?
-            <span className="tip">Clic para ver como jugar · Arrastra para mover · rueda para zoom · R para centrar</span>
+            <span className="tip">Click to see how to play · Drag to move · wheel to zoom · R to re-center</span>
           </div>
           {turnLabel && <div className="board-turn-status">{turnLabel}</div>}
           {showHelp && <HelpOverlay onClose={() => setShowHelp(false)} />}
@@ -226,9 +226,9 @@ export default function BoardRegion({ board3d, overlay }) {
                           </span>
                           <HpBar hp={unit.hp} maxHp={unit.maxHp} />
                           {unit.shield > 0 && <ShieldBar />}
-                          {unit.broken && <span className="unit-broken" title="Rotura: no puede contraatacar">Rotura</span>}
+                          {unit.broken && <span className="unit-broken" title="Break: cannot counterattack">Break</span>}
                           {selected === unit.id && energyBank > 0 && (
-                            <span className="unit-energy" title="Banca de Energia persistente: caras sin golpe de tu tirada dan +1">⚡{energyBank}/{energyCap}</span>
+                            <span className="unit-energy" title="Persistent Energy bank: non-strike faces from your roll give +1">⚡{energyBank}/{energyCap}</span>
                           )}
                         </div>
                       )}

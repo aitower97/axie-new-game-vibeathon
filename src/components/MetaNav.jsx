@@ -1,15 +1,15 @@
 // Navegacion principal del shell: gestion, modos de juego y partida.
 const TABS = [
-  { key: 'aldea', label: 'Aldea', icon: 'AL' },
-  { key: 'evolucion', label: 'Laboratorio', icon: 'LA' },
+  { key: 'aldea', label: 'Village', icon: 'VI' },
+  { key: 'evolucion', label: 'Lab', icon: 'LA' },
   { key: 'pve', label: 'PVE', icon: 'PV' },
   { key: 'pvp', label: 'PVP', icon: 'VP' },
-  { key: 'partida', label: 'Combate', icon: 'CO' },
+  { key: 'partida', label: 'Match', icon: 'MA' },
 ]
 
 export default function MetaNav({ route, compressed }) {
   return (
-    <nav className={`meta-nav ${compressed ? 'compressed' : ''}`} aria-label="Navegacion">
+    <nav className={`meta-nav ${compressed ? 'compressed' : ''}`} aria-label="Navigation">
       {TABS.map((t) => (
         <a
           key={t.key}

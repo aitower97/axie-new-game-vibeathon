@@ -2,7 +2,7 @@
 // tablero: un anillo de progreso SVG (no un numero suelto en un chip) que se
 // llena hasta el tope ENERGY_CAP.
 //
-// Como funciona (A3, docs/combate-dinamico-dado.md seccion 6.4):
+// Como funciona (A3, docs/design/combate-dinamico-dado.md seccion 6.4):
 //   - La Energia sale de TU tirada: cada cara sin golpe que asientas
 //     (guardia/reposicion/utilidad, ver yieldsEnergy) mete +1 en la banca.
 //   - La banca PERSISTE toda la partida: ya NO se vacia al cambiar de turno
@@ -45,13 +45,13 @@ export default function EnergyGauge({ bank, cap, side = 'player', label }) {
         <span className="energy-ring-num">{bank}</span>
       </div>
       <div className="energy-gauge-info">
-        <span className="energy-gauge-title">{label ?? 'Energia'} {bank}/{cap}</span>
+        <span className="energy-gauge-title">{label ?? 'Energy'} {bank}/{cap}</span>
         {isEnemy ? (
-          <span className="energy-gauge-tip">Lo que el rival reune con sus tiradas</span>
+          <span className="energy-gauge-tip">What the enemy gathers from its rolls</span>
         ) : (
           <>
-            <span className="energy-gauge-costs">2E: +10 golpe · 2E: +1 casilla</span>
-            <span className="energy-gauge-tip">{bank >= 2 ? 'Lista para gastar' : 'Tiradas sin golpe = +1 (persiste)'}</span>
+            <span className="energy-gauge-costs">2E: +10 hit · 2E: +1 tile</span>
+            <span className="energy-gauge-tip">{bank >= 2 ? 'Ready to spend' : 'Non-strike rolls = +1 (persists)'}</span>
           </>
         )}
       </div>

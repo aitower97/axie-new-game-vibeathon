@@ -1,14 +1,14 @@
 import { CombatLogIcon } from './LineIcons'
 
 const RULES = [
-  [/Empieza el asedio/i, 'attack'], [/se acaba el reloj/i, 'event'], [/^Lord \w+: /, 'target'],
-  [/estaba bendecido/i, 'heal'], [/Templanza/i, 'heal'], [/estaba marcado/i, 'target'],
-  [/cae\.?/, 'event'], [/remata/, 'attack'], [/reposiciona/i, 'move'], [/se mueve/i, 'move'],
-  [/avanza/i, 'move'], [/empuja/i, 'attack'], [/Ignora el escudo/i, 'attack'],
-  [/absorbe/i, 'shield'], [/de escudo/, 'shield'], [/se hace \d+ de dano/, 'attack'],
-  [/usa (la marca|marca|Marca)/, 'target'], [/usa /, 'attack'], [/dispara/, 'attack'],
-  [/duplica/, 'event'], [/invoca/, 'event'], [/protege/, 'shield'], [/marca a/, 'target'],
-  [/cura/, 'heal'], [/no tiene/, 'event'], [/^[^ ]+ \w+: /, 'event'], [/Tira los dados/, 'event'],
+  [/siege begins/i, 'attack'], [/clock runs out/i, 'event'], [/^w+ Lord: /, 'target'],
+  [/was blessed/i, 'heal'], [/Temperance/i, 'heal'], [/was marked/i, 'target'],
+  [/falls.?/, 'event'], [/finishes off/, 'attack'], [/repositions/i, 'move'], [/moves/i, 'move'],
+  [/advances/i, 'move'], [/pushes/i, 'attack'], [/Ignores the target/i, 'attack'],
+  [/absorbs/i, 'shield'], [/shield/, 'shield'], [/takes d+ self-damage/, 'attack'],
+  [/uses (the )?mark/i, 'target'], [/uses /, 'attack'], [/fires/, 'attack'],
+  [/duplicates/, 'event'], [/summons/, 'event'], [/shields /, 'shield'], [/marks /, 'target'],
+  [/heals/, 'heal'], [/has no/, 'event'], [/^[^ ]+ w+: /, 'event'], [/Roll the dice/, 'event'],
 ]
 
 function logIco(line) {

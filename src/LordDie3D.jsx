@@ -24,12 +24,12 @@ const DIE_COLOR = 0xffffff
 // Identidad visual por mando: tono propio (mismo idioma que los colores de
 // clase de los axies) + glifo. El nombre es el mismo de LORD_DIE.
 const LORD_FACES = [
-  { effect: 'lord-shield', name: 'Muro', glyph: LORD_GLYPH['lord-shield'], tint: '#6fb7d7' },
-  { effect: 'lord-mark', name: 'Marca', glyph: LORD_GLYPH['lord-mark'], tint: '#e58bc6' },
-  { effect: 'lord-heal', name: 'Cura', glyph: LORD_GLYPH['lord-heal'], tint: '#7fbf7f' },
-  { effect: 'lord-buff', name: 'Templanza', glyph: LORD_GLYPH['lord-buff'], tint: '#7fd4c1' },
-  { effect: 'lord-attack', name: 'Ataque', glyph: LORD_GLYPH['lord-attack'], tint: LORD_ACCENT },
-  { effect: 'lord-clone', name: 'Duplicar', glyph: LORD_GLYPH['lord-clone'], tint: '#b48fe8' },
+  { effect: 'lord-shield', name: 'Wall', glyph: LORD_GLYPH['lord-shield'], tint: '#6fb7d7' },
+  { effect: 'lord-mark', name: 'Mark', glyph: LORD_GLYPH['lord-mark'], tint: '#e58bc6' },
+  { effect: 'lord-heal', name: 'Heal', glyph: LORD_GLYPH['lord-heal'], tint: '#7fbf7f' },
+  { effect: 'lord-buff', name: 'Temperance', glyph: LORD_GLYPH['lord-buff'], tint: '#7fd4c1' },
+  { effect: 'lord-attack', name: 'Attack', glyph: LORD_GLYPH['lord-attack'], tint: LORD_ACCENT },
+  { effect: 'lord-clone', name: 'Duplicate', glyph: LORD_GLYPH['lord-clone'], tint: '#b48fe8' },
 ]
 const EFFECT_TO_INDEX = Object.fromEntries(LORD_FACES.map((f, i) => [f.effect, i]))
 

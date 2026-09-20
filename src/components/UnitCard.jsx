@@ -50,7 +50,7 @@ function UnitCard({ unit: u, rolledFace, rolling, activeSide, enemyTurn, rollTic
             <span className="class-stats">
               <b
                 className="stat-ico"
-                title={`Movimiento: ${stats.move} paso${stats.move > 1 ? 's' : ''}`}
+                title={`Movement: ${stats.move} step${stats.move > 1 ? 's' : ''}`}
               >
                 <MoveIcon size={13} /> {stats.move}
               </b>
@@ -58,8 +58,8 @@ function UnitCard({ unit: u, rolledFace, rolling, activeSide, enemyTurn, rollTic
                 className="stat-ico"
                 title={
                   stats.range > 1
-                    ? `Alcance: ${stats.range} casillas a distancia`
-                    : 'Alcance: cuerpo a cuerpo (1 casilla)'
+                    ? `Range: ${stats.range} tiles at a distance`
+                    : 'Range: melee (1 tile)'
                 }
               >
                 <RangeIcon size={13} /> {stats.range}
@@ -96,17 +96,17 @@ function UnitCard({ unit: u, rolledFace, rolling, activeSide, enemyTurn, rollTic
           {rolledFace && (
             <div className="card-foot-face">
               <FaceRow slot={rolledFace.slot} face={rolledFace} active />
-              {u.acted && <span className="done">Ya ha actuado</span>}
+              {u.acted && <span className="done">Already acted</span>}
             </div>
           )}
           {u.side === activeSide && !u.acted && rolledFace && status === 'playing' && (
             <button className="small" onClick={(event) => { event.stopPropagation(); onSelect() }}>
-              {selected === u.id ? 'Deseleccionar' : 'Seleccionar'}
+              {selected === u.id ? 'Deselect' : 'Select'}
             </button>
           )}
         </div>
       )}
-      {!u.alive && <div className="hint">Caida. Perdida definitiva.</div>}
+      {!u.alive && <div className="hint">Fallen. Lost for good.</div>}
     </div>
   )
 }

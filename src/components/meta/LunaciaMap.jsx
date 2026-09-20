@@ -19,8 +19,8 @@ export default function LunaciaMap({ wins, onPlay, onPlayFree }) {
   return (
     <MetaScreen
       icon="🤖"
-      title="PVE: Mapa de Lunacia"
-      blurb="Recorre Lunacia de punta a punta: cada region esconde escaramuzas contra starters y axies salvajes. Gana una zona para abrir la siguiente region; cada victoria regala esencia."
+      title="PVE: Map of Lunacia"
+      blurb="Cross Lunacia from end to end: each region hides skirmishes against starters and wild Axies. Win a zone to open the next region; every win rewards essence."
     >
       <div className="map-scene">
         <svg className="map-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
@@ -39,7 +39,7 @@ export default function LunaciaMap({ wins, onPlay, onPlayFree }) {
               style={{ left: `${r.x}%`, top: `${r.y}%`, '--node': r.color }}
               disabled={!open}
               onClick={() => setActiveId(r.id)}
-              title={open ? `${r.name} — ${done ? 'despejada' : 'por despejar'}` : 'Gana la region anterior para abrirla'}
+              title={open ? `${r.name} — ${done ? 'cleared' : 'to clear'}` : 'Win the previous region to open it'}
             >
               <span className="map-node-dot" />
               <span className="map-node-name">{r.name}</span>
@@ -55,10 +55,10 @@ export default function LunaciaMap({ wins, onPlay, onPlayFree }) {
             <div className="map-region-title">{region.name}</div>
             <div className="map-region-actions">
               <span className="map-region-difficulty">
-                {isDone(region.id) ? 'Despejada' : REGIONS.indexOf(region) === 0 ? 'Zona inicial' : 'Abierta'}
+                {isDone(region.id) ? 'Cleared' : REGIONS.indexOf(region) === 0 ? 'Starting zone' : 'Open'}
               </span>
               <button type="button" className="ghost meta-action" onClick={onPlayFree}>
-                Partida libre ⚔
+                Free match ⚔
               </button>
             </div>
           </div>
@@ -72,13 +72,13 @@ export default function LunaciaMap({ wins, onPlay, onPlayFree }) {
                     <div className="map-zone-name">{z.name}</div>
                     <div className="map-zone-blurb">{z.blurb}</div>
                     <div className="map-zone-chips">
-                      <StatChip label="RECOMPENSA" value={`${cfg.reward} esencia`} />
-                      <StatChip label="HP RIVAL" value={cfg.hpScale === 1 ? 'normal' : `×${cfg.hpScale.toFixed(2)}`} />
-                      <StatChip label="RIVAL" value={cfg.starterEnemy ? 'starters' : 'salvajes'} />
+                      <StatChip label="REWARD" value={`${cfg.reward} essence`} />
+                      <StatChip label="ENEMY HP" value={cfg.hpScale === 1 ? 'normal' : `×${cfg.hpScale.toFixed(2)}`} />
+                      <StatChip label="ENEMY" value={cfg.starterEnemy ? 'starters' : 'wild'} />
                     </div>
                   </div>
                   <button type="button" className="ghost meta-action map-zone-play" onClick={() => onPlay(cfg)}>
-                    {won ? 'Repetir ✓' : 'Jugar'}
+                    {won ? 'Replay ✓' : 'Play'}
                   </button>
                 </div>
               )

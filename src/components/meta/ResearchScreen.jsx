@@ -17,13 +17,13 @@ export default function ResearchScreen({ units, meta, invest }) {
   return (
     <MetaScreen
       icon="🔬"
-      title="Investigacion"
-      blurb="El dado de cada Axie esta hecho de sus seis partes. Evolucionar una parte reescribe esa cara del dado: la genoma es inseparable de la mecanica."
+      title="Research"
+      blurb="Each Axie's die is made of its six parts. Evolving a part rewrites that die face: the genome is inseparable from the mechanics."
     >
       <div className="meta-panel meta-panel-muted">
-        <StatChip label="ESENCIA" value={meta.essence} />
-        <StatChip label="COSTE MEJORA" value={UPGRADE_COST} />
-        <StatChip label="BONUS POR NIVEL" value={`+${UPGRADE_BONUS}`} />
+        <StatChip label="ESSENCE" value={meta.essence} />
+        <StatChip label="UPGRADE COST" value={UPGRADE_COST} />
+        <StatChip label="BONUS PER LEVEL" value={`+${UPGRADE_BONUS}`} />
       </div>
       {squad.map((u) => {
         const stats = CLASS_STATS[u.klass]
@@ -45,7 +45,7 @@ export default function ResearchScreen({ units, meta, invest }) {
                     <div className="meta-node-head">
                       <b>{SLOT_LABEL_MVP1[face.slot]}</b>
                       <span className="meta-node-level">
-                        {level > 0 ? `Nv ${level + 1}` : 'Nv 1'}
+                        {level > 0 ? `Lv ${level + 1}` : 'Lv 1'}
                       </span>
                     </div>
                     <div className="meta-node-face">{face.name}</div>
@@ -58,7 +58,7 @@ export default function ResearchScreen({ units, meta, invest }) {
                       disabled={meta.essence < UPGRADE_COST}
                       onClick={() => invest(key)}
                     >
-                      Mejorar ({UPGRADE_COST})
+                      Upgrade ({UPGRADE_COST})
                     </button>
                   </div>
                 )
@@ -68,9 +68,9 @@ export default function ResearchScreen({ units, meta, invest }) {
         )
       })}
       <p className="meta-note">
-        First-approach: la mejora solo pinta el nivel y el +5 en esta pantalla; el rediseno real de
-        la cara (reescribir el valor y la descripcion de ESA ranura en el dado) es el modelo de
-        datos de progresion que aterriza en la siguiente fase.
+        First-approach: the upgrade only paints the level and the +5 on this screen; the real redesign of
+        the face (rewriting the value and description of THAT slot on the die) is the progression
+        data model that lands in the next phase.
       </p>
     </MetaScreen>
   )

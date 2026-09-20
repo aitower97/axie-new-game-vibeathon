@@ -43,23 +43,23 @@ export default function ActionPad({
     context = (
       <>
         <b>Lord {lordLabel}</b> · {activeLordRoll.name}
-        {activeLordRoll.effect === 'lord-attack' && ' Ataque del Lord: toca a un objetivo a alcance 2.'}
-        {activeLordRoll.effect === 'lord-shield' && ' Muro: toca a un aliado a alcance 3 para darle 30 de escudo.'}
-        {activeLordRoll.effect === 'lord-mark' && ' Marca: toca a un enemigo a alcance 3 -el proximo ataque que le impacte hace +20.'}
-        {activeLordRoll.effect === 'lord-heal' && ' Cura: toca a un aliado a alcance 3 para darle 15 de vida.'}
-        {activeLordRoll.effect === 'lord-buff' && ' Templanza: toca a un aliado a alcance 3 -su proximo ataque hara +15.'}
+        {activeLordRoll.effect === 'lord-attack' && ' Lord Attack: tap a target within range 2.'}
+        {activeLordRoll.effect === 'lord-shield' && ' Wall: tap an ally within range 3 to give it 30 shield.'}
+        {activeLordRoll.effect === 'lord-mark' && ' Mark: tap an enemy within range 3 - the next attack that hits it deals +20.'}
+        {activeLordRoll.effect === 'lord-heal' && ' Heal: tap an ally within range 3 to give it 15 HP.'}
+        {activeLordRoll.effect === 'lord-buff' && ' Temperance: tap an ally within range 3 - its next attack will deal +15.'}
         {activeLordRoll.effect === 'lord-clone' &&
           (nextReserveLabel
-            ? ` Duplicar: toca a un aliado a alcance 3 para clonarlo, o una casilla libre junto al Lord para sacar a ${nextReserveLabel} de la reserva.`
-            : ' Duplicar: toca a un aliado a alcance 3 para clonarlo (no queda reserva que sacar).')}
+            ? ` Duplicate: tap an ally within range 3 to clone it, or a free tile next to the Lord to bring ${nextReserveLabel} out of reserve.`
+            : ' Duplicate: tap an ally within range 3 to clone it (no reserve left to bring out).')}
       </>
     )
   } else if (unitLabel && rolled) {
     context = (
       <>
         <b>{unitLabel}</b> · {rolled.slotLabel} ({rolled.name}) · {rolled.text}
-        {isReposition && ' Puedes moverte tu, o tocar a un aliado adyacente para reposicionarlo.'}
-        {moved && <em className="pad-moved-hint">Ya se movio: solo puede atacar.</em>}
+        {isReposition && ' You can move yourself, or tap an adjacent ally to reposition it.'}
+        {moved && <em className="pad-moved-hint">Already moved: it can only attack.</em>}
       </>
     )
   }
@@ -68,7 +68,7 @@ export default function ActionPad({
     <div className="action-pad">
       <div className="action-pad-line">
         <span className="action-pad-context">{context ?? <span>&nbsp;</span>}</span>
-        <span className={`energy-chip ${energyBank > 0 ? 'has-energy' : ''}`}>Energia {energyBank}/{energyCap}</span>
+        <span className={`energy-chip ${energyBank > 0 ? 'has-energy' : ''}`}>Energy {energyBank}/{energyCap}</span>
       </div>
 
       {!isLord && (
@@ -79,13 +79,13 @@ export default function ActionPad({
               describeExchange via App.jsx). */}
           {exchangeAffinity != null && (
             <span className={`odds-chip affinity ${exchangeAffinity > 1 ? 'up' : exchangeAffinity < 1 ? 'down' : ''}`}>
-              {exchangeAffinity > 1 ? `Afinidad x${exchangeAffinity}` : exchangeAffinity < 1 ? `Contra x${exchangeAffinity}` : 'Afinidad neutral'}
+              {exchangeAffinity > 1 ? `Affinity x${exchangeAffinity}` : exchangeAffinity < 1 ? `Weak x${exchangeAffinity}` : 'Neutral affinity'}
             </span>
           )}
           {exchangeCrit && exchangeCrit.rate > 0 && (
-            <span className="odds-chip crit">Critico {Math.round(exchangeCrit.rate)}% x{exchangeCrit.dmg}</span>
+            <span className="odds-chip crit">Critical {Math.round(exchangeCrit.rate)}% x{exchangeCrit.dmg}</span>
           )}
-          {overtime && <span className="odds-chip overtime">Muerte subita: +2 casillas, +50% dano</span>}
+          {overtime && <span className="odds-chip overtime">Sudden Death: +2 tiles, +50% damage</span>}
         </div>
       )}
 
@@ -97,7 +97,7 @@ export default function ActionPad({
             disabled={!hasBasic}
             onClick={() => onMode('basic')}
           >
-            Básico
+            Basic
           </button>
           {rolled && (
             <button
@@ -106,10 +106,10 @@ export default function ActionPad({
               disabled={!hasSpecial}
               onClick={() => onMode('special')}
             >
-              Especial: {rolled.name}
+              Special: {rolled.name}
             </button>
           )}
-          {!canAct && <span className="pad-no-target">Sin objetivos al alcance.</span>}
+          {!canAct && <span className="pad-no-target">No targets in range.</span>}
           <span className="action-pad-spacer" />
           <button
             type="button"
@@ -117,7 +117,7 @@ export default function ActionPad({
             disabled={!canMoveBoost}
             onClick={onToggleMoveBoost}
           >
-            {moveBoostArmed ? '+1 casilla listo (2 E)' : 'Gastar 2 E: +1 casilla'}
+            {moveBoostArmed ? '+1 tile ready (2 E)' : 'Spend 2 E: +1 tile'}
           </button>
           <button
             type="button"
@@ -125,7 +125,7 @@ export default function ActionPad({
             disabled={!canBoost}
             onClick={onToggleBoost}
           >
-            {boostArmed ? '+10 listo (2 E)' : 'Gastar 2 E: +10 al golpe'}
+            {boostArmed ? '+10 ready (2 E)' : 'Spend 2 E: +10 to the hit'}
           </button>
         </div>
       )}

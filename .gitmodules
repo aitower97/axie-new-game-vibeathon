@@ -1,3 +1,0 @@
-[submodule ".claude/agents-hub"]
-	path = .claude/agents-hub
-	url = https://github.com/aitower97/hub-agentes-app

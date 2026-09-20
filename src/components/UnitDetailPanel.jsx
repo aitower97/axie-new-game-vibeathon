@@ -13,7 +13,7 @@ export default function UnitDetailPanel({ unit, rolledFace, rollTick }) {
   if (!unit) {
     return (
       <div className="unit-detail-panel empty">
-        <p className="hint">Haz clic en una card para ver el detalle de sus partes.</p>
+        <p className="hint">Click a card to see the details of its parts.</p>
       </div>
     )
   }

@@ -9,16 +9,16 @@ export default function Controls({ status, rolled, rolling, busy, activeSide, ti
   return (
     <div className="controls">
       <button onClick={onRoll} disabled={status !== 'playing' || rolled || rolling || busy}>
-        {rolling ? 'Lanzando dados…' : busy ? 'Turno rival…' : `Tirar dados (${activeSide === 'player' ? 'Player' : 'Enemy'})`}
+        {rolling ? 'Rolling dice…' : busy ? 'Enemy turn…' : `Roll dice (${activeSide === 'player' ? 'Player' : 'Enemy'})`}
       </button>
       <button onClick={onPass} disabled={status !== 'playing' || rolling || busy}>
-        {busy ? 'Resolviendo turno rival…' : 'Pasar turno'}
+        {busy ? 'Resolving enemy turn…' : 'Pass turn'}
       </button>
       <button className="ghost" onClick={onReset}>
-        Reiniciar partida
+        Restart match
       </button>
       {timer != null && (
-        <span className={`turn-timer ${danger ? 'danger' : ''}`} title="Tic-tac PVP: al llegar a 0 se tiran los dados y se pasa el turno.">
+        <span className={`turn-timer ${danger ? 'danger' : ''}`} title="PVP turn timer: at 0 the dice are rolled and the turn passes.">
           ⏱ {timer}s
         </span>
       )}
