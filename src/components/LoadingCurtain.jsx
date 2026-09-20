@@ -11,8 +11,8 @@ export default function LoadingCurtain({ visible }) {
           <span key={slot} className="loading-die-cell" style={{ '--i': i }} />
         ))}
       </div>
-      <p className="loading-title">Axie</p>
-      <p className="loading-sub">Tactic Dice · forging the die and the board…</p>
+      <p className="loading-title">Axie Tactics Dices</p>
+      <p className="loading-sub">Forging the dice and the board…</p>
     </div>
   )
 }

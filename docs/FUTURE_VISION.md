@@ -1,18 +1,18 @@
-# Tactic Dice — Future Vision
+# Axie Tactics Dices — Future Vision
 
 > **Reading guide.** Every section is split into **Implemented now** (what the prototype does today) and **Future vision** (direction, not built). Nothing under "Future vision" exists in the current build.
 
 ## 1. From Prototype to Full Game
 
-**Implemented now:** a playable tactics prototype — 8×7 3D board, three playable classes, AI enemies, PVE missions on a Lunacia map, PVP-style arenas against the AI, a hub with Lab / Research / Resources, ambient music and real Axie Origins VFX.
+**Implemented now:** a playable tactics prototype — 8×7 3D board, three playable classes, AI enemies, PVE missions on a Lunacia map, PVP-style arenas against the AI, a Village hub with Lab, PVE and PVP, ambient music and real Axie Origins VFX.
 
-**What it proves:** the idea in one sentence — *the die of every Axie is made of its six body parts, and evolving a part rewrites that face.* A match is short, readable, and the character's genetics are what you play with.
+**What it proves:** the idea in one sentence — *the dice of every Axie is made of its six body parts, and evolving a part rewrites that face.* A match is short, readable, and the character's genetics are what you play with.
 
-**Future vision:** grow the same core into a full game without changing its rule: body part = die face.
+**Future vision:** grow the same core into a full game without changing its rule: body part = dice face.
 
 ## 2. Core Game Loop
 
-**Implemented now:** roll the die → move / choose Basic or Special → resolve combat (affinity, crits, counterattack) → earn Essence → evolve or lock a part in the Lab → play again with a rewritten die.
+**Implemented now:** roll the dice → move / choose Basic or Special → resolve combat (affinity, crits, counterattack) → earn Essence → evolve or lock a part in the Lab → play again with a rewritten dice.
 
 **Future vision:** Axie → combat → progression → evolution → build decisions → new adventures, with each loop turn asking the player to reshape the probability of their Axies' dice, not just raise a number.
 
@@ -21,17 +21,17 @@
 This is the heart of the project. **The genome is not decoration — it is the mechanic.**
 
 **Implemented now:**
-- Each Axie has six parts and a class. Each part maps to a die face (four combat slots: horn, mouth, back, tail; eyes and ears are reserved faces).
+- Each Axie has six parts and a class. Each part maps to a dice face (four combat slots: horn, mouth, back, tail; eyes and ears are reserved faces).
 - Part names are real Axie parts (Imp, Little Branch, Balloon, Shrimp, Swallow…), rendered with the official 3D parts from the Axie Origins kit.
 - Class drives stats, affinity triangle and critical profile.
-- Evolving a part rewrites that die face; locking a part reshapes the die's probability.
-- Remove the parts and there is no die — and without the die there is no game.
+- Evolving a part rewrites that dice face; locking a part reshapes the dice's probability.
+- Remove the parts and there is no dice — and without the dice there is no game.
 
 **Future vision:** more parts (eyes/ears with real effects), part synergies (e.g. the Nut Crack + Nut Throw combo already in the prototype as a pattern), and body-build identity beyond class.
 
 ## 4. Persistent Lunacia
 
-**Implemented now:** a navigable Lunacia map with regions and mission nodes, a hub, and the Lord as your command post. State lives in the browser session only.
+**Implemented now:** a navigable Lunacia map with regions and mission nodes, a Village hub, and the Lord as your command post. State lives in the browser session only.
 
 **Future vision:** a persistent world — regions that remember victories, events, and a campaign that progresses across sessions.
 
@@ -51,13 +51,13 @@ This is the heart of the project. **The genome is not decoration — it is the m
 
 **Implemented now:** three AI-run arenas with a 20 s turn clock and Sudden Death overtime (+2 movement, +50 % damage).
 
-**Future vision:** real player-versus-player, ranked ladders, seasons, alternative formats and competitive builds (the die makes the "build" itself the metagame).
+**Future vision:** real player-versus-player, ranked ladders, seasons, alternative formats and competitive builds (the dice makes the "build" itself the metagame).
 
 ## 8. Colony / Resource Layer
 
-**Implemented now:** a hub with Essence, a Research screen and a Resources screen — a session-level skeleton of the meta economy, not connected to any backend.
+**Implemented now:** a Village where Axies gather Wood, Stone and Food, plus Essence for evolution — a session-level skeleton of the meta economy, not connected to any backend.
 
-**Future vision:** a deeper meta layer where resources, research and the hub connect to progression across sessions. The asymmetric-sink idea already documented in `docs/design/decision-de-producto.md` (troops are consumed, the Lord is only wounded) fits this layer.
+**Future vision:** a deeper meta layer where resources and the Village connect to progression across sessions. The asymmetric-sink idea already documented in `docs/design/decision-de-producto.md` (troops are consumed, the Lord is only wounded) fits this layer.
 
 ## 9. Axie Ecosystem / On-chain Future
 
@@ -77,4 +77,4 @@ This is the heart of the project. **The genome is not decoration — it is the m
 - **Distributions, not stats.** Evolving and locking shape probabilities, giving depth without number inflation.
 - **Builds and counterplay.** Affinity, guard, Break and crits make faces matter in context.
 - **Readable progression.** A player sees exactly which face changed.
-- **Collectability.** Every part is a piece of a die, so parts become meaningful to collect and combine.
+- **Collectability.** Every part is a piece of a dice, so parts become meaningful to collect and combine.

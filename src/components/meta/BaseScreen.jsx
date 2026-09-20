@@ -20,7 +20,7 @@ const HEAL_AMOUNT = 30
 const NAV = [
   { route: 'pve', Icon: MapIcon, title: 'PVE · Map of Lunacia', text: 'Regions, nodes and essence per win.', accent: '#3fa9e0' },
   { route: 'pvp', Icon: TrophyIcon, title: 'PVP · Arenas', text: 'Duels against regular community Axies.', accent: '#e0544f' },
-  { route: 'evolucion', Icon: FlaskIcon, title: 'Lab', text: 'Evolve parts and lock die faces.', accent: '#e3a857' },
+  { route: 'evolucion', Icon: FlaskIcon, title: 'Lab', text: 'Evolve parts and lock dice faces.', accent: '#e3a857' },
   { route: 'investigacion', Icon: SearchIcon, title: 'Research', text: 'Genome details and upgrades.', accent: '#7fe7c4' },
   { route: 'recursos', Icon: ScaleIcon, title: 'Resources', text: "The post's session economy.", accent: '#c9a86a' },
 ]
@@ -125,7 +125,7 @@ export default function BaseScreen({ units, playerLordHp, essence, augments, onH
           </div>
           <div className="hub3-note">
             <b>Before playing</b>
-            <p>Stop by the Lab: pick your faces, lock what is left over and let the die work for you.</p>
+            <p>Stop by the Lab: pick your faces, lock what is left over and let the dice work for you.</p>
           </div>
         </div>
       </div>

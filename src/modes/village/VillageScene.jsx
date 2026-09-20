@@ -15,19 +15,19 @@ const NO_TWEEN = () => {}
 
 const BUILDING_LABELS = {
   'town-hall': 'Town Hall',
-  house: 'Casa',
-  storage: 'Almacen',
-  warehouse: 'Almacén',
-  farm: 'Granja',
-  mine: 'Mina',
+  house: 'House',
+  storage: 'Storage',
+  warehouse: 'Warehouse',
+  farm: 'Farm',
+  mine: 'Mine',
 }
 
-const RESOURCE_LABELS = { wood: 'Madera', stone: 'Piedra', food: 'Comida' }
+const RESOURCE_LABELS = { wood: 'Wood', stone: 'Stone', food: 'Food' }
 const ACTIVITY_LABELS = {
-  [ACTOR_ACTIVITY.IDLE]: 'Disponible',
-  [ACTOR_ACTIVITY.MOVING]: 'Moviéndose',
-  [ACTOR_ACTIVITY.WORKING]: 'Trabajando',
-  [ACTOR_ACTIVITY.CARRYING]: 'Transportando',
+  [ACTOR_ACTIVITY.IDLE]: 'Available',
+  [ACTOR_ACTIVITY.MOVING]: 'Moving',
+  [ACTOR_ACTIVITY.WORKING]: 'Working',
+  [ACTOR_ACTIVITY.CARRYING]: 'Carrying',
 }
 
 export default function VillageScene({ onResourcesChange }) {
@@ -276,46 +276,46 @@ export default function VillageScene({ onResourcesChange }) {
           <img className="village-brand-logo" src="/brand/axie-infinity-tactics-dices.png" alt="Axie Infinity Tactics Dices" />
           <span className="eyebrow">LUNACIA · PROTOTIPO</span>
           <span className="village-title-kicker">AXIE INFINITY TACTICS DICES</span>
-          <h1 className="meta-title">Aldea de Lunacia</h1>
-          <p>20×20 casillas · 5 Axies disponibles · recursos preparados</p>
+          <h1 className="meta-title">Lunacia Village</h1>
+          <p>20×20 tiles · 5 Axies available · resources ready</p>
         </div>
         <div className="village-resource-summary">
           {Object.entries(state.resources).map(([type, amount]) => (
             <span key={type}>{RESOURCE_LABELS[type]} <b>{amount}</b></span>
           ))}
         </div>
-        <nav className="village-hud-nav" aria-label="Menu de aldea">
-          <a className="active" href="#/aldea">Aldea</a>
+        <nav className="village-hud-nav" aria-label="Village menu">
+          <a className="active" href="#/aldea">Village</a>
           <a href="#/pve">PVE</a>
           <a href="#/pvp">PVP</a>
-          <a href="#/partida">Combate</a>
+          <a href="#/partida">Battle</a>
         </nav>
       </div>
       {(selectedAxie || selectedResource || selectedBuilding) && (
         <aside className="village-inspector">
           {selectedAxie && <>
-            <span className="eyebrow">AXIE SELECCIONADO</span>
+            <span className="eyebrow">SELECTED AXIE</span>
             <strong>{selectedAxie.id}</strong>
-            <span>Estado: {ACTIVITY_LABELS[selectedAxie.activity] || selectedAxie.activity}</span>
-            {selectedAxie.task && <span>Tarea: {selectedAxie.task.type}</span>}
-            {selectedAxie.carrying && <span>Carga: {RESOURCE_LABELS[selectedAxie.carrying.type]} {selectedAxie.carrying.amount}</span>}
+            <span>Status: {ACTIVITY_LABELS[selectedAxie.activity] || selectedAxie.activity}</span>
+            {selectedAxie.task && <span>Task: {selectedAxie.task.type}</span>}
+            {selectedAxie.carrying && <span>Carrying: {RESOURCE_LABELS[selectedAxie.carrying.type]} {selectedAxie.carrying.amount}</span>}
           </>}
           {!selectedAxie && selectedResource && <>
-            <span className="eyebrow">RECURSO</span>
+            <span className="eyebrow">RESOURCE</span>
             <strong>{RESOURCE_LABELS[selectedResource.type]}</strong>
-            <span>Cantidad: {selectedResource.amount}/{selectedResource.maxAmount}</span>
-            <span>Tiempo de trabajo: {selectedResource.workTime}s</span>
+            <span>Amount: {selectedResource.amount}/{selectedResource.maxAmount}</span>
+            <span>Work time: {selectedResource.workTime}s</span>
           </>}
           {!selectedAxie && selectedBuilding && <>
-            <span className="eyebrow">EDIFICIO</span>
+            <span className="eyebrow">BUILDING</span>
             <strong>{BUILDING_LABELS[selectedBuilding.type]}</strong>
-            <span>Estado: {selectedBuilding.state}</span>
-            <span>Superficie: {selectedBuilding.footprint.rows}×{selectedBuilding.footprint.cols}</span>
+            <span>Status: {selectedBuilding.state}</span>
+            <span>Footprint: {selectedBuilding.footprint.rows}×{selectedBuilding.footprint.cols}</span>
           </>}
         </aside>
       )}
       <aside className="village-work-panel">
-        <span className="eyebrow">TRABAJOS</span>
+        <span className="eyebrow">JOBS</span>
         {state.axies.map((axie) => (
           <button
             key={axie.id}
@@ -357,13 +357,13 @@ export default function VillageScene({ onResourcesChange }) {
                   style={{ left: c * CELL_SIZE, top: r * CELL_SIZE, width: CELL_SIZE, height: CELL_SIZE }}
                   data-r={r}
                   data-c={c}
-                  aria-label={`Casilla ${r + 1}, ${c + 1}`}
+                  aria-label={`Tile ${r + 1}, ${c + 1}`}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={() => handleVillageCellClick(r, c)}
                 >
                   {axieByCell.get(key)?.id === selectedAxieId && (
                     <>
-                      <span className="village-selection">{ACTIVITY_LABELS[axieByCell.get(key)?.activity] || 'Seleccionado'}</span>
+                      <span className="village-selection">{ACTIVITY_LABELS[axieByCell.get(key)?.activity] || 'Selected'}</span>
                       {[ACTOR_ACTIVITY.MOVING, ACTOR_ACTIVITY.WORKING].includes(axieByCell.get(key)?.activity) && (
                         <button
                           className="village-stop-floating"

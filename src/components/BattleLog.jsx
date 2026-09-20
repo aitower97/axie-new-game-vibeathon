@@ -1,14 +1,14 @@
 import { CombatLogIcon } from './LineIcons'
 
 const RULES = [
-  [/siege begins/i, 'attack'], [/clock runs out/i, 'event'], [/^w+ Lord: /, 'target'],
+  [/siege begins/i, 'attack'], [/clock runs out/i, 'event'], [/^\w+ Lord: /, 'target'],
   [/was blessed/i, 'heal'], [/Temperance/i, 'heal'], [/was marked/i, 'target'],
-  [/falls.?/, 'event'], [/finishes off/, 'attack'], [/repositions/i, 'move'], [/moves/i, 'move'],
+  [/falls\.?/, 'event'], [/finishes off/, 'attack'], [/repositions/i, 'move'], [/moves/i, 'move'],
   [/advances/i, 'move'], [/pushes/i, 'attack'], [/Ignores the target/i, 'attack'],
-  [/absorbs/i, 'shield'], [/shield/, 'shield'], [/takes d+ self-damage/, 'attack'],
+  [/absorbs/i, 'shield'], [/shield/, 'shield'], [/takes \d+ self-damage/, 'attack'],
   [/uses (the )?mark/i, 'target'], [/uses /, 'attack'], [/fires/, 'attack'],
   [/duplicates/, 'event'], [/summons/, 'event'], [/shields /, 'shield'], [/marks /, 'target'],
-  [/heals/, 'heal'], [/has no/, 'event'], [/^[^ ]+ w+: /, 'event'], [/Roll the dice/, 'event'],
+  [/heals/, 'heal'], [/has no/, 'event'], [/^[^ ]+ \w+: /, 'event'], [/Roll the dice/, 'event'],
 ]
 
 function logIco(line) {

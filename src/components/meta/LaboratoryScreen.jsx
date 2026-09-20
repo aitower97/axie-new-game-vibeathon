@@ -28,7 +28,7 @@ export default function LaboratoryScreen({ essence, augments, onEvolve, onToggle
     <MetaScreen
       icon="🔧"
       title="Parts Lab"
-      blurb="Each Axie's die is made of its six parts. Here you forge yours: EVOLVE rewrites a die face (+10, irreversible, 1 essence) and LOCK takes that part out of the roll so the faces you use come up more often. Both apply when you press Play."
+      blurb="Each Axie's dice is made of its six parts. Here you forge yours: EVOLVE rewrites a dice face (+10, irreversible, 1 essence) and LOCK takes that part out of the roll so the faces you use come up more often. Both apply when you press Play."
     >
       <div className="meta-panel meta-panel-muted lab-hud">
         <StatChip label="ESSENCE" value={essence} />

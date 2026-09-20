@@ -1,4 +1,4 @@
-# Tactic Dice (proyecto "Vínculo de Lunacia") — decisión de producto
+# Axie Tactics Dices (proyecto "Vínculo de Lunacia") — decisión de producto
 
 **Fecha:** 8 de septiembre de 2026
 **Se apoya en:** `docs/estudio-mercado-2026.md`

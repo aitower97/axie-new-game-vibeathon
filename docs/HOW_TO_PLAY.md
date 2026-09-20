@@ -1,13 +1,13 @@
-# Tactic Dice — How to Play
+# Axie Tactics Dices — How to Play
 
-## 1. What is Tactic Dice?
+## 1. What is Axie Tactics Dices?
 
-A turn-based tactics game on an 8×7 grid where **the die of every Axie is made of its six body parts**. Eyes, ears, horn, mouth, back and tail are the six faces. You don't roll "how hard do I hit" — you roll **what can I do this turn**. Kill the enemy Lord to win.
+A turn-based tactics game on an 8×7 grid where **the dice of every Axie is made of its six body parts**. Eyes, ears, horn, mouth, back and tail are the six faces. You don't roll "how hard do I hit" — you roll **what can I do this turn**. Kill the enemy Lord to win.
 
 ## 2. First 30 seconds
 
-1. Open the game. On the cover screen click **Enter the command post** (or **Quick match** to jump straight into a skirmish).
-2. In the hub pick **PVE** (or *Free match*) and start a mission.
+1. Open the game. On the cover screen click **Enter the command post** (you land in the Village) or **Quick match** to jump straight into a skirmish.
+2. In the top bar pick **PVE** (or *Free match*) and start a mission.
 3. Press **Roll dice**. Every living Axie of yours rolls one of its faces.
 4. Click one of your Axies — the tiles it can reach light up.
 5. Click a tile to move, then click an adjacent/in-range enemy to attack.
@@ -32,7 +32,7 @@ Desktop browser (Chrome / Edge) with a mouse. No touch/mobile support.
 
 ## 4. The Dice
 
-Each Axie has six body parts: eyes, ears, horn, mouth, back, tail. Each part is one face of its die. In this prototype the four combat slots (**horn, mouth, back, tail**) produce actions; eyes and ears are shown as empty faces. The face you roll decides which special action the Axie has this turn. Hover an Axie to see its six parts in the detail panel.
+Each Axie has six body parts: eyes, ears, horn, mouth, back, tail. Each part is one face of its dice. In this prototype the four combat slots (**horn, mouth, back, tail**) produce actions; eyes and ears are shown as empty faces. The face you roll decides which special action the Axie has this turn. Hover an Axie to see its six parts in the detail panel.
 
 ## 5. Combat
 
@@ -69,7 +69,7 @@ Each attack can crit. Chance and multiplier come from the attacker's **class** (
 
 ## 9. PVE
 
-Open **PVE** in the hub: a map of Lunacia with regions and missions against wild/starter Axies (Buba, Momo, Puffy and others). Win to unlock the next mission and earn Essence. Objective: destroy the enemy Lord (or lead on Lord life after round 8).
+Open **PVE** in the top bar: a map of Lunacia with regions and missions against wild/starter Axies (Buba, Momo, Puffy and others). Win to unlock the next mission and earn Essence. Objective: destroy the enemy Lord (or lead on Lord life after round 8).
 
 ## 10. PVP
 
@@ -80,10 +80,10 @@ Open **PVE** in the hub: a map of Lunacia with regions and missions against wild
 ## 11. Progression
 
 Open the **Lab**. For each class you can:
-- **Evolve** a part (1 Essence, irreversible): it rewrites that die face (+10 value).
-- **Lock** a part (free): the face leaves the die so the others come up more often. Evolved parts cannot be locked.
+- **Evolve** a part (1 Essence, irreversible): it rewrites that dice face (+10 value).
+- **Lock** a part (free): the face leaves the dice so the others come up more often. Evolved parts cannot be locked.
 
-Changes apply to your next match. **Research** and **Resources** show the same idea and the session economy skeleton.
+Changes apply to your next match. The **Village** shows the session economy skeleton: Axies work jobs to gather Wood, Stone and Food (no backend, nothing persists).
 
 ## 12. Tips
 

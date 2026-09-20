@@ -22,7 +22,7 @@ export default class ErrorBoundary extends Component {
     if (!this.state.error) return this.props.children
     return (
       <div className="error-boundary">
-        <p className="error-boundary-title">Axie · Tactic Dice</p>
+        <p className="error-boundary-title">Axie Tactics Dices</p>
         <p className="error-boundary-text">
           Something broke while loading the match. It may be an asset (3D model,
           music) that did not arrive in time.

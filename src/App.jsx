@@ -2805,12 +2805,12 @@ export default function App() {
 
         {(route === 'aldea' || route === 'base') && (
           <>
-            <div className="topbar-village-resources" aria-label="Recursos de la aldea">
-              <span>Madera <b>{villageResources.wood}</b></span>
-              <span>Piedra <b>{villageResources.stone}</b></span>
-              <span>Comida <b>{villageResources.food}</b></span>
+            <div className="topbar-village-resources" aria-label="Village resources">
+              <span>Wood <b>{villageResources.wood}</b></span>
+              <span>Stone <b>{villageResources.stone}</b></span>
+              <span>Food <b>{villageResources.food}</b></span>
             </div>
-            <span className="topbar-village-label">Aldea</span>
+            <span className="topbar-village-label">Village</span>
           </>
         )}
 
@@ -2909,7 +2909,7 @@ export default function App() {
           floats,
           impacts,
           enemyActing,
-          turnLabel: `Turno: ${activeSide === 'player' ? 'Player' : 'Enemy'}`,
+          turnLabel: `Turn: ${activeSide === 'player' ? 'Player' : 'Enemy'}`,
           energyBank,
           enemyEnergyBank,
           energyCap: ENERGY_CAP,

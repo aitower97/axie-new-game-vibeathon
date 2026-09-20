@@ -1,4 +1,4 @@
-# Tactic Dice — Axie Vibeathon 2026, Ronda 1
+# Axie Tactics Dices — Axie Vibeathon 2026, Ronda 1
 
 > Un táctico por turnos donde el dado de cada Axie está hecho de sus seis partes del
 > cuerpo, y ascender no sube un número: evoluciona una parte y reescribe esa cara.
@@ -98,8 +98,8 @@ Mysteries) están en `docs/design/decision-de-producto.md` y `docs/design/estudi
 
 Combate del MVP1 completo y jugable de principio a fin: tablero 3D real (Three.js
 vanilla + bloques Kenney), IA enemiga con prioridades, dos modos (PVE contra el mapa de
-Lunacia, PVP contra arenas con reloj y muerte súbita), un HUB con Laboratorio de
-evolución/bloqueo de partes, Investigación e Inventario de recursos, música ambiental
+Lunacia, PVP contra arenas con reloj y muerte súbita), una Aldea (Axies que recolectan Madera, Piedra y Comida) con Laboratorio de
+evolución/bloqueo de partes, música ambiental
 por estado, y VFX de combate reales del Axie Origins Battle Kit sobre cada impacto.
 
 ## Known issues / limitaciones conocidas
