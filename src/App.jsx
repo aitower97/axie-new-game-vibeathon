@@ -83,7 +83,7 @@ const TERRAIN_DECOR_URLS = {
 // el unico sitio que lo convierte a rondas para mostrarlo.
 const TURN_CLOCK = 16
 
-// Banco de Energia (A3, docs/combate-dinamico-dado.md seccion 6.4): la
+// Banco de Energia (A3, docs/design/combate-dinamico-dado.md seccion 6.4): la
 // Energia sale de LAS CARAS DEL DADO -cada cara sin golpe de tu tirada
 // (guardia/reposicion/utilidad, ver yieldsEnergy) mete +1 al banco (tope 5)- y
 // el banco PERSISTE toda la partida (no se vacia al cambiar de turno): dentro
@@ -204,8 +204,8 @@ function terrainAt(r, c) {
 const MATCH_DEFAULT = {
   zone: 'libre',
   mode: 'pve',
-  enemyTitle: 'Asediantes',
-  blurb: 'Escaramuza en el centro de Lunacia.',
+  enemyTitle: 'Besiegers',
+  blurb: 'Skirmish in the heart of Lunacia.',
   enemyClasses: [...PLAYER_TEAM],
   starterEnemy: true,
   hpScale: 1,
@@ -246,7 +246,7 @@ function makeUnit(side, klass, id, pos, opts) {
   // marked (Marca del Lord): true = el PROXIMO ataque que impacte a esta
   // unidad hace +20, luego se consume. buffed (Templanza del Lord): true =
   // el PROXIMO ataque que HAGA esta unidad hace +15, luego se consume.
-  // broken (Rotura, Fase A de docs/combate-dinamico-dado.md): al recibir un
+  // broken (Rotura, Fase A de docs/design/combate-dinamico-dado.md): al recibir un
   // golpe con ventaja de relacion, la unidad no puede contraatacar esta vuelta
   // ni la siguiente accion (se limpia en su siguiente tirada). energyMove/
   // energyBoost (banco de Energia, A3): gastos de la banca del turno.
@@ -571,8 +571,8 @@ function firstFreeNeighbor(pos, klass, units, lords) {
   return null
 }
 
-const labelOf = (u) => `${CLASS_STATS[u.klass].label} ${u.side === 'player' ? 'propio' : 'rival'}`
-const sideLabel = (side) => (side === 'player' ? 'propio' : 'rival')
+const labelOf = (u) => `${CLASS_STATS[u.klass].label} ${u.side === 'player' ? 'ally' : 'enemy'}`
+const sideLabel = (side) => (side === 'player' ? 'Allied' : 'Enemy')
 
 // Un dado por unidad, tirado una vez al inicio del turno (regla 7), mas el dado del
 // Lord (paso 8). Resuelve enseguida las caras de guardia (regla 11: se aplican
@@ -586,7 +586,7 @@ function rollSideDice(units, side, lords) {
   const newRolls = {}
   const lines = []
   const lordFace = rollFace(LORD_DIE)
-  lines.push(`Lord ${sideLabel(side)}: ${lordFace.name}.`)
+  lines.push(`${sideLabel(side)} Lord: ${lordFace.name}.`)
   next.forEach((u) => {
     if (!u.alive || u.side !== side) return
     const face = rollFace(activeDie(u))
@@ -614,7 +614,7 @@ function rollSideDice(units, side, lords) {
         if (!blocked && !occupied) {
           const eIdx = next.findIndex((x) => x.id === enemy.id)
           next[eIdx] = { ...next[eIdx], pos: dest }
-          lines.push(`${labelOf(next[idx])} empuja a ${labelOf(enemy)}.`)
+          lines.push(`${labelOf(next[idx])} pushes ${labelOf(enemy)}.`)
         }
       }
     }
@@ -644,7 +644,7 @@ function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyL
     target.kind === 'lord' ? (attacker.side === 'player' ? enemyLordHp : playerLordHp) : units.find((u) => u.id === target.id).hp
   if (target.basic) {
     damage = CLASS_STATS[attacker.klass].atk
-    actionName = 'un golpe basico'
+    actionName = 'a basic strike'
   } else {
     damage = faceValue(rolled)
     actionName = rolled.name
@@ -694,7 +694,7 @@ function computeUnitAttack(attacker, rolled, target, units, playerLordHp, enemyL
   return { damage, actionName, ignoresShield, selfDamage, attackerShieldGain, wasMarked, wasBuffed, energyHit, affinity }
 }
 
-// --- Fase A (docs/combate-dinamico-dado.md) ---
+// --- Fase A (docs/design/combate-dinamico-dado.md) ---
 // El "tratado" de integracion: el triángulo de efectos (A1), el intercambio
 // con contragolpe (A2), el terreno defensivo (A5) y el banco de Energia (A3).
 // Se resuelven en helpers compartidos entre la IA (applyUnitAttackLocal) y el
@@ -845,29 +845,29 @@ function applyCounterLocal(state, defender, rolled, attackerId) {
   if (!hit) return { ...state, lines: [], floatEvents: [] }
   const lines = []
   const floatEvents = []
-  lines.push(`${labelOf(defender)} contesta con ${rolled.name} sobre ${labelOf(attacker)} (-${hit.dealt}).`)
+  lines.push(`${labelOf(defender)} counters with ${rolled.name} on ${labelOf(attacker)} (-${hit.dealt}).`)
   floatEvents.push({ text: rolled.name, variant: 'cast', ...defender.pos })
   floatEvents.push({ text: `-${hit.dealt}`, variant: 'damage', ...attacker.pos })
   if (crit.hit) {
-    lines.push(`¡CRITICO! ${crit.dmg.toFixed(2).replace('.', ',')}x.`)
-    floatEvents.push({ text: `CRITICO x${crit.dmg}`, variant: 'crit', ...defender.pos })
+    lines.push(`CRITICAL! ${crit.dmg.toFixed(2)}x.`)
+    floatEvents.push({ text: `CRITICAL x${crit.dmg}`, variant: 'crit', ...defender.pos })
   }
   if (hit.affinity !== 1) {
-    floatEvents.push({ text: hit.affinity > 1 ? 'Afinidad +' : 'Afinidad -', variant: 'relation', ...defender.pos })
+    floatEvents.push({ text: hit.affinity > 1 ? 'Affinity +' : 'Affinity -', variant: 'relation', ...defender.pos })
   }
   if (hit.terrainBonus > 0 && hit.absorbed > 0) {
-    lines.push(`El terreno de ${labelOf(attacker)} absorbe ${hit.terrainBonus} de la vuelta.`)
-    floatEvents.push({ text: `+${hit.terrainBonus} guardia terreno`, variant: 'shield', ...attacker.pos })
+    lines.push(`${labelOf(attacker)}'s terrain absorbs ${hit.terrainBonus} of the counter.`)
+    floatEvents.push({ text: `+${hit.terrainBonus} terrain guard`, variant: 'shield', ...attacker.pos })
   }
   if (hit.wasMarked) {
-    lines.push(`${labelOf(attacker)} estaba marcado: +20 de dano.`)
-    floatEvents.push({ text: '+20 marcado', variant: 'buff', ...attacker.pos })
+    lines.push(`${labelOf(attacker)} was marked: +20 damage.`)
+    floatEvents.push({ text: '+20 marked', variant: 'buff', ...attacker.pos })
   }
   if (hit.wasBuffed) {
-    lines.push(`${labelOf(defender)} estaba bendecido: +15 de dano.`)
-    floatEvents.push({ text: '+15 Templanza', variant: 'buff', ...defender.pos })
+    lines.push(`${labelOf(defender)} was blessed: +15 damage.`)
+    floatEvents.push({ text: '+15 Temperance', variant: 'buff', ...defender.pos })
   }
-  if (hit.killed) lines.push(`${labelOf(attacker)} cae.`)
+  if (hit.killed) lines.push(`${labelOf(attacker)} falls.`)
   // El contraatacante ha golpeado: consume su Templanza. El atacante original
   // recibe el golpe y, si estaba marcado, pierde la Marca.
   const shieldConsumed = Math.min(attacker.shield, hit.absorbed)
@@ -979,22 +979,22 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
   // cualquier float: declararlo mas abajo causa un ReferenceError de TDZ al
   // usarse aqui, que hace fallar CADA ataque de unidad en silencio.
   const relation = relationFor(rolled, target, state.rolls)
-  floatEvents.push({ text: actionName === 'un golpe basico' ? `Ataque basico (${CLASS_STATS[attacker.klass].label})` : actionName, variant: 'cast', ...castPos })
+  floatEvents.push({ text: actionName === 'a basic strike' ? `Basic attack (${CLASS_STATS[attacker.klass].label})` : actionName, variant: 'cast', ...castPos })
   // Afinidad por clases y critico, ambos solo contra unidades (al Lord no hay
   // afinidad; el critico es del golpeador y aplica a cualquier objetivo, pero
   // se anuncia igual sobre el atacante).
   if (affinity !== 1 && target.kind === 'unit') {
-    floatEvents.push({ text: affinity > 1 ? 'Afinidad +' : 'Afinidad -', variant: 'relation', ...castPos })
+    floatEvents.push({ text: affinity > 1 ? 'Affinity +' : 'Affinity -', variant: 'relation', ...castPos })
   }
   if (crit.hit) {
-    lines.push(`¡CRITICO! ${crit.dmg.toFixed(2).replace('.', ',')}x.`)
-    floatEvents.push({ text: `CRITICO x${crit.dmg}`, variant: 'crit', ...castPos })
+    lines.push(`CRITICAL! ${crit.dmg.toFixed(2)}x.`)
+    floatEvents.push({ text: `CRITICAL x${crit.dmg}`, variant: 'crit', ...castPos })
   }
   // A1: si la relacion de este golpe es ventajosa o desventajosa, se anuncia
   // sobre el atacante -es la pieza que hace visible el PORQUE del triangulo
   // Perforar > Guardar > Golpear > Perforar.
-  if (relation === 'advantage' && target.kind === 'unit') floatEvents.push({ text: 'Ventaja', variant: 'relation', ...castPos })
-  if (relation === 'disadvantage' && target.kind === 'unit') floatEvents.push({ text: 'Desventaja', variant: 'relation', ...castPos })
+  if (relation === 'advantage' && target.kind === 'unit') floatEvents.push({ text: 'Advantage', variant: 'relation', ...castPos })
+  if (relation === 'disadvantage' && target.kind === 'unit') floatEvents.push({ text: 'Disadvantage', variant: 'relation', ...castPos })
   let units = state.units
   let playerLordHp = state.playerLordHp
   let enemyLordHp = state.enemyLordHp
@@ -1007,7 +1007,7 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
     const next = Math.max(0, current - damage)
     if (attackingPlayerLord) playerLordHp = next
     else enemyLordHp = next
-    lines.push(`${labelOf(attacker)} usa ${actionName} sobre el Lord rival (-${damage}).`)
+    lines.push(`${labelOf(attacker)} uses ${actionName} on the enemy Lord (-${damage}).`)
     floatEvents.push({ text: `-${damage}`, variant: 'damage', ...victimPos })
     if (next <= 0) victory = attackingPlayerLord ? 'enemy-won' : 'player-won'
   } else {
@@ -1024,22 +1024,22 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
       dealt = damage - absorbed
       shieldConsumed = Math.min(victim.shield, absorbed)
       terrainAbsorbed = Math.max(0, absorbed - shieldConsumed)
-      if (shieldConsumed > 0) lines.push(`El escudo de ${labelOf(victim)} absorbe ${shieldConsumed}.`)
-      if (terrainAbsorbed > 0) lines.push(`El terreno de ${labelOf(victim)} absorbe ${terrainAbsorbed} de la guardia.`)
+      if (shieldConsumed > 0) lines.push(`${labelOf(victim)}'s shield absorbs ${shieldConsumed}.`)
+      if (terrainAbsorbed > 0) lines.push(`${labelOf(victim)}'s terrain absorbs ${terrainAbsorbed} of the guard.`)
     }
     const killed = victim.hp - dealt <= 0
-    lines.push(`${labelOf(attacker)} usa ${actionName} sobre ${labelOf(victim)} (-${dealt}).`)
+    lines.push(`${labelOf(attacker)} uses ${actionName} on ${labelOf(victim)} (-${dealt}).`)
     floatEvents.push({ text: `-${dealt}`, variant: 'damage', ...victimPos })
-    if (shieldConsumed > 0) floatEvents.push({ text: `escudo -${shieldConsumed}`, variant: 'shield', ...victimPos })
-    if (terrainAbsorbed > 0) floatEvents.push({ text: `+${terrainAbsorbed} guardia terreno`, variant: 'shield', ...victimPos })
-    if (wasMarked) lines.push(`${labelOf(victim)} estaba marcado: +20 de dano.`)
-    if (wasMarked) floatEvents.push({ text: '+20 marcado', variant: 'buff', ...victimPos })
-    if (killed) lines.push(`${labelOf(victim)} cae.`)
+    if (shieldConsumed > 0) floatEvents.push({ text: `shield -${shieldConsumed}`, variant: 'shield', ...victimPos })
+    if (terrainAbsorbed > 0) floatEvents.push({ text: `+${terrainAbsorbed} terrain guard`, variant: 'shield', ...victimPos })
+    if (wasMarked) lines.push(`${labelOf(victim)} was marked: +20 damage.`)
+    if (wasMarked) floatEvents.push({ text: '+20 marked', variant: 'buff', ...victimPos })
+    if (killed) lines.push(`${labelOf(victim)} falls.`)
     // A1: la Rotura se decide con el dano real ya calculado.
     broke = grantsBreak(relation, dealt, target.kind)
     if (broke) {
-      lines.push(`${labelOf(victim)} sufre Rotura: no puede contraatacar.`)
-      floatEvents.push({ text: 'Rotura', variant: 'break', ...victimPos })
+      lines.push(`${labelOf(victim)} suffers Break: cannot counter.`)
+      floatEvents.push({ text: 'Break', variant: 'break', ...victimPos })
     }
     units = units.map((u) =>
       u.id === target.id
@@ -1047,15 +1047,15 @@ function applyUnitAttackLocal(state, attacker, rolled, target) {
         : u
     )
   }
-  if (ignoresShield) lines.push('Ignora el escudo del objetivo.')
-  if (attackerShieldGain > 0) lines.push(`${labelOf(attacker)} gana ${attackerShieldGain} de escudo.`)
-  if (attackerShieldGain > 0) floatEvents.push({ text: `+${attackerShieldGain} escudo`, variant: 'shield', ...castPos })
-  if (selfDamage > 0) lines.push(`${labelOf(attacker)} se hace ${selfDamage} de dano.`)
+  if (ignoresShield) lines.push("Ignores the target's shield.")
+  if (attackerShieldGain > 0) lines.push(`${labelOf(attacker)} gains ${attackerShieldGain} shield.`)
+  if (attackerShieldGain > 0) floatEvents.push({ text: `+${attackerShieldGain} shield`, variant: 'shield', ...castPos })
+  if (selfDamage > 0) lines.push(`${labelOf(attacker)} takes ${selfDamage} self-damage.`)
   if (selfDamage > 0) floatEvents.push({ text: `-${selfDamage}`, variant: 'damage', ...castPos })
-  if (wasBuffed) lines.push(`${labelOf(attacker)} estaba bendecido: +15 de dano.`)
-  if (wasBuffed) floatEvents.push({ text: '+15 Templanza', variant: 'buff', ...castPos })
-  if (energyHit) lines.push(`${labelOf(attacker)} gasta 2 de Energia: +10 al golpe.`)
-  if (energyHit) floatEvents.push({ text: '+10 Energia', variant: 'buff', ...castPos })
+  if (wasBuffed) lines.push(`${labelOf(attacker)} was blessed: +15 damage.`)
+  if (wasBuffed) floatEvents.push({ text: '+15 Temperance', variant: 'buff', ...castPos })
+  if (energyHit) lines.push(`${labelOf(attacker)} spends 2 Energy: +10 to the strike.`)
+  if (energyHit) floatEvents.push({ text: '+10 Energy', variant: 'buff', ...castPos })
 
   units = units.map((u) => {
     if (u.id !== attacker.id) return u
@@ -1199,9 +1199,9 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
     if (!u.alive || u.side !== 'enemy') return
     const face = newRolls[u.id]
     if (!face || !GUARD_EFFECTS.has(face.effect)) return
-    if (face.effect === 'guard-heal' && face.heal > 0) rollFloats.push({ text: `+${face.heal} vida`, variant: 'heal', ...u.pos })
+    if (face.effect === 'guard-heal' && face.heal > 0) rollFloats.push({ text: `+${face.heal} HP`, variant: 'heal', ...u.pos })
     const val = faceValue(face)
-    if (val > 0) rollFloats.push({ text: `+${val} escudo`, variant: 'shield', ...u.pos })
+    if (val > 0) rollFloats.push({ text: `+${val} shield`, variant: 'shield', ...u.pos })
   })
   // Paso 0: la tirada del rival. El estado es el que ha dejado rollSideDice
   // (escudos restablecidos, guardas aplicadas); pasos posteriores aplican sus
@@ -1245,7 +1245,7 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
         units = units.map((x) => (x.id === current.id ? { ...x, acted: true } : x))
         if (dest) {
           units = units.map((x) => (x.id === ally.id ? { ...x, pos: dest } : x))
-          lines.push(`${labelOf(current)} reposiciona a ${labelOf(ally)}.`)
+          lines.push(`${labelOf(current)} repositions ${labelOf(ally)}.`)
         }
         stepFrom(mark, fxEvents.length, current.id)
         continue
@@ -1257,7 +1257,7 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
       // avanzar, la IA intenta un ataque -primero con su cara tirada
       // (especial) y si no hay objetivo, con el basico explicito.
       units = units.map((x) => (x.id === current.id ? { ...x, pos: decision.cell } : x))
-        lines.push(`${labelOf(current)} avanza.`)
+        lines.push(`${labelOf(current)} advances.`)
       const movedUnit = units.find((x) => x.id === current.id)
       let followup = pickWeakestTarget(attackTargetsForFace(movedUnit, rolled, units, lords), units)
       const followupIsBasic = !followup
@@ -1292,11 +1292,11 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
       let damage = LORD_STATS.atk
       const lordPos = lords.enemy
       const victimPos = target.kind === 'lord' ? PLAYER_LORD : units.find((u) => u.id === target.id).pos
-      floatEvents.push({ text: 'Ataque del Lord', variant: 'cast', ...lordPos })
+      floatEvents.push({ text: 'Lord Attack', variant: 'cast', ...lordPos })
       if (target.kind === 'lord') {
         const next = Math.max(0, playerLordHp - damage)
         playerLordHp = next
-        lines.push(`Lord rival dispara al Lord propio (-${damage}).`)
+        lines.push(`Enemy Lord fires at your Lord (-${damage}).`)
         floatEvents.push({ text: `-${damage}`, variant: 'damage', ...victimPos })
         if (next <= 0) victory = 'enemy-won'
       } else {
@@ -1313,16 +1313,16 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
         const dealt = damage - absorbed
         shieldConsumed = Math.min(victim.shield, absorbed)
         terrainAbsorbed = Math.max(0, absorbed - shieldConsumed)
-        if (shieldConsumed > 0) lines.push(`El escudo de ${labelOf(victim)} absorbe ${shieldConsumed}.`)
-        if (terrainAbsorbed > 0) lines.push(`El terreno de ${labelOf(victim)} absorbe ${terrainAbsorbed} de la guardia.`)
+        if (shieldConsumed > 0) lines.push(`${labelOf(victim)}'s shield absorbs ${shieldConsumed}.`)
+        if (terrainAbsorbed > 0) lines.push(`${labelOf(victim)}'s terrain absorbs ${terrainAbsorbed} of the guard.`)
         const killed = victim.hp - dealt <= 0
-        lines.push(`Lord rival dispara a ${labelOf(victim)} (-${dealt}).`)
+        lines.push(`Enemy Lord fires at ${labelOf(victim)} (-${dealt}).`)
         floatEvents.push({ text: `-${dealt}`, variant: 'damage', ...victimPos })
-        if (shieldConsumed > 0) floatEvents.push({ text: `escudo -${shieldConsumed}`, variant: 'shield', ...victimPos })
-        if (terrainAbsorbed > 0) floatEvents.push({ text: `+${terrainAbsorbed} guardia terreno`, variant: 'shield', ...victimPos })
-        if (marked) lines.push(`${labelOf(victim)} estaba marcado: +20 de dano.`)
-        if (marked) floatEvents.push({ text: '+20 marcado', variant: 'buff', ...victimPos })
-        if (killed) lines.push(`${labelOf(victim)} cae.`)
+        if (shieldConsumed > 0) floatEvents.push({ text: `shield -${shieldConsumed}`, variant: 'shield', ...victimPos })
+        if (terrainAbsorbed > 0) floatEvents.push({ text: `+${terrainAbsorbed} terrain guard`, variant: 'shield', ...victimPos })
+        if (marked) lines.push(`${labelOf(victim)} was marked: +20 damage.`)
+        if (marked) floatEvents.push({ text: '+20 marked', variant: 'buff', ...victimPos })
+        if (killed) lines.push(`${labelOf(victim)} falls.`)
         units = units.map((u) =>
           u.id === target.id
             ? { ...u, hp: Math.max(0, u.hp - dealt), shield: Math.max(0, u.shield - shieldConsumed), alive: u.hp - dealt > 0, pos: u.hp - dealt > 0 ? u.pos : null, marked: false }
@@ -1342,10 +1342,10 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
       )
       const ally = units.find((u) => u.id === weakest.id)
       units = units.map((u) => (u.id === weakest.id ? { ...u, shield: Math.max(u.shield, 30) } : u))
-      lines.push(`Lord rival protege a ${labelOf(ally)} con Muro.`)
-      floatEvents.push({ text: 'Muro', variant: 'cast', ...lords.enemy }, { text: '+30 escudo', variant: 'shield', ...ally.pos })
+      lines.push(`Enemy Lord shields ${labelOf(ally)} with Wall.`)
+      floatEvents.push({ text: 'Wall', variant: 'cast', ...lords.enemy }, { text: '+30 shield', variant: 'shield', ...ally.pos })
     } else {
-      lines.push('Lord rival no tiene a quien proteger con Muro.')
+      lines.push('Enemy Lord has no one to protect with Wall.')
     }
   } else if (!victory && lordFace.effect === 'lord-mark') {
     // Marca: al enemigo (bando propio, desde el punto de vista de Enemy) con
@@ -1357,10 +1357,10 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
       )
       const victim = units.find((u) => u.id === weakest.id)
       units = units.map((u) => (u.id === weakest.id ? { ...u, marked: true } : u))
-      lines.push(`Lord rival marca a ${labelOf(victim)}.`)
-      floatEvents.push({ text: 'Marca', variant: 'cast', ...lords.enemy }, { text: 'Marcado', variant: 'buff', ...victim.pos })
+      lines.push(`Enemy Lord marks ${labelOf(victim)}.`)
+      floatEvents.push({ text: 'Mark', variant: 'cast', ...lords.enemy }, { text: 'Marked', variant: 'buff', ...victim.pos })
     } else {
-      lines.push('Lord rival no tiene a quien marcar.')
+      lines.push('Enemy Lord has no one to mark.')
     }
   } else if (!victory && lordFace.effect === 'lord-heal') {
     // Cura: al aliado propio con menos vida al alcance -mismo criterio que Muro.
@@ -1371,10 +1371,10 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
       )
       const ally = units.find((u) => u.id === weakest.id)
       units = units.map((u) => (u.id === weakest.id ? { ...u, hp: Math.min(u.maxHp, u.hp + 15) } : u))
-      lines.push(`Lord rival cura a ${labelOf(ally)}.`)
-      floatEvents.push({ text: 'Cura', variant: 'cast', ...lords.enemy }, { text: '+15 vida', variant: 'heal', ...ally.pos })
+      lines.push(`Enemy Lord heals ${labelOf(ally)}.`)
+      floatEvents.push({ text: 'Heal', variant: 'cast', ...lords.enemy }, { text: '+15 HP', variant: 'heal', ...ally.pos })
     } else {
-      lines.push('Lord rival no tiene a quien curar.')
+      lines.push('Enemy Lord has no one to heal.')
     }
   } else if (!victory && lordFace.effect === 'lord-buff') {
     // Templanza: al aliado propio con MAS vida al alcance -el que mas
@@ -1387,10 +1387,10 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
       )
       const ally = units.find((u) => u.id === strongest.id)
       units = units.map((u) => (u.id === strongest.id ? { ...u, buffed: true } : u))
-      lines.push(`Lord rival bendice a ${labelOf(ally)} con Templanza.`)
-      floatEvents.push({ text: 'Templanza', variant: 'cast', ...lords.enemy }, { text: '+15 dano', variant: 'buff', ...ally.pos })
+      lines.push(`Enemy Lord blesses ${labelOf(ally)} with Temperance.`)
+      floatEvents.push({ text: 'Temperance', variant: 'cast', ...lords.enemy }, { text: '+15 damage', variant: 'buff', ...ally.pos })
     } else {
-      lines.push('Lord rival no tiene a quien bendecir.')
+      lines.push('Enemy Lord has no one to bless.')
     }
   } else if (!victory && lordFace.effect === 'lord-clone') {
     // Duplicar: al aliado propio con MAS vida al alcance -refuerza la punta de
@@ -1406,10 +1406,10 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
       const cells = lordSummonTargets('enemy', units, lords, original.klass)
       if (cells.length > 0) {
         units = [...units, makeUnit('enemy', original.klass, nextCloneId('enemy', units), cells[0], { starterEnemy: !!original.name })]
-        lines.push(`Lord rival duplica a ${labelOf(original)}.`)
-        floatEvents.push({ text: 'Duplicar', variant: 'cast', ...lords.enemy }, { text: 'Clon', variant: 'info', ...cells[0] })
+        lines.push(`Enemy Lord duplicates ${labelOf(original)}.`)
+        floatEvents.push({ text: 'Duplicate', variant: 'cast', ...lords.enemy }, { text: 'Clone', variant: 'info', ...cells[0] })
       } else {
-        lines.push('Lord rival no tiene hueco junto a el para duplicar.')
+        lines.push('Enemy Lord has no free cell next to it to duplicate.')
       }
     } else if (reserve.enemy.length > 0) {
       const cells = lordSummonTargets('enemy', units, lords, reserve.enemy[0].klass)
@@ -1417,13 +1417,13 @@ function runEnemyTurn(startUnits, startReserve, startPlayerLordHp, startEnemyLor
         const [summoned, ...rest] = reserve.enemy
         reserve = { ...reserve, enemy: rest }
         units = [...units, { ...summoned, pos: cells[0] }]
-        lines.push(`Lord rival invoca a ${labelOf(summoned)}.`)
-        floatEvents.push({ text: 'Invoca', variant: 'cast', ...cells[0] })
+        lines.push(`Enemy Lord summons ${labelOf(summoned)}.`)
+        floatEvents.push({ text: 'Summon', variant: 'cast', ...cells[0] })
       } else {
-        lines.push('Lord rival no tiene hueco para invocar.')
+        lines.push('Enemy Lord has no free cell to summon.')
       }
     } else {
-      lines.push('Lord rival no tiene a quien duplicar ni reserva que invocar.')
+      lines.push('Enemy Lord has nothing to duplicate and no reserve to summon.')
     }
   }
   // El paso del Lord se captura solo si la rama genero algo que mostrar (un
@@ -1516,8 +1516,8 @@ export default function App() {
     if (meta.essence >= 1 && playerLordHp < LORD_STATS.hp) {
       setMeta((m) => ({ ...m, essence: m.essence - 1 }))
       setPlayerLordHp((h) => Math.min(LORD_STATS.hp, h + 30))
-      pushLog('El Lord se cura +30 a cambio de 1 esencia (meta).')
-      pushFloats([{ id: crypto.randomUUID(), text: '+30 Cura', variant: 'heal', r: PLAYER_LORD.r, c: PLAYER_LORD.c }])
+      pushLog('Your Lord heals +30 in exchange for 1 essence (meta).')
+      pushFloats([{ id: crypto.randomUUID(), text: '+30 Heal', variant: 'heal', r: PLAYER_LORD.r, c: PLAYER_LORD.c }])
     }
   }
   // Entrar desde el hub/mapa a una partida CONCRETA: startMatch(cfg) resetea la
@@ -1535,8 +1535,8 @@ export default function App() {
   const goPlayPvp = () => startMatch({
     zone: 'pvp-libre',
     mode: 'pvp',
-    enemyTitle: 'Rival del PVP',
-    blurb: 'Emparejamiento local contra la IA (maqueta de combate clasificado).',
+    enemyTitle: 'PVP Rival',
+    blurb: 'Local matchmaking against the AI (ranked combat mockup).',
     enemyClasses: [...PLAYER_TEAM],
     starterEnemy: false,
     hpScale: 1,
@@ -1567,8 +1567,8 @@ export default function App() {
           }))
           pushLog(
             matchInfo.mode === 'pve'
-              ? `Victoria en ${matchInfo.name}: +${r} esencia y la zona queda despejada.`
-              : `Victoria en ${matchInfo.name}: +${r} esencia.`,
+              ? `Victory in ${matchInfo.name}: +${r} essence and the zone is cleared.`
+              : `Victory in ${matchInfo.name}: +${r} essence.`,
           )
         }
       }
@@ -1734,7 +1734,7 @@ export default function App() {
   // tira los dados si no se habia tirado y pasa el turno (sin mover/atacar).
   const [turnSecondsLeft, setTurnSecondsLeft] = useState(PVP_TURN_MS / 1000)
   const turnSecondsRef = useRef(PVP_TURN_MS / 1000)
-  const [log, setLog] = useState(['Empieza el asedio. Tira los dados, Player.'])
+  const [log, setLog] = useState(['The siege begins. Roll the dice, Player.'])
 
   const lords = { player: PLAYER_LORD, enemy: ENEMY_LORD }
   const pushLog = (line) => setLog((l) => [line, ...l].slice(0, 7))
@@ -1821,23 +1821,23 @@ export default function App() {
     const ex = describeExchange(selectedUnit, rolled, target, units, playerLordHp, enemyLordHp, rolls)
     const items = []
     const shieldNote =
-      ex.terrainAbsorbed > 0 ? ` (escudo absorbe ${ex.absorbed - ex.terrainAbsorbed} + ${ex.terrainAbsorbed} de terreno)` : ex.absorbed > 0 ? ` (escudo absorbe ${ex.absorbed})` : ''
-    items.push(`${ex.actionName}: ${ex.dealt} de dano de ${ex.damage}${shieldNote}.`)
+      ex.terrainAbsorbed > 0 ? ` (shield absorbs ${ex.absorbed - ex.terrainAbsorbed} + ${ex.terrainAbsorbed} from terrain)` : ex.absorbed > 0 ? ` (shield absorbs ${ex.absorbed})` : ''
+    items.push(`${ex.actionName}: ${ex.dealt} damage of ${ex.damage}${shieldNote}.`)
     if (ex.relation === 'advantage') {
-      items.push(ex.broke ? `Ventaja (cara ${ex.defenderFace?.name ?? 'desconocida'}): ROTURA, no puede contraatacar.` : 'Ventaja de relacion, pero la rotura no se aplica (no hay dano real).')
+      items.push(ex.broke ? `Advantage (face ${ex.defenderFace?.name ?? 'unknown'}): BREAK, cannot counter.` : 'Advantage, but Break does not apply (no real damage).')
     } else if (ex.relation === 'disadvantage') {
-      items.push(`Desventaja (cara ${ex.defenderFace?.name ?? 'desconocida'}): este golpe no rompe y su vuelta seguira llegando.`)
+      items.push(`Disadvantage (face ${ex.defenderFace?.name ?? 'unknown'}): this strike does not break and its counter will still land.`)
     } else if (ex.relation === 'neutral') {
-      items.push('Intercambio neutro (sin ventaja).')
+      items.push('Neutral exchange (no advantage).')
     }
     if (ex.killed) {
-      items.push('Objetivo cae: no hay vuelta.')
+      items.push('Target falls: no counter.')
     } else if (ex.counter) {
-      items.push(`Vuelta del rival: ${ex.counter.name} -${ex.counter.dealt}.`)
+      items.push(`Enemy counter: ${ex.counter.name} -${ex.counter.dealt}.`)
     } else if (ex.broke) {
-      items.push('Sin vuelta (Rotura).')
+      items.push('No counter (Break).')
     } else {
-      items.push('Sin vuelta.')
+      items.push('No counter.')
     }
     // La preview tambien entrega la afinidad ya aplicada y la estadistica de
     // critico (probabilidad y multiplicador de la clase + parte del
@@ -1926,7 +1926,7 @@ export default function App() {
     const newRolls = {}
     const lines = []
     const lordFace = rollFace(LORD_DIE)
-    lines.push(`Lord ${sideLabel(activeSide)}: ${lordFace.name}.`)
+    lines.push(`${sideLabel(activeSide)} Lord: ${lordFace.name}.`)
     next.forEach((u) => {
       if (!u.alive || u.side !== activeSide) return
       const face = rollFace(activeDie(u))
@@ -1954,7 +1954,7 @@ export default function App() {
           if (!blocked && !occupied) {
             const eIdx = next.findIndex((x) => x.id === enemy.id)
             next[eIdx] = { ...next[eIdx], pos: dest }
-            lines.push(`${labelOf(u)} empuja a ${labelOf(enemy)}.`)
+            lines.push(`${labelOf(u)} pushes ${labelOf(enemy)}.`)
           }
         }
       }
@@ -1977,7 +1977,7 @@ export default function App() {
       const energyGained = next.filter((u) => u.side === activeSide && u.alive && yieldsEnergy(newRolls[u.id]?.effect)).length
       if (energyGained > 0) {
         setEnergyBank((b) => Math.min(ENERGY_CAP, b + energyGained))
-        pushLog(`+${energyGained} de Energia (caras sin golpe de tu tirada).`)
+        pushLog(`+${energyGained} Energy (non-strike faces from your roll).`)
       }
       // Floats de las caras de guardia (se aplican solas al tirar): escudo que
       // se gana y curas inmediatas, sobre la propia unidad.
@@ -1986,9 +1986,9 @@ export default function App() {
         if (!u.alive || u.side !== activeSide) return
         const face = newRolls[u.id]
         if (!face || !GUARD_EFFECTS.has(face.effect)) return
-        if (face.effect === 'guard-heal' && face.heal > 0) guardFloats.push({ text: `+${face.heal} vida`, variant: 'heal', ...u.pos })
+        if (face.effect === 'guard-heal' && face.heal > 0) guardFloats.push({ text: `+${face.heal} HP`, variant: 'heal', ...u.pos })
         const val = faceValue(face)
-        if (val > 0) guardFloats.push({ text: `+${val} escudo`, variant: 'shield', ...u.pos })
+        if (val > 0) guardFloats.push({ text: `+${val} shield`, variant: 'shield', ...u.pos })
       })
       if (guardFloats.length) pushFloats(guardFloats)
       setRolling(false)
@@ -2041,7 +2041,7 @@ export default function App() {
   function endLordTurn(reason) {
     if (lordActed[activeSide]) return
     setLordActed((a) => ({ ...a, [activeSide]: true }))
-    pushLog(`Lord ${sideLabel(activeSide)} ${reason}`)
+    pushLog(`${sideLabel(activeSide)} Lord ${reason}`)
     setSelected(null)
   }
   // Selecciona el Lord con su chequeo de "puede actuar"; si no puede, se le
@@ -2053,7 +2053,7 @@ export default function App() {
       return
     }
     if (!lordCanAct()) {
-      endLordTurn('no puede actuar este turno.')
+      endLordTurn('cannot act this turn.')
       return
     }
     if (!lordRoll[activeSide] || lordActed[activeSide]) return
@@ -2063,7 +2063,7 @@ export default function App() {
   function selectUnit(u) {
     if (status !== 'playing' || enemyTurnRunning || u.side !== activeSide || u.acted || !rolls[u.id]) return
     if (selected !== u.id && !unitCanAct(u)) {
-      endUnitTurn(u, 'no puede hacer nada este turno.')
+      endUnitTurn(u, 'cannot do anything this turn.')
       return
     }
     const next = u.id === selected ? null : u.id
@@ -2088,8 +2088,8 @@ export default function App() {
     if (moveBoosted) {
       setEnergyBank((b) => Math.max(0, b - ENERGY_MOVE_COST))
       setMoveBoostArmed(false)
-      pushLog(`${labelOf(selectedUnit)} gasta 2 de Energia: +1 casilla.`)
-      pushFloats([{ text: '+1 casilla', variant: 'buff', r, c }])
+      pushLog(`${labelOf(selectedUnit)} spends 2 Energy: +1 cell.`)
+      pushFloats([{ text: '+1 cell', variant: 'buff', r, c }])
     }
     // La unidad se mueve, queda marcada como moved y SIGUE seleccionada -el
     // siguiente click sobre un objetivo resuelve el ataque (modo elegido en
@@ -2105,10 +2105,10 @@ export default function App() {
     // dice). Solo se le acaba el turno si de verdad no queda nada: ninguna
     // cara le corta el movimiento al Axie (ver unitCanAct).
     if (!unitCanAct(movedUnit)) {
-      endUnitTurn(movedUnit, 'se mueve pero no ve enemigos: se acaba su turno.')
+      endUnitTurn(movedUnit, 'moves but sees no enemies: its turn ends.')
       return
     }
-    pushLog(`${labelOf(selectedUnit)} se mueve.`)
+    pushLog(`${labelOf(selectedUnit)} moves.`)
   }
 
   function repositionAlly(ally) {
@@ -2117,9 +2117,9 @@ export default function App() {
     setUnits((us) => us.map((u) => (u.id === selectedUnit.id ? { ...u, acted: true } : u)))
     if (dest) {
       setUnits((us) => us.map((u) => (u.id === ally.id ? { ...u, pos: dest } : u)))
-      pushLog(`${labelOf(selectedUnit)} reposiciona a ${labelOf(ally)}.`)
+      pushLog(`${labelOf(selectedUnit)} repositions ${labelOf(ally)}.`)
     } else {
-      pushLog(`${labelOf(selectedUnit)} no encuentra hueco para reposicionar a ${labelOf(ally)}.`)
+      pushLog(`${labelOf(selectedUnit)} finds no room to reposition ${labelOf(ally)}.`)
     }
     setSelected(null)
   }
@@ -2175,7 +2175,7 @@ export default function App() {
       const current = attackingPlayerLord ? playerLordHp : enemyLordHp
       const next = Math.max(0, current - damage)
       ;(attackingPlayerLord ? setPlayerLordHp : setEnemyLordHp)(next)
-      lines.push(`Lord ${sideLabel(activeSide)} dispara al Lord rival (-${damage}).`)
+      lines.push(`${sideLabel(activeSide)} Lord fires at the opposing Lord (-${damage}).`)
       if (next <= 0) endOfMatch(attackingPlayerLord ? 'enemy-won' : 'player-won')
     } else {
       victim = units.find((u) => u.id === target.id)
@@ -2189,12 +2189,12 @@ export default function App() {
       dealt = damage - absorbed
       shieldConsumed = Math.min(victim.shield, absorbed)
       terrainAbsorbed = Math.max(0, absorbed - shieldConsumed)
-      if (shieldConsumed > 0) lines.push(`El escudo de ${labelOf(victim)} absorbe ${shieldConsumed}.`)
-      if (terrainAbsorbed > 0) lines.push(`El terreno de ${labelOf(victim)} absorbe ${terrainAbsorbed} de la guardia.`)
+      if (shieldConsumed > 0) lines.push(`${labelOf(victim)}'s shield absorbs ${shieldConsumed}.`)
+      if (terrainAbsorbed > 0) lines.push(`${labelOf(victim)}'s terrain absorbs ${terrainAbsorbed} of the guard.`)
       const killed = victim.hp - dealt <= 0
-      lines.push(`Lord ${sideLabel(activeSide)} dispara a ${labelOf(victim)} (-${dealt}).`)
-      if (marked) lines.push(`${labelOf(victim)} estaba marcado: +20 de dano.`)
-      if (killed) lines.push(`${labelOf(victim)} cae.`)
+      lines.push(`${sideLabel(activeSide)} Lord fires at ${labelOf(victim)} (-${dealt}).`)
+      if (marked) lines.push(`${labelOf(victim)} was marked: +20 damage.`)
+      if (killed) lines.push(`${labelOf(victim)} falls.`)
       setUnits((us) =>
         us.map((u) =>
           u.id === target.id
@@ -2211,11 +2211,11 @@ export default function App() {
     const lordPos = lords[activeSide]
     const victimPos = target.kind === 'lord' ? (activeSide === 'player' ? ENEMY_LORD : PLAYER_LORD) : victim ? victim.pos : lordPos
     pushFloats([
-      { text: 'Ataque del Lord', variant: 'cast', ...lordPos },
+      { text: 'Lord Attack', variant: 'cast', ...lordPos },
       { text: `-${dealt ?? damage}`, variant: 'damage', ...victimPos },
-      ...(shieldConsumed > 0 ? [{ text: `escudo -${shieldConsumed}`, variant: 'shield', ...victimPos }] : []),
-      ...(terrainAbsorbed > 0 ? [{ text: `+${terrainAbsorbed} guardia terreno`, variant: 'shield', ...victimPos }] : []),
-      ...(marked ? [{ text: '+20 marcado', variant: 'buff', ...victimPos }] : []),
+      ...(shieldConsumed > 0 ? [{ text: `shield -${shieldConsumed}`, variant: 'shield', ...victimPos }] : []),
+      ...(terrainAbsorbed > 0 ? [{ text: `+${terrainAbsorbed} terrain guard`, variant: 'shield', ...victimPos }] : []),
+      ...(marked ? [{ text: '+20 marked', variant: 'buff', ...victimPos }] : []),
     ])
     pushImpacts([{ r: victimPos.r, c: victimPos.c, kind: 'lord', klass: 'lord', effect: 'lord-attack', atkR: lordPos.r, atkC: lordPos.c }])
   }
@@ -2226,13 +2226,13 @@ export default function App() {
   function lordSummon(cell) {
     const queue = reserve[activeSide]
     if (queue.length === 0) {
-      pushLog(`Lord ${sideLabel(activeSide)} no tiene reserva que invocar.`)
+      pushLog(`${sideLabel(activeSide)} Lord has no reserve to summon.`)
     } else {
       const [summoned, ...rest] = queue
       setReserve((r) => ({ ...r, [activeSide]: rest }))
       setUnits((us) => [...us, { ...summoned, pos: cell }])
-      pushLog(`Lord ${sideLabel(activeSide)} invoca a ${labelOf(summoned)}.`)
-      pushFloats([{ text: 'Invoca', variant: 'cast', ...cell }])
+      pushLog(`${sideLabel(activeSide)} Lord summons ${labelOf(summoned)}.`)
+      pushFloats([{ text: 'Summon', variant: 'cast', ...cell }])
     }
     setLordActed((a) => ({ ...a, [activeSide]: true }))
     setSelected(null)
@@ -2244,8 +2244,8 @@ export default function App() {
   function lordShield(target) {
     const ally = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, shield: Math.max(u.shield, 30) } : u)))
-    pushLog(`Lord ${sideLabel(activeSide)} protege a ${labelOf(ally)} con Muro (+30 escudo).`)
-    pushFloats([{ text: 'Muro', variant: 'cast', ...lords[activeSide] }, { text: '+30 escudo', variant: 'shield', ...target.pos }])
+    pushLog(`${sideLabel(activeSide)} Lord shields ${labelOf(ally)} with Wall (+30 shield).`)
+    pushFloats([{ text: 'Wall', variant: 'cast', ...lords[activeSide] }, { text: '+30 shield', variant: 'shield', ...target.pos }])
     setLordActed((a) => ({ ...a, [activeSide]: true }))
     setSelected(null)
   }
@@ -2256,8 +2256,8 @@ export default function App() {
   function lordMark(target) {
     const victim = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, marked: true } : u)))
-    pushLog(`Lord ${sideLabel(activeSide)} marca a ${labelOf(victim)}.`)
-    pushFloats([{ text: 'Marca', variant: 'cast', ...lords[activeSide] }, { text: 'Marcado', variant: 'buff', ...target.pos }])
+    pushLog(`${sideLabel(activeSide)} Lord marks ${labelOf(victim)}.`)
+    pushFloats([{ text: 'Mark', variant: 'cast', ...lords[activeSide] }, { text: 'Marked', variant: 'buff', ...target.pos }])
     setLordActed((a) => ({ ...a, [activeSide]: true }))
     setSelected(null)
   }
@@ -2267,8 +2267,8 @@ export default function App() {
   function lordHeal(target) {
     const ally = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, hp: Math.min(u.maxHp, u.hp + 15) } : u)))
-    pushLog(`Lord ${sideLabel(activeSide)} cura a ${labelOf(ally)} (+15 de vida).`)
-    pushFloats([{ text: 'Cura', variant: 'cast', ...lords[activeSide] }, { text: '+15 vida', variant: 'heal', ...target.pos }])
+    pushLog(`${sideLabel(activeSide)} Lord heals ${labelOf(ally)} (+15 HP).`)
+    pushFloats([{ text: 'Heal', variant: 'cast', ...lords[activeSide] }, { text: '+15 HP', variant: 'heal', ...target.pos }])
     setLordActed((a) => ({ ...a, [activeSide]: true }))
     setSelected(null)
   }
@@ -2280,8 +2280,8 @@ export default function App() {
   function lordBuff(target) {
     const ally = units.find((u) => u.id === target.id)
     setUnits((us) => us.map((u) => (u.id === target.id ? { ...u, buffed: true } : u)))
-    pushLog(`Lord ${sideLabel(activeSide)} bendice a ${labelOf(ally)} con Templanza.`)
-    pushFloats([{ text: 'Templanza', variant: 'cast', ...lords[activeSide] }, { text: '+15 dano', variant: 'buff', ...target.pos }])
+    pushLog(`${sideLabel(activeSide)} Lord blesses ${labelOf(ally)} with Temperance.`)
+    pushFloats([{ text: 'Temperance', variant: 'cast', ...lords[activeSide] }, { text: '+15 damage', variant: 'buff', ...target.pos }])
     setLordActed((a) => ({ ...a, [activeSide]: true }))
     setSelected(null)
   }
@@ -2297,15 +2297,15 @@ export default function App() {
     const original = units.find((u) => u.id === target.id)
     const cells = lordSummonTargets(activeSide, units, lords, original.klass)
     if (cells.length === 0) {
-      pushLog(`Lord ${sideLabel(activeSide)} no tiene hueco junto a el para duplicar a ${labelOf(original)}.`)
+      pushLog(`${sideLabel(activeSide)} Lord has no free cell next to it to duplicate ${labelOf(original)}.`)
     } else {
       const clone = makeUnit(activeSide, original.klass, nextCloneId(activeSide, units), cells[0], {
         starterEnemy: false,
         augments: meta.augments,
       })
       setUnits((us) => [...us, clone])
-      pushLog(`Lord ${sideLabel(activeSide)} duplica a ${labelOf(original)}.`)
-      pushFloats([{ text: 'Duplicar', variant: 'cast', ...lords[activeSide] }, { text: 'Clon', variant: 'info', ...cells[0] }])
+      pushLog(`${sideLabel(activeSide)} Lord duplicates ${labelOf(original)}.`)
+      pushFloats([{ text: 'Duplicate', variant: 'cast', ...lords[activeSide] }, { text: 'Clone', variant: 'info', ...cells[0] }])
     }
     setLordActed((a) => ({ ...a, [activeSide]: true }))
     setSelected(null)
@@ -2421,7 +2421,7 @@ export default function App() {
     if (!OVERTIME_ACTIVE && nextTurn > TURN_CLOCK && matchInfo.mode === 'pvp') {
       OVERTIME_ACTIVE = true
       setOvertime(true)
-      pushLog('MUERTE SUBITA (PVP): prorroga de 2 rondas. Ambos bandos ganan +2 casillas de movimiento y +50% de dano.')
+      pushLog('SUDDEN DEATH (PVP): 2-round overtime. Both sides gain +2 movement cells and +50% damage.')
       // Bang visual sobre los dos Lords; vfxIdFor('lord','overtime') cae al
       // slash generico del kit, valido para el anuncio.
       pushImpacts([
@@ -2433,7 +2433,7 @@ export default function App() {
     if (nextTurn > clockCap) {
       endOfMatch(clockTiebreak(playerLordHp, enemyLordHp))
       setTurnCount(nextTurn)
-      pushLog(`Se acaba el reloj de ${clockCap / 2} rondas.`)
+      pushLog(`The ${clockCap / 2}-round clock runs out.`)
       return
     }
 
@@ -2516,22 +2516,22 @@ export default function App() {
       if (drainPHp <= 0 && drainEHp <= 0) {
         endOfMatch('enemy-won') // empate exacto: lo gana el defensor (Regla 5)
         setTurnCount(nextTurn)
-        pushLog('MUERTE SUBITA: ambos Lords se desangran a la vez. Gana el defensor (Rival).')
+        pushLog('SUDDEN DEATH: both Lords bleed out at once. The defender (Rival) wins.')
         return
       }
       if (drainPHp <= 0) {
         endOfMatch('enemy-won')
         setTurnCount(nextTurn)
-        pushLog('MUERTE SUBITA: tu Lord cae por agotamiento de la prorroga.')
+        pushLog('SUDDEN DEATH: your Lord falls to overtime attrition.')
         return
       }
       if (drainEHp <= 0) {
         endOfMatch('player-won')
         setTurnCount(nextTurn)
-        pushLog('MUERTE SUBITA: el Lord rival cae por agotamiento de la prorroga.')
+        pushLog('SUDDEN DEATH: the enemy Lord falls to overtime attrition.')
         return
       }
-      pushLog(`Prorroga: ambos Lords pierden ${OVERTIME_DRAIN} de vida por desgaste (tu Lord ${drainPHp} / rival ${drainEHp}).`)
+      pushLog(`Overtime: both Lords lose ${OVERTIME_DRAIN} HP to attrition (your Lord ${drainPHp} / rival ${drainEHp}).`)
     }
 
     nextTurn += 1
@@ -2542,7 +2542,7 @@ export default function App() {
         OVERTIME_ACTIVE ? drainEHp : result.enemyLordHp,
       ))
       setTurnCount(nextTurn)
-      pushLog(`Se acaba el reloj de ${postCap / 2} rondas.`)
+      pushLog(`The ${postCap / 2}-round clock runs out.`)
       return
     }
     setUnits((us) => us.map((u) => (u.side === 'player' ? { ...u, acted: false } : u)))
@@ -2558,7 +2558,7 @@ export default function App() {
     // completos (lo consume el effect del cronometro de arriba).
     turnSecondsRef.current = PVP_TURN_MS / 1000
     setTurnSecondsLeft(PVP_TURN_MS / 1000)
-    pushLog(`Turno ${nextTurn}. Tira los dados, Player.`)
+    pushLog(`Turn ${nextTurn}. Roll the dice, Player.`)
   }
 
   // Igual que en rollDice: `rolls` ya no se vacia entre turnos (la tirada del
@@ -2587,7 +2587,7 @@ export default function App() {
         turnSecondsRef.current = PVP_TURN_MS / 1000
         setTurnSecondsLeft(turnSecondsRef.current)
         if (!rolled) {
-          pushLog('Tiempo agotado: tirada automatica.')
+          pushLog('Time is up: automatic roll.')
           autoPassRef.current.rollDice()
         }
         autoPassRef.current.passTurn()
@@ -2672,7 +2672,7 @@ export default function App() {
     setTurnSecondsLeft(PVP_TURN_MS / 1000)
     endOfMatchRef.current = false
     setStatus('playing')
-    setLog([`Empieza la batalla: ${c.blurb || 'Escaramuza en el centro de Lunacia.'} Tira los dados, Player.`])
+    setLog([`The battle begins: ${c.blurb || 'Skirmish in the heart of Lunacia.'} Roll the dice, Player.`])
     setFloats([])
     setImpacts([])
   }
@@ -2689,9 +2689,9 @@ export default function App() {
       {SHOW_DASHBOARD && !isCover && (
       <>
       <header className="topbar">
-        <a className="brand" href="#/portada" title="Volver a la portada">
+        <a className="brand" href="#/portada" title="Back to the cover">
           <img src="/brand/logo.svg" alt="Tactic Dice" className="brand-logo-img" />
-          {!isMeta && <span className="brand-sub">Asedio al mando</span>}
+          {!isMeta && <span className="brand-sub">Siege command</span>}
         </a>
 
         {!isMeta && (
@@ -2747,7 +2747,7 @@ export default function App() {
       {SHOW_DASHBOARD && (
       <Roster
         side="player"
-        title="Tu mando"
+        title="Your command"
         titleClassName="ally"
         units={units}
         rolls={rolls}
@@ -2849,7 +2849,7 @@ export default function App() {
       {SHOW_DASHBOARD && (
       <Roster
         side="enemy"
-        title={matchInfo.enemyTitle || 'Asediantes'}
+        title={matchInfo.enemyTitle || 'Besiegers'}
         titleClassName="enemy"
         units={units}
         rolls={rolls}

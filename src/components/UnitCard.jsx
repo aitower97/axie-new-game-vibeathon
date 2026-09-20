@@ -43,7 +43,7 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
             </span>
             <strong title={stats.label}>#{u.id.toUpperCase()}</strong>
             {u.name && (
-              <span className="starter-name" title="Starter oficial de Axie">
+              <span className="starter-name" title="Official Axie starter">
                 {u.name}
               </span>
             )}
@@ -53,7 +53,7 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
             <span className="class-stats">
               <b
                 className="stat-ico"
-                title={`Movimiento: ${stats.move} paso${stats.move > 1 ? 's' : ''}`}
+                title={`Movement: ${stats.move} step${stats.move > 1 ? 's' : ''}`}
               >
                 <span className="flat-emoji">👣</span> {stats.move}
               </b>
@@ -61,8 +61,8 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
                 className="stat-ico"
                 title={
                   stats.range > 1
-                    ? `Alcance: ${stats.range} casillas a distancia`
-                    : 'Alcance: cuerpo a cuerpo (1 casilla)'
+                    ? `Range: ${stats.range} tiles at a distance`
+                    : 'Range: melee (1 tile)'
                 }
               >
                 <span className="flat-emoji">{stats.range > 1 ? '🏹' : '🤜'}</span> {stats.range}
@@ -99,17 +99,17 @@ export default function UnitCard({ unit: u, rolledFace, rolling, activeSide, ene
           {rolledFace && (
             <div className="card-foot-face">
               <FaceRow slot={rolledFace.slot} face={rolledFace} active />
-              {u.acted && <span className="done">Ya ha actuado</span>}
+              {u.acted && <span className="done">Already acted</span>}
             </div>
           )}
           {u.side === activeSide && !u.acted && rolledFace && status === 'playing' && (
             <button className="small" onClick={onSelect}>
-              {selected === u.id ? 'Deseleccionar' : 'Seleccionar'}
+              {selected === u.id ? 'Deselect' : 'Select'}
             </button>
           )}
         </div>
       )}
-      {!u.alive && <div className="hint">Caida. Perdida definitiva.</div>}
+      {!u.alive && <div className="hint">Fallen. Lost for good.</div>}
     </div>
   )
 }

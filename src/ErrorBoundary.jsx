@@ -22,13 +22,13 @@ export default class ErrorBoundary extends Component {
     if (!this.state.error) return this.props.children
     return (
       <div className="error-boundary">
-        <p className="error-boundary-title">Axie · Dados de Lunacia</p>
+        <p className="error-boundary-title">Axie · Tactic Dice</p>
         <p className="error-boundary-text">
-          Algo se rompio al cargar la partida. Puede ser un asset (modelo 3D,
-          musica) que no ha llegado a tiempo.
+          Something broke while loading the match. It may be an asset (3D model,
+          music) that did not arrive in time.
         </p>
         <button type="button" className="error-boundary-retry" onClick={() => window.location.reload()}>
-          Recargar
+          Reload
         </button>
       </div>
     )

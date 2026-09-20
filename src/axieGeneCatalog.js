@@ -8,7 +8,7 @@
 // content-integrity.json: 5821 ficheros, 521 MB -todo lo que su propio
 // copy-assets.mjs tiene para copiar, no hay una version "completa" mayor) es
 // una demo con cobertura muy limitada de partes, no un espejo del universo
-// real de Axies. Coincide con el aviso explicito de axie-vibeathon-brief.md:
+// real de Axies. Coincide con el aviso explicito de docs/design/axie-vibeathon-brief.md:
 // "Evitar el Three.js Axie Mixer -esta en beta y avisan de inestabilidad".
 //
 // En su lugar: AxieDescriptor de clase pura (mismo patron que ya usaba

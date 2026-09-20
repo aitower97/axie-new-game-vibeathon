@@ -7,8 +7,8 @@ export default function VictoryBanner({ status, onReset }) {
   return (
     <div className="victory-overlay" role="alert">
       <div className={`banner ${status === 'player-won' ? 'won' : 'lost'}`}>
-        {status === 'player-won' ? 'Player gana el asedio.' : 'Enemy gana el asedio.'}
-        <button onClick={onReset}>Reiniciar partida</button>
+        {status === 'player-won' ? 'Player wins the siege.' : 'Enemy wins the siege.'}
+        <button onClick={onReset}>Restart match</button>
       </div>
     </div>
   )

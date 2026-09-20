@@ -99,7 +99,7 @@ export default function Portrait3D({ descriptor, genes, size = 44, className }) 
       })
       .catch((err) => {
         // eslint-disable-next-line no-console
-        console.error('Portrait3D: no se pudo cargar el Axie 3D', err)
+        console.error('Portrait3D: Failed to load 3D Axie', err)
       })
 
     const unregister = registerRenderable(`portrait-${seed}`, {

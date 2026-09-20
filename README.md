@@ -7,6 +7,24 @@ Prototipo construido para la Ronda 1 del Axie Vibeathon 2026 usando el
 [Axie Origins Battle Kit](https://github.com/axieinfinity/axie-origins-asset-kit) oficial
 bajo el permiso concedido en la Sección 5 de las Official Rules del Vibeathon.
 
+# PLAY THE PROTOTYPE
+
+**[PUBLIC GAME URL — pending: add after the Vercel deploy is verified]**
+
+Desktop browser (Chrome / Edge), mouse. The game UI is in English.
+
+# HOW TO PLAY
+
+See [docs/HOW_TO_PLAY.md](docs/HOW_TO_PLAY.md).
+
+# FUTURE VISION
+
+See [docs/FUTURE_VISION.md](docs/FUTURE_VISION.md) (split into *implemented now* vs *future*).
+
+**Repository:** https://github.com/aitower97/axie-new-game-vibeathon ·
+**Submission copy:** [docs/SUBMISSION.md](docs/SUBMISSION.md) ·
+**Axie Core fit, AI disclosure, assets and limitations:** sections below (the rest of this README is in Spanish).
+
 ## Arrancar
 
 ```
@@ -74,7 +92,7 @@ juego en vez de en un número de fondo.
 
 El análisis de mercado, el modelo económico (estructura Lord/tropa, sink asimétrico,
 suscripción de acuñado) y el estudio de la competencia (Terrariums, Homeland, Den of
-Mysteries) están en `docs/decision-de-producto.md` y `docs/estudio-mercado-2026.md`.
+Mysteries) están en `docs/design/decision-de-producto.md` y `docs/design/estudio-mercado-2026.md`.
 
 ## Estado actual (verificado en vivo, no solo por código)
 
@@ -86,9 +104,9 @@ por estado, y VFX de combate reales del Axie Origins Battle Kit sobre cada impac
 
 ## Known issues / limitaciones conocidas
 
-- **Sin build desplegado todavía** — el juego corre en local (`npm run dev`) o desde un
-  build estático (`npm run build`); no hay una URL pública jugable en este momento. Es
-  el hueco más importante pendiente de cerrar antes de la fecha límite de Ronda 1.
+- **Despliegue pendiente de verificar** — configurado para Vercel como app estática de
+  Vite (`vercel.json`: `npm run build`, salida `dist/`, ~550 MB por el pack 3D de Axie);
+  la URL pública se añade arriba cuando esté desplegada y comprobada.
 - **Sin tests automatizados.** La lógica de combate (afinidad, crítico, contragolpes,
   muerte súbita) está verificada por revisión de código y partidas jugadas a mano en
   cada sesión, no por una suite que corra sola.
@@ -124,7 +142,7 @@ por estado, y VFX de combate reales del Axie Origins Battle Kit sobre cada impac
   `package.json`.
 - **Assets del Axie Origins Battle Kit** (modelos 3D, partes, VFX de combate,
   emblemas de ranura): inventario completo, verificado archivo por archivo, en
-  `docs/recursos-vibeathon.md`.
+  `docs/design/recursos-vibeathon.md`.
 - **Assets de terceros no-Axie**: props 3D CC0 de Kenney (Platformer Kit, Mini Forest)
   para el terreno del tablero y la decoración de fondo; música ambiental de Kevin
   MacLeod (incompetech.com, CC-BY 4.0, atribución en el panel de ayuda del juego y en
@@ -140,7 +158,12 @@ src/
   components/          UI de presentacion (HUB, tablero, cartas, HUD)
   axie.js              datos de partes, clases, dados y resolucion de efectos
   axieMixer3D.js        puente genoma -> mixer 3D oficial del Vibeathon
-docs/                  estudio de mercado, decision de producto, disclosures de assets
+  main.jsx, App.css    arranque y estilos
+public/                assets servidos tal cual: assets/axie (pack 3D), models, music, vfx, brand
+vendor/                mixer 3D vendorizado (necesario para el build remoto)
+vercel.json            despliegue estatico en Vercel (build: npm run build, salida: dist)
+docs/                  guia de juego, vision, textos de entrega, guion de video, checklist
+docs/design/           documentos de diseno internos (reglas MVP1, estudio de mercado, recursos)
 CLAUDE.md              historial completo de sesiones de desarrollo, con verificacion
 ```
 

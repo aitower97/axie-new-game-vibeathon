@@ -12,7 +12,7 @@ export default function LoadingCurtain({ visible }) {
         ))}
       </div>
       <p className="loading-title">Axie</p>
-      <p className="loading-sub">Tactic Dice · forjando el dado y el tablero…</p>
+      <p className="loading-sub">Tactic Dice · forging the die and the board…</p>
     </div>
   )
 }

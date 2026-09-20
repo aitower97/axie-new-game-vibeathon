@@ -9,12 +9,12 @@
 export const SLOTS = ['eyes', 'ears', 'horn', 'mouth', 'back', 'tail']
 
 export const SLOT_LABEL = {
-  eyes: 'Ojos',
-  ears: 'Orejas',
-  horn: 'Cuerno',
-  mouth: 'Boca',
-  back: 'Lomo',
-  tail: 'Cola',
+  eyes: 'Eyes',
+  ears: 'Ears',
+  horn: 'Horn',
+  mouth: 'Mouth',
+  back: 'Back',
+  tail: 'Tail',
 }
 
 export const CLASSES = {
@@ -34,12 +34,12 @@ export const CLASSES = {
 //   guard   -> escudo, se aplica al tirar. Absorbe dano enemigo.
 //   dash    -> mueve hasta 2 casillas y puede atacar al final.
 export const FACE_INFO = {
-  summon: { glyph: '✦', name: 'Invocacion', hint: 'Fuera: entra al tablero. Dentro: mueve 2 o golpea 1 si tienes un rival al lado.' },
-  strike: { glyph: '⚔', name: 'Golpe', hint: 'Ataque normal, la DEF lo reduce.' },
-  pierce: { glyph: '➤', name: 'Perforante', hint: 'Ignora la DEF del objetivo.' },
-  drain: { glyph: '♥', name: 'Drenaje', hint: 'Ataca y te cura 1.' },
-  guard: { glyph: '◉', name: 'Guardia', hint: 'Escudo inmediato al tirar.' },
-  dash: { glyph: '⇉', name: 'Impulso', hint: 'Mueve hasta 2 y puede atacar.' },
+  summon: { glyph: '✦', name: 'Summon', hint: 'Off the board: enters it. On the board: moves 2 or hits 1 if a rival is adjacent.' },
+  strike: { glyph: '⚔', name: 'Strike', hint: 'Normal attack, reduced by DEF.' },
+  pierce: { glyph: '➤', name: 'Pierce', hint: "Ignores the target's DEF." },
+  drain: { glyph: '♥', name: 'Drain', hint: 'Attacks and heals you for 1.' },
+  guard: { glyph: '◉', name: 'Guard', hint: 'Instant shield when rolled.' },
+  dash: { glyph: '⇉', name: 'Dash', hint: 'Moves up to 2 and can attack.' },
 }
 
 // Biblioteca de partes. Cada slot tiene variantes con nombre real de Axie.
@@ -156,7 +156,7 @@ export function damageFrom(rolled, targetDef) {
   return Math.max(1, rolled.power - (targetDef || 0))
 }
 
-// --- MVP1 (MVP1vinculodelunacia.md) ---
+// --- MVP1 (docs/design/MVP1vinculodelunacia.md) ---
 // Asedio a un mando fijo: Lord fijo + 3 Axies moviles por bando. Las 4 clases son
 // deliberadamente incompatibles entre si (tanque/soldado/arquero/asesino). Los 12
 // nombres de parte reales (paso 5 del documento) llegan mas adelante; de momento solo
@@ -170,10 +170,10 @@ export function damageFrom(rolled, targetDef) {
 // arquetipo por encima del dato real de Axie Classic, que en Classic tiene a
 // Aquatic casi tan tanque como Plant.
 export const CLASS_STATS = {
-  plant: { label: 'Plant', role: 'Tanque', hp: 120, move: 1, range: 1, atk: 10, color: '#71c14b' },
-  beast: { label: 'Beast', role: 'Soldado', hp: 90, move: 2, range: 1, atk: 20, color: '#f0a04b' },
-  bird: { label: 'Bird', role: 'Arquero', hp: 70, move: 2, range: 3, atk: 10, color: '#ef6f9c' },
-  aqua: { label: 'Aqua', role: 'Asesino', hp: 70, move: 3, range: 1, atk: 20, color: '#3fa9e0' },
+  plant: { label: 'Plant', role: 'Tank', hp: 120, move: 1, range: 1, atk: 10, color: '#71c14b' },
+  beast: { label: 'Beast', role: 'Soldier', hp: 90, move: 2, range: 1, atk: 20, color: '#f0a04b' },
+  bird: { label: 'Bird', role: 'Archer', hp: 70, move: 2, range: 3, atk: 10, color: '#ef6f9c' },
+  aqua: { label: 'Aqua', role: 'Assassin', hp: 70, move: 3, range: 1, atk: 20, color: '#3fa9e0' },
 }
 
 export const LORD_STATS = { hp: 240, move: 0, range: 2, atk: 30 }
@@ -198,12 +198,12 @@ export const LORD_STATS = { hp: 240, move: 0, range: 2, atk: 30 }
 //     Lord en vez de a un aliado- saca al siguiente de la reserva. La UNICA
 //     cara del dado que mete una unidad nueva en el tablero.
 export const LORD_DIE = [
-  { id: 'lord-attack', name: 'Ataque del Lord', effect: 'lord-attack' },
-  { id: 'lord-shield', name: 'Muro', effect: 'lord-shield', value: 30, range: 3 },
-  { id: 'lord-mark', name: 'Marca', effect: 'lord-mark', value: 20, range: 3 },
-  { id: 'lord-heal', name: 'Cura', effect: 'lord-heal', value: 15, range: 3 },
-  { id: 'lord-buff', name: 'Templanza', effect: 'lord-buff', value: 15, range: 3 },
-  { id: 'lord-clone', name: 'Duplicar', effect: 'lord-clone', range: 3 },
+  { id: 'lord-attack', name: 'Lord Attack', effect: 'lord-attack' },
+  { id: 'lord-shield', name: 'Wall', effect: 'lord-shield', value: 30, range: 3 },
+  { id: 'lord-mark', name: 'Mark', effect: 'lord-mark', value: 20, range: 3 },
+  { id: 'lord-heal', name: 'Heal', effect: 'lord-heal', value: 15, range: 3 },
+  { id: 'lord-buff', name: 'Temperance', effect: 'lord-buff', value: 15, range: 3 },
+  { id: 'lord-clone', name: 'Duplicate', effect: 'lord-clone', range: 3 },
 ]
 
 // Paso 4: los 4 tipos de terreno (seccion 6 del documento). El layout concreto de
@@ -213,11 +213,11 @@ export const LORD_DIE = [
 //   aquaOnly    -> solo entran unidades Aqua (agua).
 //   moveCost    -> puntos de movimiento que cuesta entrar (zona lenta cuesta 2).
 export const TERRAIN_TYPES = {
-  open: { label: 'Abierto', blocksMove: false, blocksLine: false, aquaOnly: false, moveCost: 1 },
-  stone: { label: 'Piedra', blocksMove: true, blocksLine: true, aquaOnly: false, moveCost: Infinity },
-  slow: { label: 'Zona lenta', blocksMove: false, blocksLine: false, aquaOnly: false, moveCost: 2 },
-  water: { label: 'Agua', blocksMove: false, blocksLine: false, aquaOnly: true, moveCost: 1 },
-  obstacle: { label: 'Obstaculo bajo', blocksMove: true, blocksLine: false, aquaOnly: false, moveCost: Infinity },
+  open: { label: 'Open', blocksMove: false, blocksLine: false, aquaOnly: false, moveCost: 1 },
+  stone: { label: 'Stone', blocksMove: true, blocksLine: true, aquaOnly: false, moveCost: Infinity },
+  slow: { label: 'Slow zone', blocksMove: false, blocksLine: false, aquaOnly: false, moveCost: 2 },
+  water: { label: 'Water', blocksMove: false, blocksLine: false, aquaOnly: true, moveCost: 1 },
+  obstacle: { label: 'Low obstacle', blocksMove: true, blocksLine: false, aquaOnly: false, moveCost: Infinity },
 }
 
 // Paso 5: las 12 partes de combate reales (seccion 3 del documento). Los nombres son
@@ -229,12 +229,12 @@ export const TERRAIN_TYPES = {
 // el MVP1 (seccion 3.5, paso MVP2).
 export const PART_SLOTS = ['horn', 'mouth', 'back', 'tail']
 export const SLOT_LABEL_MVP1 = {
-  horn: 'Cuerno',
-  mouth: 'Boca',
-  back: 'Lomo',
-  tail: 'Cola',
-  eyes: 'Ojos',
-  ears: 'Orejas',
+  horn: 'Horn',
+  mouth: 'Mouth',
+  back: 'Back',
+  tail: 'Tail',
+  eyes: 'Eyes',
+  ears: 'Ears',
 }
 
 // Las 6 ranuras del cuerpo del Axie, en el mismo orden que se ven en el modelo
@@ -247,61 +247,61 @@ export const DIE_SLOTS = ['eyes', 'ears', 'horn', 'mouth', 'back', 'tail']
 export const PARTS_MVP1 = {
   'little-branch': {
     id: 'little-branch', name: 'Little Branch', slot: 'horn', class: 'plant',
-    effect: 'pierce', value: 20, text: 'Perforante: ignora el escudo del objetivo.',
+    effect: 'pierce', value: 20, text: "Pierce: ignores the target's shield.",
   },
   imp: {
     id: 'imp', name: 'Imp', slot: 'horn', class: 'beast',
     effect: 'pierce-execute', value: 30,
-    text: 'Perforante: ignora el escudo. +10 si el objetivo esta por debajo de la mitad de su vida maxima.',
+    text: 'Pierce: ignores shield. +10 if the target is below half of its max HP.',
   },
   'feather-spear': {
     id: 'feather-spear', name: 'Feather Spear', slot: 'horn', class: 'bird',
     effect: 'ranged-bonus', value: 20, rangeBonus: 1,
-    text: 'Ataque a distancia con +1 de alcance sobre el del chasis.',
+    text: 'Ranged attack with +1 range over the chassis range.',
   },
   serious: {
     id: 'serious', name: 'Serious', slot: 'mouth', class: 'plant',
     effect: 'strike-shield-self', value: 20, shieldGain: 20,
-    text: 'Golpe. El atacante gana 20 de escudo.',
+    text: 'Strike. The attacker gains 20 shield.',
   },
   'risky-fish': {
     id: 'risky-fish', name: 'Risky Fish', slot: 'mouth', class: 'aqua',
     effect: 'strike-self-damage', value: 40, selfDamage: 10,
-    text: 'Golpe fuerte. El atacante se hace 10 de dano (ignora su propio escudo).',
+    text: 'Heavy strike. The attacker takes 10 damage (ignores its own shield).',
   },
   'nut-crack': {
     id: 'nut-crack', name: 'Nut Crack', slot: 'mouth', class: 'beast',
     effect: 'strike-combo', value: 30, comboWith: 'nut-throw', comboBonus: 20,
-    text: 'Golpe. +20 si este mismo Axie lleva tambien Nut Throw.',
+    text: 'Strike. +20 if this same Axie also carries Nut Throw.',
   },
   pumpkin: {
     id: 'pumpkin', name: 'Pumpkin', slot: 'back', class: 'plant',
-    effect: 'guard', value: 30, text: 'Guardia. Se aplica al tirar y no gasta la accion.',
+    effect: 'guard', value: 30, text: 'Guard. Applied when rolled and does not spend the action.',
   },
   hermit: {
     id: 'hermit', name: 'Hermit', slot: 'back', class: 'aqua',
     effect: 'guard-heal', value: 20, heal: 10,
-    text: 'Guardia y cura 10 de vida. Se aplica al tirar, no gasta la accion.',
+    text: 'Guard and heal 10 HP. Applied when rolled, does not spend the action.',
   },
   balloon: {
     id: 'balloon', name: 'Balloon', slot: 'back', class: 'bird',
     effect: 'guard-push', value: 20, push: 1,
-    text: 'Guardia y empuja 1 casilla a un enemigo adyacente, en linea recta. Se aplica al tirar, no gasta la accion.',
+    text: 'Guard and push an adjacent enemy 1 tile in a straight line. Applied when rolled, does not spend the action.',
   },
   'nut-throw': {
     id: 'nut-throw', name: 'Nut Throw', slot: 'tail', class: 'beast',
     effect: 'ranged-fixed', value: 20, fixedRange: 2, comboWith: 'nut-crack', comboBonus: 20,
-    text: 'Ataque a distancia 2 (independiente del alcance del chasis). +20 si lleva tambien Nut Crack.',
+    text: 'Ranged attack at range 2 (independent of chassis range). +20 if it also carries Nut Crack.',
   },
   shrimp: {
     id: 'shrimp', name: 'Shrimp', slot: 'tail', class: 'aqua',
     effect: 'dash-attack', value: 20, moveRange: 2,
-    text: 'Impulso: mueve hasta 2 y ataca al final. El movimiento sigue sujeto a zona de control.',
+    text: 'Dash: moves up to 2 and attacks at the end. Movement is still subject to zone of control.',
   },
   swallow: {
     id: 'swallow', name: 'Swallow', slot: 'tail', class: 'bird',
     effect: 'reposition-ally', value: null, moveAlly: 1,
-    text: 'Reposiciona: mueve 1 casilla a un aliado adyacente. No ataca.',
+    text: 'Reposition: moves an adjacent ally 1 tile. Does not attack.',
   },
 }
 

@@ -18,11 +18,11 @@ const HEAL_AMOUNT = 30
 // evitaria, los haria con lineas finas y con un color acorde") -ver
 // LineIcons.jsx, cada uno hereda el acento de su tarjeta via `color`.
 const NAV = [
-  { route: 'pve', Icon: MapIcon, title: 'PVE · Mapa de Lunacia', text: 'Regiones, nodos y esencia por victoria.', accent: '#3fa9e0' },
-  { route: 'pvp', Icon: TrophyIcon, title: 'PVP · Arenas', text: 'Duelos contra axies normales de la comunidad.', accent: '#e0544f' },
-  { route: 'evolucion', Icon: FlaskIcon, title: 'Laboratorio', text: 'Evoluciona partes y bloquea caras del dado.', accent: '#e3a857' },
-  { route: 'investigacion', Icon: SearchIcon, title: 'Investigacion', text: 'El detalle del genoma y las mejoras.', accent: '#7fe7c4' },
-  { route: 'recursos', Icon: ScaleIcon, title: 'Recursos', text: 'La economia de sesion del puesto.', accent: '#c9a86a' },
+  { route: 'pve', Icon: MapIcon, title: 'PVE · Map of Lunacia', text: 'Regions, nodes and essence per win.', accent: '#3fa9e0' },
+  { route: 'pvp', Icon: TrophyIcon, title: 'PVP · Arenas', text: 'Duels against regular community Axies.', accent: '#e0544f' },
+  { route: 'evolucion', Icon: FlaskIcon, title: 'Lab', text: 'Evolve parts and lock die faces.', accent: '#e3a857' },
+  { route: 'investigacion', Icon: SearchIcon, title: 'Research', text: 'Genome details and upgrades.', accent: '#7fe7c4' },
+  { route: 'recursos', Icon: ScaleIcon, title: 'Resources', text: "The post's session economy.", accent: '#c9a86a' },
 ]
 
 export default function BaseScreen({ units, playerLordHp, essence, augments, onHealLord, navigate, onPlay }) {
@@ -32,8 +32,8 @@ export default function BaseScreen({ units, playerLordHp, essence, augments, onH
   return (
     <MetaScreen
       icon="🏰"
-      title="Puesto de mando"
-      blurb="El Lord es el unico axie que sobrevive entre partidas: la tropa se destruye de forma permanente (sumidero asimetrico). El centro es tu equipo; los laterales, el mundo."
+      title="Command post"
+      blurb="The Lord is the only Axie that survives between matches: the troops are destroyed permanently (asymmetric sink). The center is your team; the sides, the world."
     >
       <div className="hub3">
         <div className="hub3-rail">
@@ -59,8 +59,8 @@ export default function BaseScreen({ units, playerLordHp, essence, augments, onH
               <SwordIcon size={17} />
             </span>
             <span className="hub3-card-text">
-              <b>Partida libre</b>
-              <em>La escaramuza clasica del MVP1, tal cual.</em>
+              <b>Free match</b>
+              <em>The classic MVP1 skirmish, as is.</em>
             </span>
           </button>
         </div>
@@ -72,12 +72,12 @@ export default function BaseScreen({ units, playerLordHp, essence, augments, onH
             </div>
             <div className="meta-lord-info">
               <div className="meta-lord-title">
-                <b>LORD</b> · Puesto de mando
+                <b>LORD</b> · Command post
               </div>
               <HpBar hp={Math.max(playerLordHp, 0)} maxHp={LORD_STATS.hp} showValue />
               <div className="meta-lord-stats">
-                <StatChip label="RNG" value={LORD_STATS.range} title="Alcance del ataque" />
-                <StatChip label="ATK" value={LORD_STATS.atk} title="Dano del Ataque del Lord" />
+                <StatChip label="RNG" value={LORD_STATS.range} title="Attack range" />
+                <StatChip label="ATK" value={LORD_STATS.atk} title="Damage of the Lord Attack" />
                 <StatChip label="HP" value={`${Math.max(playerLordHp, 0)}/${LORD_STATS.hp}`} />
               </div>
               <button
@@ -85,29 +85,28 @@ export default function BaseScreen({ units, playerLordHp, essence, augments, onH
                 className="ghost meta-action"
                 disabled={essence < HEAL_COST || playerLordHp >= LORD_STATS.hp}
                 onClick={onHealLord}
-                title={essence < HEAL_COST ? `Necesitas ${HEAL_COST} de esencia` : `Cura ${HEAL_AMOUNT} de vida`}
+                title={essence < HEAL_COST ? `You need ${HEAL_COST} essence` : `Heals ${HEAL_AMOUNT} HP`}
               >
-                Curar Lord +{HEAL_AMOUNT} ({HEAL_COST} esencia)
+                Heal Lord +{HEAL_AMOUNT} ({HEAL_COST} essence)
               </button>
             </div>
           </div>
 
           <div className="meta-panel hub3-squad">
             <div className="meta-panel-title">
-              Escuadra en guardia
+              Squad on guard
               <span className="hub3-essence">
-                🪙 {essence} esencia · {evolvedCount} parte{evolvedCount === 1 ? '' : 's'} evolucionada
-                {evolvedCount === 1 ? '' : 's'}
+                🪙 {essence} essence · {evolvedCount} evolved part{evolvedCount === 1 ? '' : 's'}
               </span>
             </div>
-            {squad.length === 0 && <p className="meta-note">No quedan axies en pie.</p>}
+            {squad.length === 0 && <p className="meta-note">No Axies left standing.</p>}
             {squad.map((u) => (
               <MetaUnitRow key={u.id} u={u} />
             ))}
             {dead.length > 0 && (
               <p className="meta-note">
-                {dead.length} caido{dead.length > 1 ? 's' : ''} perdido{dead.length > 1 ? 's' : ''} de forma permanente.
-                Reclutar reemplazos es una pantalla futura.
+                {dead.length} fallen, permanently lost.
+                Recruiting replacements is a future screen.
               </p>
             )}
           </div>
@@ -115,18 +114,18 @@ export default function BaseScreen({ units, playerLordHp, essence, augments, onH
 
         <div className="hub3-rail hub3-rail-right">
           <div className="hub3-note">
-            <b>Regla de oro</b>
-            <p>Bloquear partes no compra poder: compra certidumbre sobre que cara sale en la tirada. Evolucionar
-            compra poder de verdad, una parte cada vez.</p>
+            <b>Golden rule</b>
+            <p>Locking parts does not buy power: it buys certainty about which face comes up on the roll. Evolving
+            buys real power, one part at a time.</p>
           </div>
           <div className="hub3-note">
-            <b>Recompensas</b>
-            <p>Cada victoria en el mapa (PVE) o arena (PVP) da la esencia de la zona; las regiones del mapa se
-            desbloquean ganando la anterior.</p>
+            <b>Rewards</b>
+            <p>Every win on the map (PVE) or in an arena (PVP) gives the zone's essence; map regions
+            unlock by winning the previous one.</p>
           </div>
           <div className="hub3-note">
-            <b>Antes de jugar</b>
-            <p>Pasa por el Laboratorio: elige tus caras, bloquea lo que sobra y deja que el dado trabaje para ti.</p>
+            <b>Before playing</b>
+            <p>Stop by the Lab: pick your faces, lock what is left over and let the die work for you.</p>
           </div>
         </div>
       </div>

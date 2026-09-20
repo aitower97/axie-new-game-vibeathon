@@ -14,7 +14,7 @@ export default function PvpScreen({ onPlay, onPlayFree }) {
     <MetaScreen
       icon="🏆"
       title="PVP: Arenas"
-      blurb="Duelos locales contra axies normales con nombre, no contra starters. Gana esencia por cada arena; el 'Emparejar' lanza una partida libre como maqueta de combate clasificado mientras no hay liga online."
+      blurb="Local duels against named regular Axies, not starters. Earn essence for each arena; 'Matchmake' launches a free match as a mock-up of ranked combat until there is an online league."
     >
       <div className="meta-grid">
         <div className="arena-list" style={{ gridColumn: '1 / -1' }}>
@@ -28,11 +28,11 @@ export default function PvpScreen({ onPlay, onPlayFree }) {
                 </div>
                 <p className="meta-note">{a.blurb}</p>
                 <div className="meta-panel-actions">
-                  <StatChip label="RECOMPENSA" value={`${cfg.reward} esencia`} />
-                  <StatChip label="HP RIVAL" value={cfg.hpScale === 1 ? 'normal' : `×${cfg.hpScale.toFixed(2)}`} />
-                  <StatChip label="EQUIPO" value={cfg.enemyClasses.map((k) => k.slice(0, 3)).join('/')} />
+                  <StatChip label="REWARD" value={`${cfg.reward} essence`} />
+                  <StatChip label="ENEMY HP" value={cfg.hpScale === 1 ? 'normal' : `×${cfg.hpScale.toFixed(2)}`} />
+                  <StatChip label="TEAM" value={cfg.enemyClasses.map((k) => k.slice(0, 3)).join('/')} />
                   <button type="button" className="ghost meta-action" onClick={() => onPlay(cfg)}>
-                    Desafiar
+                    Challenge
                   </button>
                 </div>
               </div>
@@ -40,13 +40,13 @@ export default function PvpScreen({ onPlay, onPlayFree }) {
           })}
         </div>
         <div className="meta-panel">
-          <div className="meta-panel-title">Emparejamiento</div>
+          <div className="meta-panel-title">Matchmaking</div>
           <div className="meta-big-number">
-            {pairing ? '…' : 'Listo'}
-            <div className="meta-big-cap">{pairing ? 'buscando rival' : 'sala abierta'}</div>
+            {pairing ? '…' : 'Ready'}
+            <div className="meta-big-cap">{pairing ? 'looking for a rival' : 'room open'}</div>
           </div>
           <div className="meta-panel-actions">
-            <StatChip label="STATUS" value="maqueta local" />
+            <StatChip label="STATUS" value="local mock-up" />
             <button
               type="button"
               className="ghost meta-action"
@@ -59,22 +59,22 @@ export default function PvpScreen({ onPlay, onPlayFree }) {
                 }, 600)
               }}
             >
-              {pairing ? 'Buscando…' : 'Emparejar'}
+              {pairing ? 'Searching…' : 'Matchmake'}
             </button>
           </div>
           <p className="meta-note">
-            La partida contra la IA local ocupa el lugar del oponente clasificado mientras no hay red de
-            emparejamiento real.
+            The match against the local AI stands in for the ranked opponent until there is a real
+            matchmaking network.
           </p>
         </div>
         <div className="meta-panel">
-          <div className="meta-panel-title">Tablon de la liga</div>
+          <div className="meta-panel-title">League board</div>
           <table className="meta-table">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Lunaciano</th>
-                <th>Puntos</th>
+                <th>Lunacian</th>
+                <th>Points</th>
               </tr>
             </thead>
             <tbody>
@@ -91,7 +91,7 @@ export default function PvpScreen({ onPlay, onPlayFree }) {
               ))}
             </tbody>
           </table>
-          <p className="meta-note">Posiciones de ejemplo; el tracker real es vision de producto.</p>
+          <p className="meta-note">Sample rankings; the real tracker is product vision.</p>
         </div>
       </div>
     </MetaScreen>

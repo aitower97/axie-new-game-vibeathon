@@ -27,15 +27,15 @@ export default function LaboratoryScreen({ essence, augments, onEvolve, onToggle
   return (
     <MetaScreen
       icon="🔧"
-      title="Laboratorio de partes"
-      blurb="El dado de cada Axie esta hecho de sus seis partes. Aqui forjas el tuyo: EVOLUCIONAR recrea una cara del dado (+10, irreversible, 1 esencia) y BLOQUEAR saca esa parte de la tirada para que las caras que usas salgan mas veces. Ambas se aplican al pulsar Jugar."
+      title="Parts Lab"
+      blurb="Each Axie's die is made of its six parts. Here you forge yours: EVOLVE rewrites a die face (+10, irreversible, 1 essence) and LOCK takes that part out of the roll so the faces you use come up more often. Both apply when you press Play."
     >
       <div className="meta-panel meta-panel-muted lab-hud">
-        <StatChip label="ESENCIA" value={essence} />
-        <StatChip label="COSTE EVOLUCION" value={EVOLVE_COST} />
-        <StatChip label="BLOQUEO" value="gratis" title="Bloquear/desbloquear una parte no cuesta esencia" />
-        <button type="button" className="ghost meta-action" onClick={onPlay} title="Cerrar el laboratorio y tirar una partida libre">
-          Probar en combate ⚔
+        <StatChip label="ESSENCE" value={essence} />
+        <StatChip label="EVOLVE COST" value={EVOLVE_COST} />
+        <StatChip label="LOCK" value="free" title="Locking/unlocking a part costs no essence" />
+        <button type="button" className="ghost meta-action" onClick={onPlay} title="Close the lab and play a free match">
+          Try in combat ⚔
         </button>
       </div>
 
@@ -56,7 +56,7 @@ export default function LaboratoryScreen({ essence, augments, onEvolve, onToggle
                   {stats.label}
                 </span>
                 <span className="lab-die-odds">
-                  Tirada: {live.length}/{die.length} caras · cada una ≈ {chance}%
+                  Roll: {live.length}/{die.length} faces · each one ≈ {chance}%
                 </span>
               </div>
               <div className="lab-die">
@@ -89,11 +89,11 @@ export default function LaboratoryScreen({ essence, augments, onEvolve, onToggle
                           onClick={() => onEvolve(klass, face.slot)}
                           title={
                             isEvolved
-                              ? 'Ya evolucionada (irreversible)'
-                              : `Reescribir la cara (${face.name}) con +${EVOLVE_COST}0 · ${EVOLVE_COST} esencia`
+                              ? 'Already evolved (irreversible)'
+                              : `Rewrite the face (${face.name}) with +${EVOLVE_COST}0 · ${EVOLVE_COST} essence`
                           }
                         >
-                          Evolucionar
+                          Evolve
                         </button>
                         <button
                           type="button"
@@ -102,13 +102,13 @@ export default function LaboratoryScreen({ essence, augments, onEvolve, onToggle
                           onClick={() => onToggleBlock(klass, face.slot)}
                           title={
                             isEvolved
-                              ? 'Las partes evolucionadas no se pueden bloquear'
+                              ? 'Evolved parts cannot be locked'
                               : isBlocked
-                                ? 'Volver a meterla en la tirada'
-                                : 'Sacarla de la tirada: sube la probabilidad de las demas'
+                                ? 'Put it back into the roll'
+                                : 'Take it out of the roll: raises the odds of the others'
                           }
                         >
-                          {isBlocked ? 'Desbloquear' : 'Bloquear'}
+                          {isBlocked ? 'Unlock' : 'Lock'}
                         </button>
                       </div>
                     </div>
@@ -128,8 +128,8 @@ export default function LaboratoryScreen({ essence, augments, onEvolve, onToggle
       )}
 
       <p className="meta-note">
-        Desbloquear siempre cuesta 0 esencia; evolucionar cuesta {EVOLVE_COST} y es para siempre. Un axie con TODAS
-        sus partes evolucionadas es su mejor version: ninguna cara se bloquea, todas pegan +10.
+        Unlocking always costs 0 essence; evolving costs {EVOLVE_COST} and is forever. An Axie with ALL
+        its parts evolved is its best version: no face gets locked, all hit for +10.
       </p>
     </MetaScreen>
   )

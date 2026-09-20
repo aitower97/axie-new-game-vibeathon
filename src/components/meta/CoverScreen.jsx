@@ -21,9 +21,9 @@ import { DiceIcon, BoltIcon, DnaIcon, SwordIcon, TrophyIcon } from '../LineIcons
 const SHOWCASE_KLASSES = ['beast', 'bird', 'aqua']
 
 const STEPS = [
-  { Icon: DiceIcon, title: 'Tira el dado', text: 'Cada cara es una parte real del cuerpo de tu Axie: cuerno, boca, lomo, cola.' },
-  { Icon: BoltIcon, title: 'Juega la cara que sale', text: 'Mover nunca gasta el turno; la cara tirada decide con que golpeas o te repones.' },
-  { Icon: DnaIcon, title: 'Evoluciona una parte', text: 'Mejora los genes de una parte y esa cara del dado se reescribe para siempre.' },
+  { Icon: DiceIcon, title: 'Roll the die', text: 'Each face is a real body part of your Axie: horn, mouth, back, tail.' },
+  { Icon: BoltIcon, title: 'Play the face that comes up', text: 'Moving never spends your turn; the rolled face decides what you strike with or recover with.' },
+  { Icon: DnaIcon, title: 'Evolve a part', text: 'Upgrade the genes of a part and that die face is rewritten forever.' },
 ]
 
 export default function CoverScreen({ onEnter, onPlay }) {
@@ -40,9 +40,9 @@ export default function CoverScreen({ onEnter, onPlay }) {
           />
         </h1>
         <p className="cover-pitch">
-          Evoluciona tus Axies y evoluciona tu dado. A medida que mejoras los genes de sus
-          partes desbloqueas mejoras en el dado: caras nuevas y la opcion de bloquear las que
-          ya tienes.
+          Evolve your Axies and evolve your die. As you upgrade the genes of their
+          parts you unlock die upgrades: new faces and the option to lock the ones
+          you already have.
         </p>
 
         <div className="cover-classes">
@@ -56,11 +56,11 @@ export default function CoverScreen({ onEnter, onPlay }) {
 
         <div className="cover-actions">
           <button type="button" className="cover-cta" onClick={onEnter}>
-            Entrar al puesto de mando
+            Enter the command post
           </button>
           <button type="button" className="cover-cta-ghost" onClick={() => onPlay()}>
             <SwordIcon size={16} />
-            Partida rapida
+            Quick match
           </button>
         </div>
 
@@ -80,7 +80,7 @@ export default function CoverScreen({ onEnter, onPlay }) {
 
         <p className="cover-credit">
           <TrophyIcon size={14} />
-          Prototipo para el Axie Vibeathon 2026, Ronda 1.
+          Prototype for the Axie Vibeathon 2026, Round 1.
         </p>
       </div>
 

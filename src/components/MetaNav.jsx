@@ -7,15 +7,15 @@ const TABS = [
   { key: 'base', label: 'Base', icon: '🏰' },
   { key: 'pve', label: 'PVE', icon: '🤖' },
   { key: 'pvp', label: 'PVP', icon: '🏆' },
-  { key: 'evolucion', label: 'Laboratorio', icon: '🔧' },
-  { key: 'partida', label: 'Partida', icon: '⚔' },
-  { key: 'recursos', label: 'Recursos', icon: '⚖' },
-  { key: 'investigacion', label: 'Investigacion', icon: '🔬' },
+  { key: 'evolucion', label: 'Lab', icon: '🔧' },
+  { key: 'partida', label: 'Match', icon: '⚔' },
+  { key: 'recursos', label: 'Resources', icon: '⚖' },
+  { key: 'investigacion', label: 'Research', icon: '🔬' },
 ]
 
 export default function MetaNav({ route, compressed }) {
   return (
-    <nav className={`meta-nav ${compressed ? 'compressed' : ''}`} aria-label="Navegacion">
+    <nav className={`meta-nav ${compressed ? 'compressed' : ''}`} aria-label="Navigation">
       {TABS.map((t) => (
         <a
           key={t.key}

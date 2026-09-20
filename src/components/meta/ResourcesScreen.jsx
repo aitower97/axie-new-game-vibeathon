@@ -10,14 +10,14 @@ const CURRENCIES = [
   {
     key: 'essence',
     icon: '🫙',
-    label: 'Esencia',
-    desc: 'Moneda de sesion para curar, investigar y reclutar. Se gana coleccionando en esta demo; el modelo real decide su origen.',
+    label: 'Essence',
+    desc: 'Session currency for healing, researching and recruiting. Earned by collecting in this demo; the real model decides its origin.',
   },
   {
     key: 'axp',
     icon: '✨',
     label: 'AXP',
-    desc: 'Experiencia del roster. Abstraccion de la demo: el sistema real es AXP off-chain y niveles on-chain en 10/20/30 con firma.',
+    desc: 'Roster experience. Demo abstraction: the real system is off-chain AXP and on-chain levels at 10/20/30 with a signature.',
   },
 ]
 
@@ -26,8 +26,8 @@ export default function ResourcesScreen({ meta, collect }) {
   return (
     <MetaScreen
       icon="⚖"
-      title="Recursos"
-      blurb="Cada partida alimenta el ciclo de meta. Esta pantalla es el esqueleto first-approach de la economia de sesion (sin conexion on-chain)."
+      title="Resources"
+      blurb="Every match feeds the meta loop. This screen is the first-approach skeleton of the session economy (no on-chain connection)."
     >
       <div className="meta-grid">
         {CURRENCIES.map((c) => (
@@ -37,10 +37,10 @@ export default function ResourcesScreen({ meta, collect }) {
             </div>
             <div className="meta-big-number">
               {meta[c.key]}
-              <div className="meta-big-cap">en sesion</div>
+              <div className="meta-big-cap">this session</div>
             </div>
             <div className="meta-panel-actions">
-              <StatChip label="GANADO +" value={gained} />
+              <StatChip label="GAINED +" value={gained} />
               <button
                 type="button"
                 className="ghost meta-action"
@@ -49,7 +49,7 @@ export default function ResourcesScreen({ meta, collect }) {
                   setGained((g) => g + 1)
                 }}
               >
-                Recolectar 1
+                Collect 1
               </button>
             </div>
             <p className="meta-note">{c.desc}</p>
@@ -57,12 +57,12 @@ export default function ResourcesScreen({ meta, collect }) {
         ))}
       </div>
       <div className="meta-panel">
-        <div className="meta-panel-title">De donde sale la renta</div>
+        <div className="meta-panel-title">Where the revenue comes from</div>
         <ul className="meta-list">
-          <li>La tropa se destruye de forma permanente: cada baja es un sumidero real de recursos, no un coste de papel.</li>
-          <li>El Lord solo se hiere y se cura: el activo coleccionable se protege para que el jugador invierta en el.</li>
-          <li>La suscripcion por acunado (objetos de juego por defecto, acunar cuesta cuota) es el ingreso recurrente propuesto.</li>
-          <li>Regla de oro: el juego solo paga lo que realmente ingresa. Nada de token nuevo.</li>
+          <li>Troops are destroyed permanently: every loss is a real resource sink, not a paper cost.</li>
+          <li>The Lord is only wounded and healed: the collectible asset is protected so the player invests in it.</li>
+          <li>The minting subscription (items are in-game by default, minting costs a fee) is the proposed recurring revenue.</li>
+          <li>Golden rule: the game only pays out what actually comes in. No new token.</li>
         </ul>
       </div>
     </MetaScreen>

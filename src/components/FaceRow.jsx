@@ -16,12 +16,12 @@ export default function FaceRow({ slot, face, active, idx }) {
       <div className="face-card empty" style={style}>
         <PartLogo slot={slot} />
         <div className="face-info">
-          <span className="face-part">Sin carta</span>
+          <span className="face-part">No card</span>
           <span className="face-effect">—</span>
         </div>
         <div className="part-tip">
           <b>{SLOT_LABEL_MVP1[slot]}</b>
-          No disponible en el MVP1: esta ranura no se tira al lanzar el dado.
+          Not available in MVP1: this slot is not rolled when the die is thrown.
         </div>
       </div>
     )
@@ -41,7 +41,7 @@ export default function FaceRow({ slot, face, active, idx }) {
         <span>{face.text}</span>
         {face.affinity && face.value != null && (
           <em className="tip-affinity">
-            ★ Afinidad de clase: {face.value} base + 10 = {face.value + 10}
+            ★ Class affinity: {face.value} base + 10 = {face.value + 10}
           </em>
         )}
       </div>
