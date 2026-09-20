@@ -273,7 +273,7 @@ export default function VillageScene({ onResourcesChange }) {
       <div className="village-scene-head">
         <div className="village-meta-heading">
           <span className="meta-icon" aria-hidden="true">⌂</span>
-          <img className="village-brand-logo" src="/brand/axie-infinity-tactics-dices.png" alt="Axie Infinity Tactics Dice" />
+          <img className="village-brand-logo" src="/brand/axie-tactics-dice-brand.png" alt="Axie Infinity Tactics Dice" />
           <span className="eyebrow">LUNACIA · PROTOTIPO</span>
           <span className="village-title-kicker">AXIE INFINITY TACTICS DICE</span>
           <h1 className="meta-title">Lunacia Village</h1>

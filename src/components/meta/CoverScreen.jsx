@@ -32,7 +32,7 @@ export default function CoverScreen({ onEnter, onPlay }) {
       <div className="cover-hero">
         <h1 className="cover-logo">
           <img
-            src="/brand/axie-infinity-tactics-dices.png"
+            src="/brand/axie-tactics-dice-brand.png"
             alt="Axie Tactics Dice"
             className="cover-logo-img"
             width={460}
