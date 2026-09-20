@@ -27,3 +27,10 @@ dist-ssr
 *.sln
 *.sw?
 .aider*
+
+# Secretos y configuracion local: nunca al repo
+.env
+.env.*
+!.env.example
+*.pem
+*.key
