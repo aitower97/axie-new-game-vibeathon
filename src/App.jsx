@@ -26,7 +26,6 @@ import { setMusicKey } from './music'
 import MusicToggle from './components/MusicToggle'
 import MetaNav from './components/MetaNav'
 import CoverScreen from './components/meta/CoverScreen'
-import ResearchScreen from './components/meta/ResearchScreen'
 import PveScreen from './components/meta/PveScreen'
 import PvpScreen from './components/meta/PvpScreen'
 import LaboratoryScreen from './components/meta/LaboratoryScreen'
@@ -1506,7 +1505,8 @@ export default function App() {
   // Portada: pantalla de titulo, sin la barra de la app encima (ni HUD ni
   // pestanas de MetaNav tienen sentido antes de "entrar").
   const isCover = route === 'portada'
-  const invest = (key) =>
+  // _invest (pantalla Investigacion) queda oculta hasta implementar bien recursos e investigacion.
+  const _invest = (key) =>
     setMeta((m) =>
       m.essence >= 2
         ? { ...m, essence: m.essence - 2, upgrades: { ...m.upgrades, [key]: (m.upgrades[key] || 0) + 1 } }
@@ -1602,8 +1602,6 @@ export default function App() {
     portada: <CoverScreen onEnter={() => { setSessionStarted(true); navigate('aldea') }} onPlay={goPlay} />,
     base: <VillageScene onResourcesChange={setVillageResources} />,
     aldea: <VillageScene onResourcesChange={setVillageResources} />,
-    recursos: <VillageScene onResourcesChange={setVillageResources} />,
-    investigacion: <ResearchScreen units={units} meta={meta} invest={invest} />,
     evolucion: (
       <LaboratoryScreen essence={meta.essence} augments={meta.augments} onEvolve={evolve} onToggleBlock={toggleBlock} onPlay={goPlay} />
     ),

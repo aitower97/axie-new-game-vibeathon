@@ -2,7 +2,7 @@
 
 ## 1. What is Axie Tactics Dices?
 
-A turn-based tactics game on an 8×7 grid where **the dice of every Axie is made of its six body parts**. Eyes, ears, horn, mouth, back and tail are the six faces. You don't roll "how hard do I hit" — you roll **what can I do this turn**. Kill the enemy Lord to win.
+A turn-based tactics game on an 8×7 grid where **the die of every Axie is made of its six body parts**. Eyes, ears, horn, mouth, back and tail are the six faces. You don't roll "how hard do I hit" — you roll **what can I do this turn**. Kill the enemy Lord to win.
 
 ## 2. First 30 seconds
 
@@ -30,9 +30,9 @@ Desktop browser (Chrome / Edge) with a mouse. No touch/mobile support.
 | Help | Click the hand icon at the top of the board |
 | Music | 🔊 / 🔇 button in the top bar (starts on your first click, browser autoplay policy) |
 
-## 4. The Dice
+## 4. The Die
 
-Each Axie has six body parts: eyes, ears, horn, mouth, back, tail. Each part is one face of its dice. In this prototype the four combat slots (**horn, mouth, back, tail**) produce actions; eyes and ears are shown as empty faces. The face you roll decides which special action the Axie has this turn. Hover an Axie to see its six parts in the detail panel.
+Each Axie has six body parts: eyes, ears, horn, mouth, back, tail. Each part is one face of its die. In this prototype the four combat slots (**horn, mouth, back, tail**) produce actions; eyes and ears are shown as empty faces. The face you roll decides which special action the Axie has this turn. Hover an Axie to see its six parts in the detail panel.
 
 ## 5. Combat
 
@@ -80,8 +80,8 @@ Open **PVE** in the top bar: a map of Lunacia with regions and missions against 
 ## 11. Progression
 
 Open the **Lab**. For each class you can:
-- **Evolve** a part (1 Essence, irreversible): it rewrites that dice face (+10 value).
-- **Lock** a part (free): the face leaves the dice so the others come up more often. Evolved parts cannot be locked.
+- **Evolve** a part (1 Essence, irreversible): it rewrites that die face (+10 value).
+- **Lock** a part (free): the face leaves the die so the others come up more often. Evolved parts cannot be locked.
 
 Changes apply to your next match. The **Village** shows the session economy skeleton: Axies work jobs to gather Wood, Stone and Food (no backend, nothing persists).
 

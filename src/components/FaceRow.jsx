@@ -21,7 +21,7 @@ export default function FaceRow({ slot, face, active, idx }) {
         </div>
         <div className="part-tip">
           <b>{SLOT_LABEL_MVP1[slot]}</b>
-          Not available in MVP1: this slot is not rolled when the dice is thrown.
+          Not available in MVP1: this slot is not rolled when the die is thrown.
         </div>
       </div>
     )

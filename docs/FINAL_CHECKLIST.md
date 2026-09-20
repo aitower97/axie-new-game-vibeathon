@@ -24,7 +24,7 @@ Tick only what you have verified yourself.
 - [ ] Cover / HUB
 - [ ] PVE
 - [ ] Axie selection
-- [ ] Dice
+- [ ] Die and dice rolls
 - [ ] Movement
 - [ ] Attack
 - [ ] Energy

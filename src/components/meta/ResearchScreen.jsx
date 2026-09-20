@@ -18,7 +18,7 @@ export default function ResearchScreen({ units, meta, invest }) {
     <MetaScreen
       icon="🔬"
       title="Research"
-      blurb="Each Axie's dice is made of its six parts. Evolving a part rewrites that dice face: the genome is inseparable from the mechanics."
+      blurb="Each Axie's die is made of its six parts. Evolving a part rewrites that die face: the genome is inseparable from the mechanics."
     >
       <div className="meta-panel meta-panel-muted">
         <StatChip label="ESSENCE" value={meta.essence} />

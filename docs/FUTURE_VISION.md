@@ -6,9 +6,9 @@
 
 **Implemented now:** a playable tactics prototype — 8×7 3D board, three playable classes, AI enemies, PVE missions on a Lunacia map, PVP-style arenas against the AI, a Village hub with Lab, PVE and PVP, ambient music and real Axie Origins VFX.
 
-**What it proves:** the idea in one sentence — *the dice of every Axie is made of its six body parts, and evolving a part rewrites that face.* A match is short, readable, and the character's genetics are what you play with.
+**What it proves:** the idea in one sentence — *the die of every Axie is made of its six body parts, and evolving a part rewrites that face.* A match is short, readable, and the character's genetics are what you play with.
 
-**Future vision:** grow the same core into a full game without changing its rule: body part = dice face.
+**Future vision:** grow the same core into a full game without changing its rule: body part = die face.
 
 ## 2. Core Game Loop
 
@@ -21,11 +21,11 @@
 This is the heart of the project. **The genome is not decoration — it is the mechanic.**
 
 **Implemented now:**
-- Each Axie has six parts and a class. Each part maps to a dice face (four combat slots: horn, mouth, back, tail; eyes and ears are reserved faces).
+- Each Axie has six parts and a class. Each part maps to a die face (four combat slots: horn, mouth, back, tail; eyes and ears are reserved faces).
 - Part names are real Axie parts (Imp, Little Branch, Balloon, Shrimp, Swallow…), rendered with the official 3D parts from the Axie Origins kit.
 - Class drives stats, affinity triangle and critical profile.
-- Evolving a part rewrites that dice face; locking a part reshapes the dice's probability.
-- Remove the parts and there is no dice — and without the dice there is no game.
+- Evolving a part rewrites that die face; locking a part reshapes the die's probability.
+- Remove the parts and there is no die — and without the die there is no game.
 
 **Future vision:** more parts (eyes/ears with real effects), part synergies (e.g. the Nut Crack + Nut Throw combo already in the prototype as a pattern), and body-build identity beyond class.
 
@@ -51,7 +51,7 @@ This is the heart of the project. **The genome is not decoration — it is the m
 
 **Implemented now:** three AI-run arenas with a 20 s turn clock and Sudden Death overtime (+2 movement, +50 % damage).
 
-**Future vision:** real player-versus-player, ranked ladders, seasons, alternative formats and competitive builds (the dice makes the "build" itself the metagame).
+**Future vision:** real player-versus-player, ranked ladders, seasons, alternative formats and competitive builds (the die makes the "build" itself the metagame).
 
 ## 8. Colony / Resource Layer
 
@@ -77,4 +77,4 @@ This is the heart of the project. **The genome is not decoration — it is the m
 - **Distributions, not stats.** Evolving and locking shape probabilities, giving depth without number inflation.
 - **Builds and counterplay.** Affinity, guard, Break and crits make faces matter in context.
 - **Readable progression.** A player sees exactly which face changed.
-- **Collectability.** Every part is a piece of a dice, so parts become meaningful to collect and combine.
+- **Collectability.** Every part is a piece of a die, so parts become meaningful to collect and combine.

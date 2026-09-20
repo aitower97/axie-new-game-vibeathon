@@ -9,7 +9,7 @@
 // logo de la barra superior.
 import { useEffect, useState } from 'react'
 
-export const META_ROUTES = ['portada', 'base', 'aldea', 'recursos', 'investigacion', 'evolucion', 'pve', 'pvp']
+export const META_ROUTES = ['portada', 'base', 'aldea', 'evolucion', 'pve', 'pvp']
 export const DEFAULT_ROUTE = 'portada'
 
 export function getHashRoute() {

@@ -111,7 +111,7 @@ export default function LordCard({
       </div>
 
       <div className="die-unit lord-die-unit">
-        <div className="lord-die-3d-wrap" title={rolled ? `Rolled ${rolled.name}` : 'Lord command dice'}>
+        <div className="lord-die-3d-wrap" title={rolled ? `Rolled ${rolled.name}` : 'Lord command die'}>
           <LordDie3D
             rolling={rolling}
             rollTick={rollTick}
