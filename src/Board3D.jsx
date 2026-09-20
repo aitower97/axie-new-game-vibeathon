@@ -135,6 +135,11 @@ function loadCrownTemplate() {
 // orientado hacia `facing` (por defecto, el Lord rival; si la unidad esta
 // seleccionada y tiene un objetivo de ataque, hacia ese objetivo -lo decide
 // App.jsx, aqui solo se aplica la rotacion).
+// Constante de modulo: un `= []` en el parametro seria un array NUEVO en cada render,
+// y villageObjects esta en las deps del efecto que monta la escena (reconstruiria
+// todo el tablero 3D con cada hover del raton).
+const NO_VILLAGE_OBJECTS = []
+
 export default function Board3D({
   rows,
   cols,
@@ -150,7 +155,7 @@ export default function Board3D({
   fx,
   onTween,
   arenaConfig = BATTLE_ARENA_CONFIG,
-  villageObjects = [],
+  villageObjects = NO_VILLAGE_OBJECTS,
   onGridClick,
 }) {
   const hostRef = useRef(null)
