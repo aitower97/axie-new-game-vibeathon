@@ -11,7 +11,7 @@ bajo el permiso concedido en la Sección 5 de las Official Rules del Vibeathon.
 
 **[PUBLIC GAME URL — pending: add after the Vercel deploy is verified]**
 
-Desktop browser (Chrome / Edge), mouse. The game UI is in English.
+Desktop browser (Chrome / Edge), mouse. The game UI is in English and includes an interactive tutorial (navigation + how to play a match).
 
 # HOW TO PLAY
 

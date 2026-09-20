@@ -6,6 +6,8 @@ A turn-based tactics game on an 8×7 grid where **the die of every Axie is made 
 
 ## 2. First 30 seconds
 
+An interactive **tutorial** opens by itself the first time you enter the Village and again the first time you start a match. Reopen it any time with the **? Tutorial** button in the top bar.
+
 1. Open the game. On the cover screen click **Enter the command post** (you land in the Village) or **Quick match** to jump straight into a skirmish.
 2. In the top bar pick **PVE** (or *Free match*) and start a mission.
 3. Press **Roll dice**. Every living Axie of yours rolls one of its faces.

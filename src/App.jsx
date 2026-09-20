@@ -33,6 +33,8 @@ import { BATTLE_ARENA_CONFIG } from './arenaConfig'
 import { findGridPath } from './core/grid/findPath'
 import { ACTOR_ACTIVITY, createActorState } from './core/entities/actor'
 import VillageScene from './modes/village/VillageScene'
+import Tutorial from './components/Tutorial'
+import { NAV_STEPS, MATCH_STEPS } from './tutorialSteps'
 
 // Referencia estable: el hover del tablero no debe crear un objeto `lords`
 // nuevo y forzar el recalculo de todos los objetivos/axies 3D.
@@ -2721,6 +2723,31 @@ export default function App() {
     setMusicKey(key)
   }, [isMeta, route, status, matchInfo.mode, overtime])
 
+  // Tutorial (Tutorial.jsx): 'nav' = recorrido por la navegacion, 'match' = como
+  // se juega una partida. Se abre solo la primera vez (localStorage) y se puede
+  // reabrir con el boton "Tutorial" de la barra superior.
+  const [tutorial, setTutorial] = useState(null)
+  const tutorialSeen = (kind) => {
+    try {
+      return localStorage.getItem('axie-tactics-dice:tutorial-' + kind) === '1'
+    } catch {
+      return false
+    }
+  }
+  const closeTutorial = () => {
+    try {
+      if (tutorial) localStorage.setItem('axie-tactics-dice:tutorial-' + tutorial, '1')
+    } catch {
+      // sin localStorage: el tutorial simplemente volvera a salir
+    }
+    setTutorial(null)
+  }
+  useEffect(() => {
+    if (route === 'aldea' && !tutorialSeen('nav')) setTutorial('nav')
+    else if (route === 'partida' && boardReady && !tutorialSeen('match')) setTutorial('match')
+    else setTutorial((t) => ((t === 'nav' && route === 'partida') || (t === 'match' && route !== 'partida') ? null : t))
+  }, [route, boardReady])
+
   // Nueva partida desde cero (boton "Reiniciar partida", y cada "Jugar" desde el
   // hub/mapa): resetea todo el estado de combate. cfg (matchConfig) decide el
   // terreno VIVO (TERRAIN_LAYOUT, que el tablero 3D lee via terrainAt), las
@@ -2800,6 +2827,9 @@ export default function App() {
 
         <MetaNav route={route} compressed={false} />
         <MusicToggle />
+        <button type="button" className="tutorial-btn" onClick={() => setTutorial(route === 'partida' ? 'match' : 'nav')}>
+          ? Tutorial
+        </button>
 
         {(route === 'aldea' || route === 'base') && (
           <>
@@ -2838,6 +2868,15 @@ export default function App() {
       <VictoryBanner status={status} onReset={resetMatch} />
       </>}
       </>
+      )}
+
+      {tutorial && !isCover && (
+        <Tutorial
+          key={tutorial}
+          steps={tutorial === 'match' ? MATCH_STEPS : NAV_STEPS}
+          onClose={closeTutorial}
+          onNavigate={navigate}
+        />
       )}
 
       <div className={isMeta ? 'meta-view' : 'combat-shell'}>
