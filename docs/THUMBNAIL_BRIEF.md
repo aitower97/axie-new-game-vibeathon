@@ -1,10 +1,10 @@
-# Axie Tactics Dices — Thumbnail brief
+# Axie Tactics Dice — Thumbnail brief
 
 **Goal:** a legible, eye-catching image that says "Axie + dice + tactics" even at thumbnail size (~300 px wide).
 
 ## Composition
 
-- **Title:** "AXIE TACTICS DICES" in large chunky rounded letters (the in-game cover lockup style: solid outline, flat fill, hard drop shadow, no blur). Max 2–3 words on the whole image.
+- **Title:** "AXIE TACTICS DICE" in large chunky rounded letters (the in-game cover lockup style: solid outline, flat fill, hard drop shadow, no blur). Max 2–3 words on the whole image.
 - **Hero:** one or two recognizable 3D Axies (e.g. a Beast and an Aqua, from the game's own 3D renderer) in the foreground, facing each other or the camera.
 - **The dice:** a large 3D die beside/between them showing a body-part icon (e.g. the Imp horn) on its visible face. "Body part = die face" must be visible at a glance.
 - **Board:** the isometric 3D grid tiles as background, slightly darkened at the far end to keep focus on the hero and die.

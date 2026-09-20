@@ -2795,7 +2795,7 @@ export default function App() {
       <>
       <header className="topbar">
         <a className="brand" href="#/portada" title="Back to the cover">
-          <img src="/brand/axie-infinity-tactics-dices.png" alt="Axie Tactics Dices" className="brand-logo-img" />
+          <img src="/brand/axie-infinity-tactics-dices.png" alt="Axie Tactics Dice" className="brand-logo-img" />
         </a>
 
         <MetaNav route={route} compressed={false} />

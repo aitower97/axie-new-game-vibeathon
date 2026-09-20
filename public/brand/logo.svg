@@ -9,7 +9,7 @@
   "identificar" el proyecto. Esa identificacion como proyecto del Vibeathon
   vive aparte, en `.cover-credit` (CoverScreen.jsx: "Prototipo para el Axie
   Vibeathon 2026, Ronda 1."), asi que no hace falta repetirla aqui.
-  El logo es solo el nombre del juego, "AXIE TACTICS DICES", en dos lineas -letras
+  El logo es solo el nombre del juego, "AXIE TACTICS DICE", en dos lineas -letras
   <path> dibujadas a mano (ver ch-* mas abajo), con contorno grueso, relleno a
   cuadros y zarcillos decorativos. Autocontenido: sin <image>, sin fuentes
   externas.
@@ -23,7 +23,7 @@
   role="img"
   aria-labelledby="logoTitle"
 >
-  <title id="logoTitle">Axie Tactics Dices</title>
+  <title id="logoTitle">Axie Tactics Dice</title>
 
   <defs>
     <!-- Letras: esqueleto monolinea en una caja local de 0-100 de alto

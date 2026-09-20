@@ -1,4 +1,4 @@
-# Axie Tactics Dices — Video script (target 90–120 s, screen capture + text, voice optional)
+# Axie Tactics Dice — Video script (target 90–120 s, screen capture + text, voice optional)
 
 Record on the public build in Chrome at 1920×1080. Every shot is real gameplay.
 
@@ -10,6 +10,6 @@ Record on the public build in Chrome at 1920×1080. Every shot is real gameplay.
 | 0:50–1:05 | Affinity chip, crit chip, Energy gauge; a guard face adds Energy | "Class affinity, genetic crits and an Energy bank turn luck into decisions." |
 | 1:05–1:20 | Lab: evolve a part; the face on the die changes (+10); lock a part | "Evolving doesn't add a number — it rewrites one face of your die." |
 | 1:20–1:35 | Village and Lunacia map, PVE nodes, PVP arenas | "Turn Axie genetics into gameplay." |
-| Final | Logo card | **AXIE TACTICS DICES** — "Your Axie. Your six faces. Your strategy." |
+| Final | Logo card | **AXIE TACTICS DICE** — "Your Axie. Your six faces. Your strategy." |
 
 Notes: keep captures uncut where possible (no fake footage). The in-game music is CC-BY (Kevin MacLeod): keep the credit in the video description.

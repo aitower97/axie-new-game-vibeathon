@@ -1,10 +1,10 @@
-# Axie Tactics Dices — Submission copy (Axie Vibeathon 2026, Round 1)
+# Axie Tactics Dice — Submission copy (Axie Vibeathon 2026, Round 1)
 
 Copy/paste-ready text for the submission form. Placeholders in `[BRACKETS]` must be filled before submitting.
 
 ## Project Title
 
-Axie Tactics Dices
+Axie Tactics Dice
 
 ## One-sentence Pitch
 
@@ -12,7 +12,7 @@ A turn-based tactics game where the die of every Axie is made of its six body pa
 
 ## Short Description
 
-Axie Tactics Dices is a browser tactics game on a 3D grid. Each Axie's six body parts are the six faces of its combat die: you don't roll "how hard to hit", you roll *what you can do this turn*. Class affinity, genetic crits and an Energy bank add tactics, and the Lab lets you evolve or lock parts to reshape your die. Axie genetics are the core mechanic, not decoration.
+Axie Tactics Dice is a browser tactics game on a 3D grid. Each Axie's six body parts are the six faces of its combat die: you don't roll "how hard to hit", you roll *what you can do this turn*. Class affinity, genetic crits and an Energy bank add tactics, and the Lab lets you evolve or lock parts to reshape your die. Axie genetics are the core mechanic, not decoration.
 
 ## Full Description
 

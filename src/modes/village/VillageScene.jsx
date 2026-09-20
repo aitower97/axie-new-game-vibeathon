@@ -273,9 +273,9 @@ export default function VillageScene({ onResourcesChange }) {
       <div className="village-scene-head">
         <div className="village-meta-heading">
           <span className="meta-icon" aria-hidden="true">⌂</span>
-          <img className="village-brand-logo" src="/brand/axie-infinity-tactics-dices.png" alt="Axie Infinity Tactics Dices" />
+          <img className="village-brand-logo" src="/brand/axie-infinity-tactics-dices.png" alt="Axie Infinity Tactics Dice" />
           <span className="eyebrow">LUNACIA · PROTOTIPO</span>
-          <span className="village-title-kicker">AXIE INFINITY TACTICS DICES</span>
+          <span className="village-title-kicker">AXIE INFINITY TACTICS DICE</span>
           <h1 className="meta-title">Lunacia Village</h1>
           <p>20×20 tiles · 5 Axies available · resources ready</p>
         </div>

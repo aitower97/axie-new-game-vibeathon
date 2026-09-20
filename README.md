@@ -1,4 +1,4 @@
-# Axie Tactics Dices — Axie Vibeathon 2026, Ronda 1
+# Axie Tactics Dice — Axie Vibeathon 2026, Ronda 1
 
 > Un táctico por turnos donde el dado de cada Axie está hecho de sus seis partes del
 > cuerpo, y ascender no sube un número: evoluciona una parte y reescribe esa cara.

@@ -1,6 +1,6 @@
-# Axie Tactics Dices — How to Play
+# Axie Tactics Dice — How to Play
 
-## 1. What is Axie Tactics Dices?
+## 1. What is Axie Tactics Dice?
 
 A turn-based tactics game on an 8×7 grid where **the die of every Axie is made of its six body parts**. Eyes, ears, horn, mouth, back and tail are the six faces. You don't roll "how hard do I hit" — you roll **what can I do this turn**. Kill the enemy Lord to win.
 

@@ -1,4 +1,4 @@
-# Axie Tactics Dices — Future Vision
+# Axie Tactics Dice — Future Vision
 
 > **Reading guide.** Every section is split into **Implemented now** (what the prototype does today) and **Future vision** (direction, not built). Nothing under "Future vision" exists in the current build.
 
