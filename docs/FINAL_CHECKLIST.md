@@ -50,7 +50,7 @@ Tick only what you have verified yourself.
 - [ ] Pitch
 - [ ] Short description
 - [ ] Full description
-- [ ] Game URL (replace `[PUBLIC_GAME_URL]` in README and SUBMISSION)
+- [ ] Game URL (set: https://axie-new-game-vibeathon.vercel.app/)
 - [ ] GitHub URL
 - [ ] Video URL (replace `VIDEO_URL_HERE`)
 - [ ] Thumbnail

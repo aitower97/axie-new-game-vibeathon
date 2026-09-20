@@ -62,7 +62,7 @@ https://github.com/aitower97/axie-new-game-vibeathon
 
 ## Playable Build
 
-[PUBLIC_GAME_URL — fill in after the Vercel deploy is verified]
+https://axie-new-game-vibeathon.vercel.app/
 
 ## Video
 
